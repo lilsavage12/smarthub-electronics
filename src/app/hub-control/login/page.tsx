@@ -11,10 +11,11 @@ import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from "fire
 import { doc, getDoc, setDoc } from "firebase/firestore"
 
 export default function AdminLogin() {
-    const [email, setEmail] = useState("")
-    const [password, setPassword] = useState("")
-    const [isAuthenticating, setIsAuthenticating] = useState(false)
     const router = useRouter()
+
+    React.useEffect(() => {
+        router.push("/hub-control")
+    }, [router])
 
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault()

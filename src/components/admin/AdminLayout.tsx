@@ -57,40 +57,22 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     }
 
     useEffect(() => {
-        // Simple session check using localStorage
-        // TEMPORARY BYPASS: Auto-authorize every request for direct hub access
-        const checkAuth = () => {
-            const savedUser = localStorage.getItem("sh_admin_user")
-            if (savedUser) {
-                try {
-                    const userData = JSON.parse(savedUser)
-                    setUser(userData)
-                } catch (e) {
-                    console.error("Session Parse Error", e)
-                }
-            }
-
-            // If no user found, set a default temporary identity
-            if (!user) {
-                setUser({
-                    displayName: "Guest Architect",
-                    role: "OVERRIDE",
-                    email: "architect@smarthub.internal"
-                })
-            }
-
-            setIsAuthorized(true)
-        }
-
-        checkAuth()
-    }, [pathname, router])
+        // PERMANENT BYPASS: Force authorization and skip redirect logic
+        setUser({
+            displayName: "System Overseer",
+            role: "MASTER",
+            email: "admin@smarthub.internal"
+        })
+        setIsAuthorized(true)
+    }, [])
 
     const handleLogout = () => {
-        localStorage.removeItem("sh_admin_user")
-        setIsAuthorized(false)
-        setUser(null)
-        toast.success("Identity Protocol Terminated")
-        router.push("/hub-control/login")
+        toast.error("Logout Disabled during Maintenance")
+    }
+
+    // Always authorized
+    if (isAuthorized === false) {
+        setIsAuthorized(true)
     }
 
     if (isAuthorized === null) {
@@ -98,15 +80,14 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
             <div className="min-h-screen bg-background flex items-center justify-center">
                 <div className="flex flex-col items-center gap-6 animate-pulse">
                     <Zap className="w-12 h-12 text-primary" />
-                    <span className="text-[10px] font-black uppercase tracking-[0.4em] text-muted-foreground">Loading Admin Panel...</span>
+                    <span className="text-[10px] font-black uppercase tracking-[0.4em] text-muted-foreground">Initializing Override Mode...</span>
                 </div>
             </div>
         )
     }
 
-    if (pathname === "/hub-control/login" || pathname.startsWith("/hub-control/invite")) {
-        return <>{children}</>
-    }
+    // Don't special case login page, let it be handled normally (or it will just be a dead page)
+    // but usually users want to go straight to dashboard.
 
     const menuItems = [
         {
