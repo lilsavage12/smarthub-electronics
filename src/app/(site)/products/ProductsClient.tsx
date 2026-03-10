@@ -186,7 +186,7 @@ function ProductsContent() {
                                         exit={{ opacity: 0, scale: 0.9 }}
                                         transition={{ duration: 0.4, delay: i * 0.05 }}
                                     >
-                                        <ProductCard product={product} />
+                                        <ProductCard product={product} viewMode={viewMode as any} />
                                     </motion.div>
                                 ))}
                             </AnimatePresence>

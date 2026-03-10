@@ -125,26 +125,22 @@ export default function AuditLogsPage() {
     const [selectedLog, setSelectedLog] = useState<AuditLog | null>(null)
 
     useEffect(() => {
-        // Real-time Audit logs
-        const q = query(collection(db, "audit_logs"), orderBy("timestamp", "desc"), limit(100))
-        const unsubscribe = onSnapshot(q, (snapshot) => {
-            if (snapshot.empty) {
-                // Seed with mock data if DB is empty for UI demonstration
-                setLogs(MOCK_LOGS)
-            } else {
-                const logsData = snapshot.docs.map(doc => ({
-                    id: doc.id,
-                    ...doc.data()
-                })) as AuditLog[]
-                setLogs(logsData)
+        const fetchLogs = async () => {
+            try {
+                const res = await fetch("/api/audit")
+                if (res.ok) {
+                    const data = await res.json()
+                    setLogs(data)
+                }
+            } catch (error) {
+                console.error("Audit fetch error:", error)
+            } finally {
+                setLoading(false)
             }
-            setLoading(false)
-        }, (error) => {
-            console.error("Audit Vault Sync Error:", error)
-            setLogs(MOCK_LOGS)
-            setLoading(false)
-        })
-        return () => unsubscribe()
+        }
+        fetchLogs()
+        const interval = setInterval(fetchLogs, 10000)
+        return () => clearInterval(interval)
     }, [])
 
     const filteredLogs = logs.filter(log => {

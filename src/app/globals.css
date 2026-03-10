@@ -99,3 +99,111 @@
 .hero-gradient {
   background: radial-gradient(circle at top center, rgba(59, 130, 246, 0.15) 0%, transparent 70%);
 }
+
+@media print {
+  @page {
+    margin: 1.5cm;
+    size: A4;
+  }
+
+  body {
+    background: white !important;
+    color: black !important;
+    font-size: 11pt;
+  }
+
+  .print-area {
+    visibility: visible !important;
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    margin: 0;
+    padding: 20px !important;
+  }
+
+  .no-print,
+  nav,
+  footer,
+  button {
+    display: none !important;
+  }
+
+  .rounded-2xl,
+  .rounded-3xl,
+  .rounded-\[3\.5rem\],
+  .rounded-xl,
+  .rounded-lg,
+  .rounded-\[2\.5rem\] {
+    border-radius: 4px !important;
+  }
+
+  .bg-muted,
+  .bg-card,
+  .bg-slate-50,
+  .bg-white,
+  .bg-slate-900 {
+    background: transparent !important;
+    border: 1px solid #ddd !important;
+    box-shadow: none !important;
+  }
+
+  .shadow-2xl,
+  .shadow-xl,
+  .shadow-lg,
+  .shadow-md,
+  .shadow-sm {
+    box-shadow: none !important;
+  }
+
+  table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+    page-break-inside: auto;
+  }
+
+  tr {
+    page-break-inside: avoid;
+    page-break-after: auto;
+  }
+
+  th,
+  td {
+    border: 1px solid #ddd !important;
+    padding: 8px 12px !important;
+    color: black !important;
+  }
+
+  th {
+    background-color: #f8f9fa !important;
+    font-weight: bold !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* Force dark text on everything for legibility */
+  * {
+    color: black !important;
+    text-shadow: none !important;
+  }
+
+  /* Specifically keep badges colored or outlined */
+  .bg-emerald-100,
+  .text-emerald-600 {
+    background: transparent !important;
+    color: #059669 !important;
+    border: 1px solid #059669 !important;
+  }
+
+  .bg-slate-100,
+  .text-slate-600 {
+    background: transparent !important;
+    color: #475569 !important;
+    border: 1px solid #475569 !important;
+  }
+
+  .text-slate-400,
+  .text-muted-foreground {
+    color: #475569 !important;
+  }
+}

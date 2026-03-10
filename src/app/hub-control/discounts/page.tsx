@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState } from "react"
+import React, { useState, useEffect } from "react"
 import {
     Percent, Tag, Calendar, Plus,
     Search, Filter, MoreHorizontal, Edit2,
@@ -14,33 +14,29 @@ import { motion, AnimatePresence } from "framer-motion"
 import { cn } from "@/lib/utils"
 import { toast } from "react-hot-toast"
 
-const SAMPLE_DISCOUNTS = [
-    { id: "DIS-001", code: "HUB-Z-2026", type: "Percentage", value: "15%", usage: "242 / 1000", status: "Active", statusColor: "text-emerald-500 bg-emerald-50", campaign: "2026 Season Launch" },
-    { id: "DIS-002", code: "TITAN-FLASH", type: "Fixed Amount", value: "$100", usage: "48 / 50", status: "Near Limit", statusColor: "text-amber-500 bg-amber-50", campaign: "Titanium Flash Sale" },
-    { id: "DIS-003", code: "NEW-OFFICER", type: "Percentage", value: "10%", usage: "12", status: "Active", statusColor: "text-emerald-500 bg-emerald-50", campaign: "New Member Protocol" },
-    { id: "DIS-004", code: "LEGACY-FREE", type: "Free Shipping", value: "$0", usage: "85", status: "Active", statusColor: "text-emerald-500 bg-emerald-50", campaign: "Loyalty Appreciation" },
-]
-
 export default function DiscountsPage() {
     const [discounts, setDiscounts] = useState<any[]>([])
     const [loadingParams, setLoadingParams] = useState(true)
-    const [newDiscount, setNewDiscount] = useState({ code: "", type: "Percentage", value: "", uses: "" })
+    const [newDiscount, setNewDiscount] = useState<{ id?: string, code: string, type: string, value: string, maxUses: string }>({ code: "", type: "Percentage", value: "", maxUses: "" })
 
-    const [upcomingOffer, setUpcomingOffer] = useState({ name: "Holiday Sale", startsIn: "12 days", reach: "4.2K Units", progress: 65 })
-    const [editPromo, setEditPromo] = useState({ name: "", startsIn: "", reach: "", progress: 65 })
+    const [upcomingOffer, setUpcomingOffer] = useState({ title: "Holiday Sale", subtitle: "Ends Soon", discountCode: "", startsIn: "12 days", targetReach: "4.2K Units", progress: 65 })
+    const [editPromo, setEditPromo] = useState({ title: "", subtitle: "", discountCode: "", startsIn: "", targetReach: "", progress: 65 })
 
     const [isNewCodeOpen, setIsNewCodeOpen] = useState(false)
+    const [isEditCodeOpen, setIsEditCodeOpen] = useState(false)
     const [isEditPromoOpen, setIsEditPromoOpen] = useState(false)
 
     const [isPromoActive, setIsPromoActive] = useState(false)
     const [loadingPromo, setLoadingPromo] = useState(false)
 
     const handleNewCode = () => {
+        setNewDiscount({ code: "", type: "Percentage", value: "", maxUses: "" })
         setIsNewCodeOpen(true)
     }
 
     const closeNewCode = () => {
         setIsNewCodeOpen(false)
+        setIsEditCodeOpen(false)
     }
 
     const fetchDiscounts = async () => {
@@ -57,14 +53,31 @@ export default function DiscountsPage() {
         }
     }
 
-    React.useEffect(() => {
-        fetchDiscounts()
-    }, [])
-
-
-    const handleAction = (id: string) => {
-        toast(`Accessing protocol logs for ${id}`, { icon: "📈" })
+    const fetchBanner = async () => {
+        try {
+            const res = await fetch("/api/banner")
+            if (res.ok) {
+                const data = await res.json()
+                if (data && data.title) {
+                    setUpcomingOffer({
+                        title: data.title,
+                        subtitle: data.subtitle,
+                        discountCode: data.discountCode || "",
+                        startsIn: data.startsIn || "",
+                        targetReach: data.targetReach || "",
+                        progress: data.progress || 0
+                    })
+                }
+            }
+        } catch (error) {
+            console.error(error)
+        }
     }
+
+    useEffect(() => {
+        fetchDiscounts()
+        fetchBanner()
+    }, [])
 
     const deleteDiscount = async (id: string, code: string) => {
         try {
@@ -95,6 +108,78 @@ export default function DiscountsPage() {
         }
     }
 
+    const handleEditCode = (disc: any) => {
+        setNewDiscount({
+            id: disc.id,
+            code: disc.code,
+            type: disc.type,
+            value: disc.value === "$0" ? "" : disc.value,
+            maxUses: disc.maxUses ? disc.maxUses.toString() : ""
+        })
+        setIsEditCodeOpen(true)
+    }
+
+    const handleSubmitCode = async () => {
+        if (!newDiscount.code || (!newDiscount.value && newDiscount.type !== "Free Shipping")) {
+            toast.error("Please fill in required fields.");
+            return;
+        }
+
+        try {
+            const method = isEditCodeOpen ? "PATCH" : "POST"
+            const url = isEditCodeOpen ? `/api/discounts/${newDiscount.id}` : "/api/discounts"
+
+            const payload = {
+                code: newDiscount.code,
+                type: newDiscount.type,
+                value: newDiscount.type === "Free Shipping" ? "$0" : newDiscount.value,
+            } as any
+            if (!isEditCodeOpen) {
+                payload.maxUses = newDiscount.maxUses || null
+            } else if (newDiscount.maxUses !== undefined) {
+                payload.maxUses = newDiscount.maxUses ? parseInt(newDiscount.maxUses) : null
+            }
+
+
+            const res = await fetch(url, {
+                method,
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload)
+            })
+
+            if (res.ok) {
+                toast.success(isEditCodeOpen ? "Discount updated successfully." : "Discount created & broadcasted.")
+                setNewDiscount({ code: "", type: "Percentage", value: "", maxUses: "" })
+                fetchDiscounts()
+                closeNewCode()
+            } else {
+                const err = await res.json()
+                toast.error(err.error || "Failed to process request")
+            }
+        } catch (err) {
+            toast.error("Network error processing code")
+        }
+    }
+
+    const handleSaveBanner = async () => {
+        try {
+            const res = await fetch("/api/banner", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(editPromo)
+            })
+            if (res.ok) {
+                setUpcomingOffer(editPromo)
+                toast.success("Banner updated on Home Page.")
+                setIsEditPromoOpen(false)
+            } else {
+                toast.error("Failed to update banner")
+            }
+        } catch (error) {
+            toast.error("Network error")
+        }
+    }
+
     const handleStartPromo = () => {
         setLoadingPromo(true)
         const tid = toast.loading("Broadcasting holiday sale protocol to all nodes...")
@@ -105,10 +190,8 @@ export default function DiscountsPage() {
         }, 2000)
     }
 
-
-
     return (
-        <div className="flex flex-col gap-6 max-w-6xl mx-auto">
+        <div className="flex flex-col gap-6 max-w-6xl mx-auto mb-20">
             {/* Header */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div className="flex flex-col gap-0.5">
@@ -124,28 +207,6 @@ export default function DiscountsPage() {
                         NEW CODE
                     </Button>
                 </div>
-            </div>
-
-            {/* Campaign KPIs */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                {[
-                    { label: "Active Coupons", value: "12 Codes", icon: <Tag size={16} className="text-blue-500" />, sub: "Targeting 8.4% CR" },
-                    { label: "Total Saved", value: "$4,245", icon: <DollarSign size={16} className="text-emerald-500" />, sub: "Value distributed" },
-                    { label: "Redemptions", value: "842", icon: <RefreshCw size={16} className="text-amber-500" />, sub: "+14% weekly shift" },
-                    { label: "Security", value: "Alpha", icon: <ShieldCheck size={16} className="text-primary" />, sub: "Always active" }
-                ].map((stat, i) => (
-                    <Card key={i} className="rounded-xl border-border shadow-sm p-4 bg-card flex flex-col gap-3 group hover:shadow-md transition-all cursor-pointer relative overflow-hidden">
-                        <div className="absolute inset-0 bg-primary/5 opacity-0 group-hover:opacity-100 transition-opacity" />
-                        <div className="flex items-center justify-between relative z-10">
-                            <span className="text-[9px] font-black uppercase tracking-[0.2em] text-muted-foreground opacity-60 leading-none">{stat.label}</span>
-                            <div className="p-1.5 bg-muted rounded-md relative z-10 group-hover:bg-primary/20 transition-colors">{stat.icon}</div>
-                        </div>
-                        <div className="flex flex-col relative z-10">
-                            <span className="text-2xl font-black italic tracking-tighter text-foreground leading-none">{stat.value}</span>
-                            <span className="text-[8px] font-bold text-muted-foreground uppercase mt-1.5">{stat.sub}</span>
-                        </div>
-                    </Card>
-                ))}
             </div>
 
             <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 mb-8">
@@ -206,6 +267,15 @@ export default function DiscountsPage() {
                                                     <Button
                                                         onClick={(e) => {
                                                             e.stopPropagation()
+                                                            handleEditCode(disc)
+                                                        }}
+                                                        size="icon" variant="ghost" className="h-8 w-8 text-blue-500 hover:text-blue-600 rounded-md"
+                                                    >
+                                                        <Edit2 size={14} />
+                                                    </Button>
+                                                    <Button
+                                                        onClick={(e) => {
+                                                            e.stopPropagation()
                                                             deleteDiscount(disc.id, disc.code)
                                                         }}
                                                         size="icon" variant="ghost" className="h-8 w-8 text-red-500 hover:text-red-600 rounded-md"
@@ -226,7 +296,7 @@ export default function DiscountsPage() {
                 <div className="flex flex-col gap-6">
                     <Card className="rounded-2xl border-border shadow-sm overflow-hidden bg-card transition-colors">
                         <CardHeader className="p-5 border-b border-border bg-slate-900 dark:bg-slate-950 text-white flex flex-row items-center justify-between">
-                            <CardTitle className="text-xs font-black italic uppercase tracking-tighter">Upcoming Offer</CardTitle>
+                            <CardTitle className="text-xs font-black italic uppercase tracking-tighter">Home Page Banner</CardTitle>
                             <Button size="icon" variant="ghost" className="h-6 w-6 text-white/60 hover:text-white" onClick={() => {
                                 setEditPromo(upcomingOffer)
                                 setIsEditPromoOpen(true)
@@ -240,51 +310,45 @@ export default function DiscountsPage() {
                                     <Gift size={24} className="text-primary" />
                                 </div>
                                 <div className="flex flex-col">
-                                    <h4 className="text-[11px] font-black uppercase text-foreground">{upcomingOffer.name}</h4>
-                                    <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest">Starts in {upcomingOffer.startsIn}</p>
+                                    <h4 className="text-[11px] font-black uppercase text-foreground">{upcomingOffer.title}</h4>
+                                    <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest">{upcomingOffer.subtitle}</p>
                                 </div>
                             </div>
                             <div className="p-4 bg-muted border border-border rounded-xl flex flex-col gap-3">
                                 <div className="flex justify-between items-center text-[9px] font-black uppercase tracking-widest">
                                     <span className="text-muted-foreground opacity-60">Estimated Reach</span>
-                                    <span className="text-foreground">{upcomingOffer.reach}</span>
+                                    <span className="text-foreground">{upcomingOffer.targetReach}</span>
                                 </div>
-                                <div className="h-1 w-full bg-muted-foreground/20 rounded-full overflow-hidden">
-                                    <div className="h-full bg-primary" style={{ width: `${upcomingOffer.progress}%` }} />
+                                <div className="flex justify-between items-center text-[9px] font-black uppercase tracking-widest">
+                                    <span className="text-muted-foreground opacity-60">Discount Code</span>
+                                    <span className="text-primary italic">{upcomingOffer.discountCode || "N/A"}</span>
+                                </div>
+                                <div className="flex flex-col gap-1.5 mt-2">
+                                    <div className="flex justify-between items-center text-[9px] font-black uppercase tracking-widest">
+                                        <span className="text-muted-foreground opacity-60">Funding Progress</span>
+                                        <span className="text-primary">{upcomingOffer.progress}%</span>
+                                    </div>
+                                    <div className="h-1.5 w-full bg-border rounded-full overflow-hidden">
+                                        <motion.div
+                                            initial={{ width: 0 }}
+                                            animate={{ width: `${upcomingOffer.progress}%` }}
+                                            className="h-full bg-primary rounded-full"
+                                        />
+                                    </div>
                                 </div>
                             </div>
-                            {isPromoActive ? (
-                                <div className="flex items-center justify-center h-10 bg-emerald-500/10 text-emerald-500 rounded-lg font-black italic tracking-widest uppercase text-[9px] border border-emerald-500/20">
-                                    <CheckCircle2 size={14} className="mr-2" />
-                                    PROMO RUNNING
-                                </div>
-                            ) : (
-                                <Button
-                                    onClick={handleStartPromo}
-                                    disabled={loadingPromo}
-                                    className="w-full bg-primary text-primary-foreground hover:opacity-90 h-10 rounded-lg font-black italic tracking-widest uppercase text-[9px] shadow-lg shadow-primary/10 transition-all active:scale-95"
-                                >
-                                    {loadingPromo ? <RefreshCw className="animate-spin" size={14} /> : "START PROMO"}
-                                </Button>
-                            )}
-                        </CardContent>
-                    </Card>
 
-                    <Card className="rounded-xl border-border shadow-sm overflow-hidden bg-card p-5">
-                        <div className="flex flex-col gap-4">
-                            <div className="flex items-center gap-2">
-                                <Zap size={16} className="text-primary" fill="currentColor" />
-                                <span className="text-[9px] font-black uppercase tracking-widest italic opacity-80 text-foreground">Conversion Signal</span>
-                            </div>
-                            <p className="text-[10px] font-medium leading-relaxed font-inter text-muted-foreground italic">"FREE-SHIP codes have a 12% higher checkout completion rate compared to $ discounts."</p>
-                        </div>
+                            <Button onClick={handleStartPromo} disabled={isPromoActive || loadingPromo} className={cn("w-full h-12 rounded-xl font-black italic tracking-widest uppercase text-[10px]", isPromoActive ? "bg-emerald-500 hover:bg-emerald-600 text-white" : "")}>
+                                {loadingPromo ? "Initiating..." : isPromoActive ? "Sale Currently Active" : "Force Start Phase"}
+                            </Button>
+                        </CardContent>
                     </Card>
                 </div>
             </div>
 
-            {/* New Code Overlay Modal */}
+            {/* Modal: New / Edit Discount Code */}
             <AnimatePresence>
-                {isNewCodeOpen && (
+                {(isNewCodeOpen || isEditCodeOpen) && (
                     <motion.div
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
@@ -300,14 +364,14 @@ export default function DiscountsPage() {
                             <button onClick={closeNewCode} className="absolute top-4 right-4 text-muted-foreground hover:text-foreground">
                                 <XCircle size={20} />
                             </button>
-                            <h2 className="text-xl font-black italic uppercase tracking-tight mb-6">Create New Discount</h2>
+                            <h2 className="text-xl font-black italic uppercase tracking-tight mb-6">{isEditCodeOpen ? "Edit Promo Code" : "Initialize New Code"}</h2>
 
                             <div className="flex flex-col gap-4">
                                 <div className="flex flex-col gap-2">
-                                    <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">DISCOUNT CODE</label>
+                                    <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">PROMO CODE</label>
                                     <input
                                         type="text"
-                                        placeholder="e.g. SUMMER2026"
+                                        placeholder="e.g. SUMMER26"
                                         className="h-10 border border-border bg-muted/50 rounded-lg px-3 text-sm font-bold uppercase"
                                         value={newDiscount.code}
                                         onChange={(e) => setNewDiscount({ ...newDiscount, code: e.target.value.toUpperCase() })}
@@ -316,7 +380,7 @@ export default function DiscountsPage() {
 
                                 <div className="grid grid-cols-2 gap-4">
                                     <div className="flex flex-col gap-2">
-                                        <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">TYPE</label>
+                                        <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">DISCOUNT TYPE</label>
                                         <select
                                             className="h-10 border border-border bg-muted/50 rounded-lg px-3 text-sm font-bold"
                                             value={newDiscount.type}
@@ -331,57 +395,28 @@ export default function DiscountsPage() {
                                         <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">VALUE</label>
                                         <input
                                             type="text"
-                                            placeholder="e.g. 15%"
-                                            className="h-10 border border-border bg-muted/50 rounded-lg px-3 text-sm font-bold"
-                                            value={newDiscount.value}
+                                            placeholder={newDiscount.type === "Percentage" ? "e.g. 15%" : "$100"}
+                                            className="h-10 border border-border bg-muted/50 rounded-lg px-3 text-sm font-bold disabled:opacity-50"
+                                            value={newDiscount.type === "Free Shipping" ? "Free" : newDiscount.value}
+                                            disabled={newDiscount.type === "Free Shipping"}
                                             onChange={(e) => setNewDiscount({ ...newDiscount, value: e.target.value })}
                                         />
                                     </div>
                                 </div>
 
                                 <div className="flex flex-col gap-2">
-                                    <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">MAXIMUM USES</label>
+                                    <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">MAX USES (OPTIONAL)</label>
                                     <input
                                         type="number"
-                                        placeholder="Leave empty for unlimited"
+                                        placeholder="e.g. 1000"
                                         className="h-10 border border-border bg-muted/50 rounded-lg px-3 text-sm font-bold"
-                                        value={newDiscount.uses}
-                                        onChange={(e) => setNewDiscount({ ...newDiscount, uses: e.target.value })}
+                                        value={newDiscount.maxUses}
+                                        onChange={(e) => setNewDiscount({ ...newDiscount, maxUses: e.target.value })}
                                     />
                                 </div>
 
-                                <Button onClick={async () => {
-                                    if (!newDiscount.code || (!newDiscount.value && newDiscount.type !== "Free Shipping")) {
-                                        toast.error("Please fill in required fields.");
-                                        return;
-                                    }
-
-                                    try {
-                                        const res = await fetch("/api/discounts", {
-                                            method: "POST",
-                                            headers: { "Content-Type": "application/json" },
-                                            body: JSON.stringify({
-                                                code: newDiscount.code,
-                                                type: newDiscount.type,
-                                                value: newDiscount.type === "Free Shipping" ? "$0" : newDiscount.value,
-                                                maxUses: newDiscount.uses || null
-                                            })
-                                        })
-
-                                        if (res.ok) {
-                                            toast.success("Discount created & broadcasted.")
-                                            setNewDiscount({ code: "", type: "Percentage", value: "", uses: "" })
-                                            fetchDiscounts()
-                                            closeNewCode()
-                                        } else {
-                                            const err = await res.json()
-                                            toast.error(err.error || "Failed to create code")
-                                        }
-                                    } catch (err) {
-                                        toast.error("Network error creating code")
-                                    }
-                                }} className="h-12 w-full mt-4 bg-primary text-white font-black italic tracking-widest uppercase text-xs rounded-xl shadow-lg shadow-primary/20">
-                                    Deploy Code
+                                <Button onClick={handleSubmitCode} className="h-12 w-full mt-4 bg-primary text-white font-black italic tracking-widest uppercase text-xs rounded-xl shadow-lg shadow-primary/20">
+                                    {isEditCodeOpen ? "Save Changes" : "Deploy Code"}
                                 </Button>
                             </div>
                         </motion.div>
@@ -407,17 +442,27 @@ export default function DiscountsPage() {
                             <button onClick={() => setIsEditPromoOpen(false)} className="absolute top-4 right-4 text-muted-foreground hover:text-foreground">
                                 <XCircle size={20} />
                             </button>
-                            <h2 className="text-xl font-black italic uppercase tracking-tight mb-6">Edit Upcoming Offer</h2>
+                            <h2 className="text-xl font-black italic uppercase tracking-tight mb-6">Edit Home Banner</h2>
 
                             <div className="flex flex-col gap-4">
                                 <div className="flex flex-col gap-2">
-                                    <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">CAMPAIGN NAME</label>
+                                    <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">CAMPAIGN TITLE</label>
                                     <input
                                         type="text"
                                         placeholder="e.g. Holiday Sale"
-                                        className="h-10 border border-border bg-muted/50 rounded-lg px-3 text-sm font-bold uppercase"
-                                        value={editPromo.name}
-                                        onChange={(e) => setEditPromo({ ...editPromo, name: e.target.value })}
+                                        className="h-10 border border-border bg-muted/50 rounded-lg px-3 text-sm font-bold"
+                                        value={editPromo.title}
+                                        onChange={(e) => setEditPromo({ ...editPromo, title: e.target.value })}
+                                    />
+                                </div>
+                                <div className="flex flex-col gap-2">
+                                    <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">CAMPAIGN SUBTITLE</label>
+                                    <input
+                                        type="text"
+                                        placeholder="e.g. Get 20% Off All Items"
+                                        className="h-10 border border-border bg-muted/50 rounded-lg px-3 text-sm font-bold"
+                                        value={editPromo.subtitle}
+                                        onChange={(e) => setEditPromo({ ...editPromo, subtitle: e.target.value })}
                                     />
                                 </div>
 
@@ -438,10 +483,21 @@ export default function DiscountsPage() {
                                             type="text"
                                             placeholder="e.g. 4.2K Units"
                                             className="h-10 border border-border bg-muted/50 rounded-lg px-3 text-sm font-bold"
-                                            value={editPromo.reach}
-                                            onChange={(e) => setEditPromo({ ...editPromo, reach: e.target.value })}
+                                            value={editPromo.targetReach}
+                                            onChange={(e) => setEditPromo({ ...editPromo, targetReach: e.target.value })}
                                         />
                                     </div>
+                                </div>
+
+                                <div className="flex flex-col gap-2">
+                                    <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">DISCOUNT CODE</label>
+                                    <input
+                                        type="text"
+                                        placeholder="e.g. HOLIDAY20"
+                                        className="h-10 border border-border bg-muted/50 rounded-lg px-3 text-sm font-bold uppercase"
+                                        value={editPromo.discountCode}
+                                        onChange={(e) => setEditPromo({ ...editPromo, discountCode: e.target.value.toUpperCase() })}
+                                    />
                                 </div>
 
                                 <div className="flex flex-col gap-2">
@@ -456,11 +512,7 @@ export default function DiscountsPage() {
                                     />
                                 </div>
 
-                                <Button onClick={() => {
-                                    setUpcomingOffer(editPromo)
-                                    toast.success("Upcoming offer details synced.")
-                                    setIsEditPromoOpen(false)
-                                }} className="h-12 w-full mt-4 bg-primary text-white font-black italic tracking-widest uppercase text-xs rounded-xl shadow-lg shadow-primary/20">
+                                <Button onClick={handleSaveBanner} className="h-12 w-full mt-4 bg-primary text-white font-black italic tracking-widest uppercase text-xs rounded-xl shadow-lg shadow-primary/20">
                                     Save Changes
                                 </Button>
                             </div>

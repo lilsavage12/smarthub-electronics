@@ -6,14 +6,11 @@ export async function GET(req: Request) {
     const productId = searchParams.get("productId")
 
     try {
-        if (productId) {
-            const reviews = await prisma.review.findMany({
-                where: { productId },
-                orderBy: { createdAt: "desc" }
-            })
-            return NextResponse.json(reviews)
-        }
-        return NextResponse.json({ error: "Product ID required" }, { status: 400 })
+        const reviews = await prisma.review.findMany({
+            where: productId ? { productId } : {},
+            orderBy: { createdAt: "desc" }
+        })
+        return NextResponse.json(reviews)
     } catch (error) {
         return NextResponse.json({ error: "Fetch failed" }, { status: 500 })
     }

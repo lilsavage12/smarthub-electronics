@@ -27,22 +27,20 @@ export default function InventoryPage() {
     const [restockAmount, setRestockAmount] = useState(0)
 
     useEffect(() => {
-        const q = query(collection(db, "products"), orderBy("name", "asc"))
-        const unsubscribe = onSnapshot(q, (snapshot) => {
-            const productsData = snapshot.docs.map(doc => ({
-                id: doc.id,
-                ...doc.data()
-            }))
-            // Deduplicate products by ID
-            const uniqueProducts = Array.from(new Map(productsData.map((item: any) => [item.id, item])).values())
-            setProducts(uniqueProducts)
-            setIsLoading(false)
-        }, (error) => {
-            console.error("Inventory Sync Error:", error)
-            toast.error("Critical: Inventory Synchronization Failure")
-            setIsLoading(false)
-        })
-        return () => unsubscribe()
+        const fetchInventory = async () => {
+            try {
+                const res = await fetch("/api/products")
+                if (res.ok) {
+                    const data = await res.json()
+                    setProducts(data)
+                }
+            } catch (error) {
+                console.error("Inventory Fetch Error:", error)
+            } finally {
+                setIsLoading(false)
+            }
+        }
+        fetchInventory()
     }, [])
 
     const handleExport = () => {
@@ -68,12 +66,25 @@ export default function InventoryPage() {
         if (amount <= 0) return toast.error("Invalid restock quantity")
         const toastId = toast.loading("Updating inventory registers...")
         try {
-            const productRef = doc(db, "products", productId)
-            await updateDoc(productRef, {
-                stock: increment(amount),
-                updatedAt: serverTimestamp()
+            const product = products.find(p => p.id === productId)
+            if (!product) throw new Error("Product not found")
+
+            const res = await fetch(`/api/products/${productId}`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    ...product,
+                    stock: (product.stock || 0) + amount
+                })
             })
+
+            if (!res.ok) throw new Error("Failed to update inventory")
+
             toast.success(`Inventory updated (+${amount} units)`, { id: toastId })
+
+            // Refresh local state
+            setProducts(products.map(p => p.id === productId ? { ...p, stock: (p.stock || 0) + amount } : p))
+
             setIsRestockModalOpen(false)
             setRestockAmount(0)
         } catch (error) {
@@ -82,17 +93,25 @@ export default function InventoryPage() {
     }
 
     const handleApproveOrder = async () => {
-        const lowStockItems = products.filter(p => p.stock < 10)
+        const lowStockItems = products.filter(p => (p.stock || 0) < 10)
         if (lowStockItems.length === 0) return toast.success("No critical stock levels detected")
 
         const toastId = toast.loading("Running bulk restock...")
         try {
             await Promise.all(lowStockItems.map(p =>
-                updateDoc(doc(db, "products", p.id), {
-                    stock: increment(20),
-                    updatedAt: serverTimestamp()
+                fetch(`/api/products/${p.id}`, {
+                    method: "PATCH",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        ...p,
+                        stock: (p.stock || 0) + 20
+                    })
                 })
             ))
+
+            // Refresh local state
+            setProducts(products.map(p => (p.stock || 0) < 10 ? { ...p, stock: (p.stock || 0) + 20 } : p))
+
             toast.success("Bulk restock authorized (+20 units to all critical SKUs)", { id: toastId })
         } catch (error) {
             toast.error("Bulk restock protocol failed", { id: toastId })

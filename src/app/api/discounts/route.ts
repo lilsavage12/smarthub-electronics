@@ -16,7 +16,9 @@ export async function POST(req: Request) {
                 code,
                 type,
                 value,
-                maxUses: maxUses ? parseInt(maxUses) : null
+                maxUses: maxUses ? parseInt(maxUses) : null,
+                campaign: body.campaign || "General Promotion",
+                status: body.status || "Active"
             }
         })
         return NextResponse.json(discount)

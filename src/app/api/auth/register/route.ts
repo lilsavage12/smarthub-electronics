@@ -5,30 +5,35 @@ import { cookies } from "next/headers"
 
 export async function POST(req: Request) {
     try {
-        const { email, password } = await req.json()
-        const cookieStore = await cookies()
-        const deviceId = cookieStore.get('deviceId')?.value
+        const { email, password, displayName } = await req.json()
 
-        const user = await prisma.user.findUnique({
+        if (!email || !password || !displayName) {
+            return NextResponse.json({ error: "Missing required fields" }, { status: 400 })
+        }
+
+        const existingUser = await prisma.user.findUnique({
             where: { email }
         })
 
-        if (!user || !user.password) {
-            return NextResponse.json({ error: "Invalid credentials" }, { status: 401 })
+        if (existingUser) {
+            return NextResponse.json({ error: "Email already registered" }, { status: 400 })
         }
 
-        const isMatch = await bcrypt.compare(password, user.password)
+        const hashedPassword = await bcrypt.hash(password, 10)
 
-        if (!isMatch) {
-            // Also maintain legacy plain-text support for the mock ADMIN user
-            if (user.password !== password) {
-                return NextResponse.json({ error: "Invalid credentials" }, { status: 401 })
+        const user = await prisma.user.create({
+            data: {
+                email,
+                password: hashedPassword,
+                displayName,
+                role: "USER"
             }
-        }
+        })
 
-        // Link Device Session
+        const cookieStore = await cookies()
+        const deviceId = cookieStore.get('deviceId')?.value
+
         if (deviceId) {
-            // Upsert the session link
             const session = await prisma.deviceSession.findUnique({ where: { deviceId } })
             if (session) {
                 await prisma.deviceSession.update({
@@ -46,8 +51,6 @@ export async function POST(req: Request) {
             }
         }
 
-        // Return user data (in a real app, you would also set an auth token cookie here if needed)
-        // Since the prompt asks to track sessions via device cookie, deviceId acts as a session token here.
         return NextResponse.json({
             success: true,
             user: {

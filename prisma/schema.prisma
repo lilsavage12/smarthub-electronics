@@ -15,6 +15,21 @@ model User {
   password    String? // For simple local auth if needed
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+  sessions    DeviceSession[]
+}
+
+model DeviceSession {
+  id        String   @id @default(cuid())
+  deviceId  String   @unique
+  userId    String?
+  cart      String   @default("[]") // JSON string for cart contents
+  viewed    String   @default("[]") // JSON string for viewed products
+  flashSale String   @default("[]") // JSON string for flash selections
+  tradeIns  String   @default("[]") // JSON string for trade-in interactions
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model Product {
@@ -104,4 +119,29 @@ model Discount {
   campaign  String   @default("General Promotion")
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model Banner {
+  id           String   @id @default(cuid())
+  title        String
+  subtitle     String
+  discountCode String?
+  startsIn     String?
+  progress     Int      @default(0)
+  targetReach  String?
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+model AuditLog {
+  id        String   @id @default(cuid())
+  action    String
+  category  String   // 'Product' | 'Order' | 'User' | 'System' | 'Security'
+  details   String
+  adminId   String
+  adminName String
+  adminEmail String
+  severity  String   // 'Low' | 'Medium' | 'High' | 'Critical'
+  metadata  String?  // JSON string
+  timestamp DateTime @default(now())
 }

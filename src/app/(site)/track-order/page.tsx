@@ -12,39 +12,59 @@ import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { cn } from "@/lib/utils"
 import Link from "next/link"
+import { toast } from "react-hot-toast"
 
 export default function TrackOrderPage() {
     const [orderNumber, setOrderNumber] = useState("")
     const [isSearching, setIsSearching] = useState(false)
     const [trackData, setTrackData] = useState<any>(null)
 
-    const handleTrack = (e: React.FormEvent) => {
+    const handleTrack = async (e: React.FormEvent) => {
         e.preventDefault()
         if (!orderNumber) return
 
         setIsSearching(true)
-        // Simulate API call
-        setTimeout(() => {
-            setTrackData({
-                orderNumber: orderNumber.toUpperCase(),
-                status: "In Transit",
-                statusDesc: "Handed over to G4S Logistics for Nationwide Dispatch.",
-                lastLocation: "Nairobi Central Hub",
-                eta: "Tomorrow, by 4:00 PM",
-                timeline: [
-                    { status: "Delivered", date: "--", done: false },
-                    { status: "In Transit", date: "March 07, 10:45 AM", done: true, current: true },
-                    { status: "Quality Check", date: "March 06, 04:20 PM", done: true },
-                    { status: "Order Received", date: "March 06, 12:15 PM", done: true },
-                ],
-                customer: {
-                    name: "John Doe",
-                    phone: "+254 700 *** 123",
-                    address: "Biashara Street, Nairobi"
+        try {
+            const res = await fetch(`/api/track/${orderNumber.toUpperCase()}`)
+            const data = await res.json()
+
+            if (res.ok) {
+                // Map the DB status to the timeline steps
+                const statusMap: Record<string, number> = {
+                    "PENDING": 0,
+                    "PROCESSING": 1,
+                    "SHIPPED": 2,
+                    "DELIVERED": 3
                 }
-            })
+                const currentStepIdx = statusMap[data.status] ?? 0;
+
+                setTrackData({
+                    orderNumber: data.orderNumber,
+                    status: data.status,
+                    statusDesc: "Live update from SmartHub logistics.",
+                    lastLocation: "Nairobi Central Hub",
+                    eta: data.status === "DELIVERED" ? "Delivered" : "Pending ETA",
+                    timeline: [
+                        { status: "Delivered", date: "--", done: currentStepIdx >= 3, current: currentStepIdx === 3 },
+                        { status: "In Transit", date: "--", done: currentStepIdx >= 2, current: currentStepIdx === 2 },
+                        { status: "Quality Check", date: "--", done: currentStepIdx >= 1, current: currentStepIdx === 1 },
+                        { status: "Order Received", date: new Date(data.createdAt).toLocaleDateString(), done: currentStepIdx >= 0, current: currentStepIdx === 0 },
+                    ],
+                    customer: {
+                        name: data.customerName,
+                        phone: data.customerPhone,
+                        address: data.address
+                    }
+                })
+            } else {
+                toast.error(data.error || "Order not found")
+                setTrackData(null)
+            }
+        } catch (error) {
+            toast.error("Network error fetching tracking.")
+        } finally {
             setIsSearching(false)
-        }, 1500)
+        }
     }
 
     return (

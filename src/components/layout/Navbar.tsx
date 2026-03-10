@@ -8,17 +8,19 @@ import {
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
+import { ThemeToggle } from "@/components/shared/ThemeToggle"
+import { useAuth } from "@/lib/auth-store"
 import { useCart } from "@/lib/cart-store"
 import { useWishlist } from "@/lib/wishlist-store"
 import { useComparison } from "@/lib/comparison-store"
 import { motion, AnimatePresence } from "framer-motion"
-import { ThemeToggle } from "@/components/shared/ThemeToggle"
 import { useRouter } from "next/navigation"
 
 export const Navbar = () => {
     const { totalItems: cartTotal } = useCart()
     const { totalItems: wishlistTotal } = useWishlist()
     const { items: comparisonItems } = useComparison()
+    const { user, logout } = useAuth()
     const comparisonTotal = comparisonItems.length
     const [isScrolled, setIsScrolled] = useState(false)
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
@@ -124,6 +126,24 @@ export const Navbar = () => {
                         </div>
 
                         <div className="flex items-center gap-2">
+                            {mounted && user ? (
+                                <div className="hidden sm:flex items-center gap-3 bg-muted/50 rounded-full pr-3 pl-1 py-1 mr-2 border border-border">
+                                    <div className="w-6 h-6 rounded-full bg-primary flex items-center justify-center text-primary-foreground text-[10px] font-black uppercase">
+                                        {user.displayName?.charAt(0) || user.email.charAt(0)}
+                                    </div>
+                                    <span className="text-[10px] font-black uppercase tracking-widest leading-none max-w-[80px] truncate">{user.displayName || user.email.split('@')[0]}</span>
+                                    <button onClick={logout} className="text-muted-foreground hover:text-red-500 transition-colors ml-1">
+                                        <X className="w-3.5 h-3.5" />
+                                    </button>
+                                </div>
+                            ) : mounted && !user && (
+                                <Link href="/login" className="hidden sm:flex mr-2">
+                                    <Button variant="ghost" size="icon" className="h-8 w-8 hover:text-primary relative transition-transform hover:scale-110">
+                                        <User className="w-4 h-4" />
+                                    </Button>
+                                </Link>
+                            )}
+
                             <ThemeToggle />
                             <Button
                                 variant="ghost"
@@ -159,12 +179,20 @@ export const Navbar = () => {
                             </Link>
                         ))}
                         <div className="pt-4 flex items-center gap-3">
-                            <Link href="/login" className="flex-1">
-                                <Button className="w-full text-[9px] font-black uppercase tracking-widest italic" variant="outline">Sign In</Button>
-                            </Link>
-                            <Link href="/register" className="flex-1">
-                                <Button className="w-full text-[9px] font-black uppercase tracking-widest italic">Join Now</Button>
-                            </Link>
+                            {user ? (
+                                <Button onClick={logout} className="w-full text-[9px] font-black uppercase tracking-widest italic" variant="outline">
+                                    Sign Out
+                                </Button>
+                            ) : (
+                                <>
+                                    <Link href="/login" className="flex-1">
+                                        <Button className="w-full text-[9px] font-black uppercase tracking-widest italic" variant="outline">Sign In</Button>
+                                    </Link>
+                                    <Link href="/register" className="flex-1">
+                                        <Button className="w-full text-[9px] font-black uppercase tracking-widest italic">Join Now</Button>
+                                    </Link>
+                                </>
+                            )}
                         </div>
                     </motion.div>
                 )}
