@@ -58,24 +58,28 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
 
     useEffect(() => {
         // Simple session check using localStorage
+        // TEMPORARY BYPASS: Auto-authorize every request for direct hub access
         const checkAuth = () => {
             const savedUser = localStorage.getItem("sh_admin_user")
             if (savedUser) {
                 try {
                     const userData = JSON.parse(savedUser)
                     setUser(userData)
-                    setIsAuthorized(true)
                 } catch (e) {
-                    setIsAuthorized(false)
-                    localStorage.removeItem("sh_admin_user")
-                    if (pathname !== "/hub-control/login") router.push("/hub-control/login")
-                }
-            } else {
-                setIsAuthorized(false)
-                if (pathname !== "/hub-control/login" && !pathname.startsWith("/hub-control/invite")) {
-                    router.push("/hub-control/login")
+                    console.error("Session Parse Error", e)
                 }
             }
+
+            // If no user found, set a default temporary identity
+            if (!user) {
+                setUser({
+                    displayName: "Guest Architect",
+                    role: "OVERRIDE",
+                    email: "architect@smarthub.internal"
+                })
+            }
+
+            setIsAuthorized(true)
         }
 
         checkAuth()

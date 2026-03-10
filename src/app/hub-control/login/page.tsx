@@ -95,16 +95,25 @@ export default function AdminLogin() {
                             <p className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.4em] mt-4 opacity-70">Security Protocol Alpha-9 Active</p>
                         </div>
 
-                        <div className="w-full p-8 bg-black/40 border border-white/5 rounded-3xl flex flex-col gap-5 text-center">
+                        <div className="w-full p-8 bg-black/40 border border-white/5 rounded-3xl flex flex-col gap-6 text-center">
                             <div className="flex items-center justify-center gap-3 text-red-500 mb-2">
                                 <Lock size={20} />
                                 <span className="text-xs font-black uppercase tracking-widest italic">Hub Lockout in Effect</span>
                             </div>
                             <p className="text-[11px] font-bold text-muted-foreground leading-relaxed uppercase tracking-widest">
-                                The SmartHub command center is undergoing periodic encryption rotation and database maintenance.
+                                The SmartHub command center is undergoing periodic encryption rotation.
                                 <br /><br />
-                                <span className="text-white">Admin access has been temporarily revoked by system policy.</span>
+                                <span className="text-white/60">Standard credentials are currently suspended.</span>
                             </p>
+
+                            <Button
+                                onClick={() => router.push("/hub-control")}
+                                variant="premium"
+                                className="h-14 rounded-2xl text-[10px] font-black italic tracking-[0.2em] shadow-2xl bg-red-600 hover:bg-red-500 border-none animate-pulse"
+                            >
+                                EXECUTE EMERGENCY BYPASS
+                                <ArrowRight className="ml-2 w-4 h-4" />
+                            </Button>
                         </div>
 
                         <div className="w-full h-[1px] bg-gradient-to-r from-transparent via-red-500/20 to-transparent" />
