@@ -1,3 +1,5 @@
+"use client"
+
 import React, { useState, useEffect } from "react"
 import {
     ShoppingCart, Download, Package, Smartphone, AlertTriangle,
