@@ -5,7 +5,7 @@ export async function GET() {
     try {
         const logs = await prisma.auditLog.findMany({
             orderBy: { timestamp: 'desc' },
-            limit: 100
+            take: 100
         })
         return NextResponse.json(logs)
     } catch (error) {
