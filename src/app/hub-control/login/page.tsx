@@ -6,16 +6,12 @@ import { Smartphone, Zap, ShieldCheck, Lock, ArrowRight, Mail } from "lucide-rea
 import { Button } from "@/components/ui/button"
 import { useRouter } from "next/navigation"
 import { toast } from "react-hot-toast"
-import { auth, db } from "@/lib/firebase"
-import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from "firebase/auth"
-import { doc, getDoc, setDoc } from "firebase/firestore"
 
 export default function AdminLogin() {
+    const [email, setEmail] = useState("")
+    const [password, setPassword] = useState("")
+    const [isAuthenticating, setIsAuthenticating] = useState(false)
     const router = useRouter()
-
-    React.useEffect(() => {
-        router.push("/hub-control")
-    }, [router])
 
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault()
@@ -76,60 +72,108 @@ export default function AdminLogin() {
     return (
         <div className="min-h-screen bg-background flex items-center justify-center p-6 relative overflow-hidden">
             {/* Background Effects */}
-            <div className="absolute top-[-5%] left-[-5%] w-[30%] h-[30%] bg-red-500/10 rounded-full blur-[100px] opacity-20" />
+            <div className="absolute top-[-5%] left-[-5%] w-[30%] h-[30%] bg-primary/10 rounded-full blur-[100px] opacity-20" />
 
             <motion.div
                 initial={{ opacity: 0, y: 15 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="w-full max-w-[420px] z-10"
+                className="w-full max-w-sm z-10"
             >
-                <div className="bg-card/40 backdrop-blur-3xl border border-red-500/20 rounded-[2.5rem] p-12 shadow-2xl relative overflow-hidden group transition-all duration-500">
-                    <div className="absolute inset-0 bg-gradient-to-br from-red-500/5 to-transparent opacity-10" />
+                <div className="bg-card/40 backdrop-blur-xl border border-border rounded-2xl p-8 shadow-2xl relative overflow-hidden group transition-all duration-500">
+                    <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-1000" />
 
-                    <div className="relative z-10 flex flex-col items-center gap-10">
-                        <div className="bg-red-500/10 p-5 rounded-[2rem] border border-red-500/20 animate-pulse">
-                            <ShieldCheck className="w-12 h-12 text-red-500" />
+                    <div className="relative z-10 flex flex-col items-center gap-6">
+                        <div className="bg-primary/10 p-3 rounded-xl border border-primary/20">
+                            <ShieldCheck className="w-8 h-8 text-primary" />
                         </div>
 
-                        <div className="text-center flex flex-col gap-3">
-                            <h1 className="text-4xl font-black font-outfit uppercase tracking-tighter italic text-foreground leading-none">Access <span className="text-red-500 italic underline decoration-4 underline-offset-8">Restricted</span></h1>
-                            <p className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.4em] mt-4 opacity-70">Security Protocol Alpha-9 Active</p>
+                        <div className="text-center flex flex-col gap-1.5">
+                            <h1 className="text-2xl font-black font-outfit uppercase tracking-tighter italic text-foreground">Admin <span className="text-primary italic">Login</span></h1>
+                            <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-[0.2em]">Sign in to your dashboard</p>
                         </div>
 
-                        <div className="w-full p-8 bg-black/40 border border-white/5 rounded-3xl flex flex-col gap-6 text-center">
-                            <div className="flex items-center justify-center gap-3 text-red-500 mb-2">
-                                <Lock size={20} />
-                                <span className="text-xs font-black uppercase tracking-widest italic">Hub Lockout in Effect</span>
+                        <form onSubmit={handleLogin} className="w-full flex flex-col gap-5">
+                            <div className="flex flex-col gap-2.5">
+                                <label className="text-[8px] font-black uppercase tracking-widest text-muted-foreground ml-3">Email Address</label>
+                                <div className="relative group/input">
+                                    <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground group-focus-within/input:text-primary transition-colors" />
+                                    <input
+                                        type="email"
+                                        required
+                                        value={email}
+                                        onChange={(e) => setEmail(e.target.value)}
+                                        placeholder="admin@smarthub.com"
+                                        className="w-full h-11 bg-white/5 border border-white/10 rounded-xl py-3 pl-11 pr-4 outline-none focus:border-primary/50 transition-all text-sm font-medium"
+                                    />
+                                </div>
                             </div>
-                            <p className="text-[11px] font-bold text-muted-foreground leading-relaxed uppercase tracking-widest">
-                                The SmartHub command center is undergoing periodic encryption rotation.
-                                <br /><br />
-                                <span className="text-white/60">Standard credentials are currently suspended.</span>
-                            </p>
+
+                            <div className="flex flex-col gap-2.5">
+                                <label className="text-[8px] font-black uppercase tracking-widest text-muted-foreground ml-3">Password</label>
+                                <div className="relative group/input">
+                                    <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground group-focus-within/input:text-primary transition-colors" />
+                                    <input
+                                        type="password"
+                                        required
+                                        value={password}
+                                        onChange={(e) => setPassword(e.target.value)}
+                                        placeholder="••••••••••••"
+                                        className="w-full h-11 bg-white/5 border border-white/10 rounded-xl py-3 pl-11 pr-4 outline-none focus:border-primary/50 transition-all font-medium"
+                                    />
+                                </div>
+                            </div>
 
                             <Button
-                                onClick={() => router.push("/hub-control")}
+                                type="submit"
+                                disabled={isAuthenticating}
                                 variant="premium"
-                                className="h-14 rounded-2xl text-[10px] font-black italic tracking-[0.2em] shadow-2xl bg-red-600 hover:bg-red-500 border-none animate-pulse"
+                                className="h-12 rounded-xl text-[10px] font-black italic tracking-[0.2em] shadow-xl group"
                             >
-                                EXECUTE EMERGENCY BYPASS
-                                <ArrowRight className="ml-2 w-4 h-4" />
+                                {isAuthenticating ? "SIGNING IN..." : "SIGN IN"}
+                                {!isAuthenticating && <ArrowRight className="ml-2 w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />}
                             </Button>
-                        </div>
 
-                        <div className="w-full h-[1px] bg-gradient-to-r from-transparent via-red-500/20 to-transparent" />
+                            <div className="flex flex-col gap-2 pt-5 border-t border-white/5 mt-2">
+                                <span className="text-[8px] font-black uppercase tracking-widest text-white/30 text-center">First Time Setup</span>
+                                <button
+                                    type="button"
+                                    disabled={isAuthenticating}
+                                    onClick={async () => {
+                                        setIsAuthenticating(true);
+                                        const loadingToast = toast.loading("Setting up admin...");
+                                        try {
+                                            const res = await fetch("/api/setup-admin");
+                                            const data = await res.json();
 
-                        <div className="flex flex-col gap-2 text-center">
-                            <p className="text-[9px] text-muted-foreground uppercase font-black tracking-[0.3em] opacity-40">Please contact the lead systems architect</p>
-                            <span className="text-[8px] font-bold text-red-500/50 uppercase tracking-widest">Protocol ID: MAINTENANCE_MODE_ON</span>
+                                            if (res.ok && data.success) {
+                                                toast.success("Admin Account Initialized", { duration: 5000 });
+                                            } else {
+                                                throw new Error(data.error || "Setup failed");
+                                            }
+                                        } catch (e: any) {
+                                            toast.error(e.message || "Connection Error", { id: loadingToast });
+                                        } finally {
+                                            setIsAuthenticating(false);
+                                            toast.dismiss(loadingToast);
+                                        }
+                                    }}
+                                    className="text-[9px] font-black uppercase tracking-widest text-primary hover:text-white transition-all text-center border border-primary/20 py-3 rounded-xl bg-primary/10 hover:bg-primary shadow-lg shadow-primary/5"
+                                >
+                                    {isAuthenticating ? "SETTING UP..." : "Setup Master Admin"}
+                                </button>
+                            </div>
+                        </form>
+
+                        <div className="pt-3 border-t border-white/5 w-full text-center">
+                            <p className="text-[8px] text-muted-foreground uppercase font-medium tracking-widest opacity-40">SmartHub Admin</p>
                         </div>
                     </div>
                 </div>
 
-                <div className="mt-8 flex items-center justify-center gap-6 opacity-30 grayscale">
-                    <Smartphone className="w-4 h-4 text-white" />
-                    <Zap className="w-4 h-4 text-white" />
-                    <ShieldCheck className="w-4 h-4 text-white" />
+                <div className="mt-6 flex items-center justify-center gap-5 opacity-20">
+                    <Smartphone className="w-3.5 h-3.5 text-white" />
+                    <Zap className="w-3.5 h-3.5 text-white" />
+                    <ShieldCheck className="w-3.5 h-3.5 text-white" />
                 </div>
             </motion.div>
         </div>

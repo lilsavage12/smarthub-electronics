@@ -30,11 +30,9 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     const pathname = usePathname()
     const router = useRouter()
 
-    const [notifications, setNotifications] = useState([
-        { id: 1, title: "Critical Stock Alert", message: "Lumina ZX inventory below 5 units.", time: "2m ago", type: "alert", read: false },
-        { id: 2, title: "New Corporate Order", message: "Apex Corp requested 15x Aurora units.", time: "15m ago", type: "order", read: false },
-        { id: 3, title: "System Sync Complete", message: "Global hardware registry updated.", time: "1h ago", type: "system", read: false },
-    ])
+    const [notifications, setNotifications] = useState<any[]>([])
+    const [lastOrderTimestamp, setLastOrderTimestamp] = useState<string | null>(null)
+    const [processedLowStockIds, setProcessedLowStockIds] = useState<Set<string>>(new Set())
 
     const markAllRead = () => {
         setNotifications(prev => prev.map(n => ({ ...n, read: true })))
@@ -56,23 +54,128 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
         localStorage.setItem("adminSidebarCollapsed", String(newState))
     }
 
+    // Real-time Notification Service
     useEffect(() => {
-        // PERMANENT BYPASS: Force authorization and skip redirect logic
-        setUser({
-            displayName: "System Overseer",
-            role: "MASTER",
-            email: "admin@smarthub.internal"
-        })
-        setIsAuthorized(true)
-    }, [])
+        if (!isAuthorized) return
+
+        const pollNotifications = async () => {
+            try {
+                const [ordersRes, productsRes] = await Promise.all([
+                    fetch("/api/orders"),
+                    fetch("/api/products")
+                ])
+
+                if (ordersRes.ok) {
+                    const orders = await ordersRes.json()
+                    // Sort by date desc
+                    const sortedOrders = orders.sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+
+                    if (sortedOrders.length > 0) {
+                        const latestOrder = sortedOrders[0]
+
+                        // Check if this is a new order since we last polled
+                        if (lastOrderTimestamp && new Date(latestOrder.createdAt) > new Date(lastOrderTimestamp)) {
+                            toast.success(`NEW ORDER: $${latestOrder.totalAmount} from ${latestOrder.customerName || 'Anonymous'}`, {
+                                icon: '🛒',
+                                duration: 5000,
+                                position: 'top-right',
+                                style: {
+                                    background: '#0F0F12',
+                                    color: '#fff',
+                                    border: '1px solid #1A1A1D',
+                                    fontSize: '11px',
+                                    fontWeight: '900',
+                                    letterSpacing: '0.05em',
+                                    textTransform: 'uppercase'
+                                }
+                            })
+
+                            const newNotify = {
+                                id: Date.now(),
+                                title: "New Order Captured",
+                                message: `Protocol ${latestOrder.id.slice(-6)} received: $${latestOrder.totalAmount}`,
+                                time: "Just now",
+                                type: "order",
+                                read: false
+                            }
+                            setNotifications(prev => [newNotify, ...prev].slice(0, 10))
+                        }
+                        setLastOrderTimestamp(latestOrder.createdAt)
+                    }
+                }
+
+                if (productsRes.ok) {
+                    const products = await productsRes.json()
+                    const lowStock = products.filter((p: any) => p.stock < 10 && !processedLowStockIds.has(p.id))
+
+                    lowStock.forEach((p: any) => {
+                        toast.error(`LOW STOCK: ${p.name} (${p.stock} units remaining)`, {
+                            icon: '⚠️',
+                            duration: 6000,
+                            position: 'top-right',
+                            style: {
+                                background: '#1A0000',
+                                color: '#FF5555',
+                                border: '1px solid #440000',
+                                fontSize: '11px',
+                                fontWeight: '900',
+                            }
+                        })
+
+                        const newNotify = {
+                            id: Date.now() + Math.random(),
+                            title: "Critical Stock Alert",
+                            message: `${p.name} inventory reaching critical threshold.`,
+                            time: "Just now",
+                            type: "alert",
+                            read: false
+                        }
+                        setNotifications(prev => [newNotify, ...prev].slice(0, 10))
+                        setProcessedLowStockIds(prev => new Set(prev).add(p.id))
+                    })
+                }
+            } catch (err) {
+                console.error("Notification Sync Error", err)
+            }
+        }
+
+        // Initial fetch
+        pollNotifications()
+        const interval = setInterval(pollNotifications, 15000) // 15s polling for notification center
+        return () => clearInterval(interval)
+    }, [isAuthorized, lastOrderTimestamp, processedLowStockIds])
+
+    useEffect(() => {
+        // Simple session check using localStorage
+        const checkAuth = () => {
+            const savedUser = localStorage.getItem("sh_admin_user")
+            if (savedUser) {
+                try {
+                    const userData = JSON.parse(savedUser)
+                    setUser(userData)
+                    setIsAuthorized(true)
+                } catch (e) {
+                    setIsAuthorized(false)
+                    localStorage.removeItem("sh_admin_user")
+                    if (pathname !== "/hub-control/login") router.push("/hub-control/login")
+                }
+            } else {
+                setIsAuthorized(false)
+                if (pathname !== "/hub-control/login" && !pathname.startsWith("/hub-control/invite")) {
+                    router.push("/hub-control/login")
+                }
+            }
+        }
+
+        checkAuth()
+    }, [pathname, router])
 
     const handleLogout = () => {
-        toast.error("Logout Disabled during Maintenance")
-    }
-
-    // Always authorized
-    if (isAuthorized === false) {
-        setIsAuthorized(true)
+        localStorage.removeItem("sh_admin_user")
+        setIsAuthorized(false)
+        setUser(null)
+        toast.success("Identity Protocol Terminated")
+        router.push("/hub-control/login")
     }
 
     if (isAuthorized === null) {
@@ -80,14 +183,15 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
             <div className="min-h-screen bg-background flex items-center justify-center">
                 <div className="flex flex-col items-center gap-6 animate-pulse">
                     <Zap className="w-12 h-12 text-primary" />
-                    <span className="text-[10px] font-black uppercase tracking-[0.4em] text-muted-foreground">Initializing Override Mode...</span>
+                    <span className="text-[10px] font-black uppercase tracking-[0.4em] text-muted-foreground">Loading Admin Panel...</span>
                 </div>
             </div>
         )
     }
 
-    // Don't special case login page, let it be handled normally (or it will just be a dead page)
-    // but usually users want to go straight to dashboard.
+    if (pathname === "/hub-control/login" || pathname.startsWith("/hub-control/invite")) {
+        return <>{children}</>
+    }
 
     const menuItems = [
         {

@@ -8,7 +8,7 @@ import {
     ShieldCheck, Truck, CreditCard, ChevronLeft, ChevronRight,
     MapPin, Phone, Mail, Building, Landmark, Smartphone, Zap,
     CheckCircle2, Lock, AlertCircle, ShoppingCart, Info, BarChart3, Clock,
-    Gift, ArrowRight
+    Gift, ArrowRight, Tag
 } from "lucide-react"
 import { useCart } from "@/lib/cart-store"
 import { Button } from "@/components/ui/button"
@@ -43,10 +43,29 @@ export default function CheckoutPage() {
         window.scrollTo(0, 0)
     }
 
+    const [promoCode, setPromoCode] = useState("")
+    const [appliedDiscount, setAppliedDiscount] = useState<{ code: string, percent: number } | null>(null)
+
+    const handleApplyPromo = () => {
+        if (promoCode.toUpperCase() === "SAVE20") {
+            setAppliedDiscount({ code: "SAVE20", percent: 20 })
+            toast.success("20% DISCOUNT APPLIED", {
+                style: { background: '#0F0F12', color: '#10B981', fontWeight: 'bold', fontSize: '10px' }
+            })
+        } else if (promoCode.toUpperCase() === "SMARTHUB") {
+            setAppliedDiscount({ code: "SMARTHUB", percent: 15 })
+            toast.success("15% DISCOUNT APPLIED")
+        } else {
+            toast.error("Invalid Promo Protocol")
+        }
+    }
+
     // Calculations
+    const subtotal = totalPrice()
     const shipping = 0
-    const tax = Math.round(totalPrice() * 0.08)
-    const finalTotal = totalPrice() + shipping + tax
+    const discountAmount = appliedDiscount ? Math.round(subtotal * (appliedDiscount.percent / 100)) : 0
+    const tax = Math.round((subtotal - discountAmount) * 0.08)
+    const finalTotal = subtotal - discountAmount + shipping + tax
 
     const handleCompleteOrder = async () => {
         setIsProcessing(true)
@@ -421,11 +440,35 @@ export default function CheckoutPage() {
                             ))}
                         </div>
 
+                        {/* Promo Code Section */}
+                        <div className="pb-6 border-b border-border/30 mb-6 flex flex-col gap-3">
+                            <span className="text-[8px] font-black uppercase tracking-widest text-muted-foreground ml-1">Promo Protocol</span>
+                            <div className="flex gap-2">
+                                <input
+                                    type="text"
+                                    placeholder="ENTER CODE"
+                                    value={promoCode}
+                                    onChange={(e) => setPromoCode(e.target.value)}
+                                    className="flex-1 bg-muted/30 border border-border rounded-xl px-4 text-[10px] font-black uppercase tracking-widest outline-none focus:border-primary transition-all shadow-sm"
+                                />
+                                <Button onClick={handleApplyPromo} size="sm" variant="outline" className="rounded-xl text-[9px] font-black uppercase tracking-widest border-2 h-11 px-4">Apply</Button>
+                            </div>
+                        </div>
+
                         <div className="flex flex-col gap-3.5 pt-6 border-t border-border/50 bg-background relative z-10">
                             <div className="flex justify-between items-center text-[9px] font-black text-muted-foreground uppercase tracking-widest">
                                 <span>Subtotal</span>
-                                <span className="text-foreground">${totalPrice()}</span>
+                                <span className="text-foreground">${subtotal}</span>
                             </div>
+                            {appliedDiscount && (
+                                <div className="flex justify-between items-center text-[9px] font-black text-emerald-500 uppercase tracking-widest animate-in slide-in-from-right-4">
+                                    <span className="flex items-center gap-1.5">
+                                        <Tag size={10} />
+                                        Discount ({appliedDiscount.percent}%)
+                                    </span>
+                                    <span>-${discountAmount}</span>
+                                </div>
+                            )}
                             <div className="flex justify-between items-center text-[9px] font-black text-muted-foreground uppercase tracking-widest">
                                 <span>Fast Shipping</span>
                                 <span className="text-teal-500">FREE</span>

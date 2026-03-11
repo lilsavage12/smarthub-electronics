@@ -4,7 +4,7 @@ import React, { useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { motion } from "framer-motion"
-import { UserPlus, ArrowRight, Loader2 } from "lucide-react"
+import { UserPlus, ArrowRight, Loader2, Mail, Lock, User, UserCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { toast } from "react-hot-toast"
 import { useAuth } from "@/lib/auth-store"
@@ -19,7 +19,7 @@ export default function RegisterPage() {
 
     const handleRegister = async (e: React.FormEvent) => {
         e.preventDefault()
-        if (!email || !password || !displayName) return toast.error("Please fill in all fields")
+        if (!email || !password || !displayName) return toast.error("Please provide all required synchronization details")
 
         setLoading(true)
         try {
@@ -32,100 +32,128 @@ export default function RegisterPage() {
             const data = await res.json()
 
             if (res.ok) {
-                toast.success("Profile initialized successfully")
+                toast.success("Profile created successfully!", {
+                    style: {
+                        background: '#0F0F12',
+                        color: '#fff',
+                        borderRadius: '16px',
+                        border: '1px solid rgba(255,255,255,0.1)',
+                        fontSize: '12px',
+                        fontWeight: 'bold'
+                    }
+                })
                 setAuth(data.user)
-                router.push("/")
+                router.push("/dashboard")
             } else {
-                toast.error(data.error || "Registration failed")
+                toast.error(data.error || "Registration encountered a protocol error.")
             }
         } catch (error) {
-            toast.error("Network error during registration")
+            toast.error("Network synchronization failed. Retry requested.")
         } finally {
             setLoading(false)
         }
     }
 
     return (
-        <div className="min-h-[80vh] flex items-center justify-center py-12 px-6">
+        <div className="min-h-screen flex items-center justify-center py-20 px-6 bg-background relative overflow-hidden">
+            {/* Ambient Background Elements */}
+            <div className="absolute top-1/4 right-1/4 w-96 h-96 bg-primary/20 rounded-full blur-[120px] pointer-events-none animate-pulse" />
+            <div className="absolute bottom-1/4 left-1/4 w-96 h-96 bg-blue-500/10 rounded-full blur-[120px] pointer-events-none" />
+
             <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="w-full max-w-md bg-card border border-border rounded-3xl p-8 md:p-10 shadow-2xl relative overflow-hidden"
+                initial={{ opacity: 0, scale: 0.95, y: 30 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                transition={{ duration: 0.5, ease: "easeOut" }}
+                className="w-full max-w-md z-10"
             >
-                {/* Background FX */}
-                <div className="absolute top-0 left-0 w-64 h-64 bg-primary/10 rounded-full blur-[80px] -translate-y-1/2 -translate-x-1/2 pointer-events-none" />
+                <div className="bg-card/40 backdrop-blur-3xl border border-white/5 rounded-[2.5rem] p-10 md:p-12 shadow-[0_25px_50px_-12px_rgba(0,0,0,0.5)] relative overflow-hidden group">
+                    <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-1000" />
 
-                <div className="relative z-10 flex flex-col gap-6">
-                    <div className="flex flex-col gap-2">
-                        <div className="flex items-center gap-2 mb-2">
-                            <UserPlus className="w-6 h-6 text-primary" />
-                            <span className="text-xs font-black text-primary uppercase tracking-[0.2em]">New Profile</span>
-                        </div>
-                        <h1 className="text-3xl lg:text-4xl font-black font-outfit uppercase tracking-tighter italic leading-none">
-                            INITIALIZE<br />ACCESS.
-                        </h1>
-                        <p className="text-sm font-medium text-muted-foreground mt-2">
-                            Unlock device sync, seamless checkouts, and premium tracking.
-                        </p>
-                    </div>
-
-                    <form onSubmit={handleRegister} className="flex flex-col gap-5 mt-4">
-                        <div className="flex flex-col gap-2">
-                            <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">DISPLAY NAME</label>
-                            <input
-                                type="text"
-                                placeholder="Neo"
-                                className="h-12 border border-border bg-muted/30 focus:bg-muted/50 transition-colors rounded-xl px-4 text-sm font-bold focus:outline-none focus:ring-1 focus:ring-primary"
-                                value={displayName}
-                                onChange={(e) => setDisplayName(e.target.value)}
-                            />
+                    <div className="relative z-10 flex flex-col gap-8">
+                        <div className="flex flex-col items-center text-center gap-4">
+                            <div className="p-4 rounded-3xl bg-primary/10 border border-primary/20 shadow-inner">
+                                <UserPlus className="w-8 h-8 text-primary" />
+                            </div>
+                            <div className="flex flex-col gap-1">
+                                <h1 className="text-4xl font-black font-outfit uppercase tracking-tighter italic leading-none text-foreground">
+                                    Sign <span className="text-primary italic">Up</span>
+                                </h1>
+                                <p className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.3em] mt-2 opacity-60">Initialize your global profile</p>
+                            </div>
                         </div>
 
-                        <div className="flex flex-col gap-2">
-                            <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">EMAIL ADDRESS</label>
-                            <input
-                                type="email"
-                                placeholder="neo@matrix.com"
-                                className="h-12 border border-border bg-muted/30 focus:bg-muted/50 transition-colors rounded-xl px-4 text-sm font-bold focus:outline-none focus:ring-1 focus:ring-primary"
-                                value={email}
-                                onChange={(e) => setEmail(e.target.value)}
-                            />
+                        <form onSubmit={handleRegister} className="flex flex-col gap-6">
+                            <div className="flex flex-col gap-3">
+                                <label className="text-[9px] font-black uppercase text-muted-foreground tracking-[0.2em] ml-1">Identity Name</label>
+                                <div className="relative group/input">
+                                    <UserCircle className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground group-focus-within/input:text-primary transition-colors" />
+                                    <input
+                                        type="text"
+                                        required
+                                        placeholder="Display Name"
+                                        className="w-full h-14 bg-white/[0.03] border border-white/10 rounded-2xl pl-12 pr-4 outline-none focus:border-primary/50 transition-all text-sm font-bold placeholder:text-muted-foreground/30"
+                                        value={displayName}
+                                        onChange={(e) => setDisplayName(e.target.value)}
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="flex flex-col gap-3">
+                                <label className="text-[9px] font-black uppercase text-muted-foreground tracking-[0.2em] ml-1">Email Terminal</label>
+                                <div className="relative group/input">
+                                    <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground group-focus-within/input:text-primary transition-colors" />
+                                    <input
+                                        type="email"
+                                        required
+                                        placeholder="your@email.com"
+                                        className="w-full h-14 bg-white/[0.03] border border-white/10 rounded-2xl pl-12 pr-4 outline-none focus:border-primary/50 transition-all text-sm font-bold placeholder:text-muted-foreground/30"
+                                        value={email}
+                                        onChange={(e) => setEmail(e.target.value)}
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="flex flex-col gap-3">
+                                <label className="text-[9px] font-black uppercase text-muted-foreground tracking-[0.2em] ml-1">Master Passkey</label>
+                                <div className="relative group/input">
+                                    <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground group-focus-within/input:text-primary transition-colors" />
+                                    <input
+                                        type="password"
+                                        required
+                                        placeholder="••••••••••••"
+                                        className="w-full h-14 bg-white/[0.03] border border-white/10 rounded-2xl pl-12 pr-4 outline-none focus:border-primary/50 transition-all text-sm font-bold placeholder:text-muted-foreground/30"
+                                        value={password}
+                                        onChange={(e) => setPassword(e.target.value)}
+                                    />
+                                </div>
+                            </div>
+
+                            <Button
+                                type="submit"
+                                disabled={loading}
+                                className="h-16 mt-4 bg-primary text-white hover:bg-primary/90 rounded-[1.5rem] font-black italic tracking-[0.2em] uppercase text-[10px] shadow-2xl shadow-primary/20 group overflow-hidden relative"
+                            >
+                                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:animate-shimmer" />
+                                {loading ? (
+                                    <Loader2 className="w-6 h-6 animate-spin" />
+                                ) : (
+                                    <div className="flex items-center gap-3">
+                                        SIGN UP NOW
+                                        <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                                    </div>
+                                )}
+                            </Button>
+                        </form>
+
+                        <div className="flex flex-col items-center gap-6 mt-4">
+                            <div className="w-full h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
+                            <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">
+                                RETURNING?{" "}
+                                <Link href="/login" className="text-primary hover:text-white transition-colors italic ml-1">
+                                    SIGN IN HERE
+                                </Link>
+                            </p>
                         </div>
-
-                        <div className="flex flex-col gap-2">
-                            <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">PASSWORD</label>
-                            <input
-                                type="password"
-                                placeholder="••••••••"
-                                className="h-12 border border-border bg-muted/30 focus:bg-muted/50 transition-colors rounded-xl px-4 text-sm font-bold focus:outline-none focus:ring-1 focus:ring-primary"
-                                value={password}
-                                onChange={(e) => setPassword(e.target.value)}
-                            />
-                        </div>
-
-                        <Button
-                            type="submit"
-                            disabled={loading}
-                            className="h-14 mt-4 bg-primary text-white hover:bg-primary/90 rounded-2xl font-black italic tracking-widest uppercase text-xs shadow-xl shadow-primary/20 group"
-                        >
-                            {loading ? (
-                                <Loader2 className="w-5 h-5 animate-spin" />
-                            ) : (
-                                <>
-                                    REGISTER DEVICE
-                                    <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
-                                </>
-                            )}
-                        </Button>
-                    </form>
-
-                    <div className="flex items-center justify-center mt-6 pt-6 border-t border-border">
-                        <p className="text-xs font-bold text-muted-foreground">
-                            RETURNING?{" "}
-                            <Link href="/login" className="text-primary hover:underline italic">
-                                SECURE ACCESS
-                            </Link>
-                        </p>
                     </div>
                 </div>
             </motion.div>

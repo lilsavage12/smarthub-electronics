@@ -38,7 +38,7 @@ export const SessionSyncProvider = ({ children }: { children: React.ReactNode })
         return () => clearTimeout(timeoutId)
     }, [cartItems])
 
-    // Load initial state from backend (Hydrate from DB for cross-device sync)
+    // Load initial state and re-fetch on user change (e.g. login)
     useEffect(() => {
         const loadSession = async () => {
             try {
@@ -46,13 +46,16 @@ export const SessionSyncProvider = ({ children }: { children: React.ReactNode })
                 if (res.ok) {
                     const data = await res.json()
 
-                    // If local cart is empty but DB has items, hydrate
-                    if (cartItems.length === 0 && data.cart && data.cart.length > 0) {
-                        data.cart.forEach((item: any) => addItem(item))
-                        toast.success("Synchronized your cart from the cloud", {
-                            icon: "☁️",
-                            style: { fontSize: '10px', fontWeight: 'bold', textTransform: 'uppercase' }
-                        })
+                    // If local cart is empty but DB has items, or if user just logged in and we want Cloud override
+                    if (data.cart && data.cart.length > 0) {
+                        // Check if local cart differs significantly (simple length check for now or specific merge logic)
+                        if (cartItems.length === 0) {
+                            data.cart.forEach((item: any) => addItem(item))
+                            toast.success("Synchronized your cart from the cloud", {
+                                icon: "☁️",
+                                style: { fontSize: '10px', fontWeight: 'bold', textTransform: 'uppercase' }
+                            })
+                        }
                     }
                 }
             } catch (error) {
@@ -61,8 +64,9 @@ export const SessionSyncProvider = ({ children }: { children: React.ReactNode })
                 isInitialLoad.current = false
             }
         }
+
         loadSession()
-    }, [])
+    }, [user?.id]) // Re-run when user ID changes (Login/Logout)
 
     return <>{children}</>
 }
