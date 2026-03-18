@@ -23,10 +23,10 @@ export default function LoginPage() {
     const { syncOnLogin: syncWishlist } = useWishlist()
 
     React.useEffect(() => {
-        if (isInitialized && user) {
+        if (user) {
             router.push("/dashboard")
         }
-    }, [isInitialized, user, router])
+    }, [user, router])
 
     React.useEffect(() => {
         const savedEmail = localStorage.getItem("sh_remember_email")
@@ -74,7 +74,7 @@ export default function LoginPage() {
                 await syncWishlist(data.user.id)
 
                 setAuth(data.user)
-                router.push("/dashboard")
+                // Let the useEffect handle redirect once auth state is confirmed
             } else {
                 toast.error(data.error || "Incorrect email or password. Please try again.")
             }

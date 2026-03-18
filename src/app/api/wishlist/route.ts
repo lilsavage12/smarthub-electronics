@@ -17,7 +17,7 @@ export async function GET(req: Request) {
       let uuid: string | null = null;
 
       if (userId.startsWith('cm')) {
-        const { data: userData } = await supabaseAdmin.from('User').select('email').eq('id', userId).single();
+        const { data: userData } = await supabaseAdmin.from('User').select('email').eq('id', userId).maybeSingle();
         if (userData?.email) {
           email = userData.email;
           cuid = userId;

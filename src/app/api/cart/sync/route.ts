@@ -69,7 +69,8 @@ export async function POST(req: Request) {
         console.log(`Syncing Cart for User: ${userId} (${items.length} items to merge)`)
 
         // 2. Fetch all products involved to check stock & valid prices
-        const productIds = Array.from(new Set(items.map((i: any) => i.productId || i.id)));
+        // Only use productId — never fall back to i.id which may be a local temp ID like "temp-1234567"
+        const productIds = Array.from(new Set(items.map((i: any) => i.productId).filter((id: any): id is string => !!id)));
         const { data: products } = await supabaseAdmin
             .from('Product')
             .select('id, stock, price, name')
@@ -91,7 +92,7 @@ export async function POST(req: Request) {
 
         // 4. Process Merging Logic
         for (const localItem of items) {
-            const pId = localItem.productId || localItem.id;
+            const pId = localItem.productId; // Always use productId, never local temp id
             const product = products?.find(p => p.id === pId);
             if (!product) continue;
 

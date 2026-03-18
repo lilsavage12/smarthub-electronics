@@ -19,14 +19,14 @@ export default function AdminLogin() {
     const [rememberMe, setRememberMe] = useState(false)
     const router = useRouter()
     const { setAuth, user, isInitialized } = useAuth()
-    const { syncCart } = useCart()
-    const { syncWishlist } = useWishlist()
+    const { syncOnLogin: syncCart } = useCart()
+    const { syncOnLogin: syncWishlist } = useWishlist()
 
     React.useEffect(() => {
-        if (isInitialized && user) {
+        if (user) {
             router.push("/hub-control")
         }
-    }, [isInitialized, user, router])
+    }, [user, router])
 
     React.useEffect(() => {
         const savedEmail = localStorage.getItem("sh_admin_remember_email")
@@ -76,7 +76,7 @@ export default function AdminLogin() {
                         letterSpacing: '0.1em'
                     }
                 })
-                router.push("/hub-control")
+                // Let the useEffect handle redirect once auth state is confirmed
             } else {
                 throw new Error(data.error || "Access Denied")
             }
@@ -92,6 +92,7 @@ export default function AdminLogin() {
                     fontWeight: '900',
                 }
             })
+        } finally {
             setIsAuthenticating(false)
         }
     }

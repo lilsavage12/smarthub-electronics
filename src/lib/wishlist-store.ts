@@ -86,13 +86,14 @@ export const useWishlist = create<WishlistStore>()(
                 
                 set({ isSyncing: true })
                 const localItems = get().items
-                const localIds = localItems.map(i => i.productId || i.id)
-                
+                // Send full objects so the server can extract productId correctly
+                const localPayload = localItems.map(i => ({ id: i.id, productId: i.productId || i.id }))
+
                 try {
                     const res = await fetch('/api/wishlist/sync', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ userId, items: localIds })
+                        body: JSON.stringify({ userId, items: localPayload })
                     })
                     
                     if (res.ok) {

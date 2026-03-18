@@ -16,9 +16,9 @@ export async function GET(req: Request) {
 
         // 1. Identity Migration Engine (CUID -> UUID Bridge)
         if (userId) {
-            let email = null;
-            let cuid = null;
-            let uuid = null;
+            let email: string | null = null;
+            let cuid: string | null = null;
+            let uuid: string | undefined | null = null;
 
             if (userId.startsWith('cm')) {
                 const { data: userData } = await supabaseAdmin.from('User').select('email').eq('id', userId).maybeSingle();

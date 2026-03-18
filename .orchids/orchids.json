@@ -1,0 +1,7 @@
+{
+  "startupCommands": [
+    "npm install; npx prisma generate; npm run dev"
+  ],
+  "projectId": "da8f9609-ba54-48c8-a130-961cccbb8221",
+  "templateId": "any"
+}

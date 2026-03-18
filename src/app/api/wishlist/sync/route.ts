@@ -64,7 +64,6 @@ export async function POST(req: Request) {
         console.log(`Syncing Wishlist for User: ${userId} (${items.length} items to merge)`)
 
         // 2. Fetch existing DB items (including legacy)
-        const userIdsToFetch = legacyId ? [userId, legacyId] : [userId];
         const { data: dbItems } = await supabaseAdmin.from('WishlistItem').select('*').in('userId', userIdsToFetch);
         
         const existingProductIds = new Set(dbItems?.map(i => i.productId));

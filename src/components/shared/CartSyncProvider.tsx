@@ -6,7 +6,7 @@ import { useCart } from "@/lib/cart-store"
 
 export default function CartSyncProvider({ children }: { children: React.ReactNode }) {
     const { user } = useAuth()
-    const { loadCart, syncCart, items } = useCart()
+    const { loadCart, syncOnLogin: syncCart, items } = useCart()
 
     useEffect(() => {
         if (user?.id) {

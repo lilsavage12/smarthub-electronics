@@ -54,12 +54,16 @@ export const useAuth = create<AuthState>()(
                         set({ user: newUser })
                         
                         // 2. MISSION CRITICAL: Cross-Device State Sync
-                        const { useCart } = await import('./cart-store')
-                        const { useWishlist } = await import('./wishlist-store')
-                        
-                        // Async handshake to avoid blocking auth render
-                        useCart.getState().syncOnLogin(newUser.id)
-                        useWishlist.getState().syncOnLogin(newUser.id)
+                        try {
+                            const { useCart } = await import('./cart-store')
+                            const { useWishlist } = await import('./wishlist-store')
+                            await Promise.all([
+                                useCart.getState().syncOnLogin(newUser.id),
+                                useWishlist.getState().syncOnLogin(newUser.id)
+                            ])
+                        } catch (syncError) {
+                            console.error("Cross-device sync failed:", syncError)
+                        }
                         
                     } else {
                         // Fallback: Use minimal auth user data
