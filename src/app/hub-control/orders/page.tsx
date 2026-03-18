@@ -26,9 +26,12 @@ interface Order {
     customerEmail: string
     items: any[]
     totalAmount: number
-    status: 'Processing' | 'Shipped' | 'Delivered' | 'Completed' | 'Cancelled' | 'Returned'
+    status: 'Order Placed' | 'Payment Confirmed' | 'Processing' | 'Shipped' | 'Out for Delivery' | 'Delivered' | 'Completed' | 'Cancelled' | 'Returned'
     paymentStatus: string
     paymentMethod: string
+    trackingNumber?: string
+    courier?: string
+    estimatedDelivery?: string
     createdAt: any
     updatedAt: any
     shippingAddress: {
@@ -43,8 +46,11 @@ interface Order {
 }
 
 const STATUS_COLORS: Record<string, string> = {
+    'Order Placed': 'bg-slate-500/10 text-slate-500 border-slate-500/20',
+    'Payment Confirmed': 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20',
     'Processing': 'bg-blue-500/10 text-blue-500 border-blue-500/20',
     'Shipped': 'bg-amber-500/10 text-amber-500 border-amber-500/20',
+    'Out for Delivery': 'bg-indigo-500/10 text-indigo-500 border-indigo-500/20',
     'Delivered': 'bg-sky-500/10 text-sky-500 border-sky-500/20',
     'Completed': 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20',
     'Cancelled': 'bg-red-500/10 text-red-500 border-red-500/20',
@@ -52,17 +58,17 @@ const STATUS_COLORS: Record<string, string> = {
 }
 
 const STATUS_ICONS: Record<string, any> = {
+    'Order Placed': <ShoppingBag size={12} />,
+    'Payment Confirmed': <DollarSign size={12} />,
     'Processing': <Clock size={12} />,
     'Shipped': <Truck size={12} />,
-    'Delivered': <BoxIcon size={12} />,
+    'Out for Delivery': <Package size={12} />,
+    'Delivered': <Package size={12} />,
     'Completed': <ShieldCheck size={12} />,
     'Cancelled': <Ban size={12} />,
     'Returned': <RefreshCcw size={12} />,
 }
 
-function BoxIcon({ size = 12 }: { size?: number }) {
-    return <Package size={size} />
-}
 
 export default function OrdersPage() {
     const [orders, setOrders] = useState<Order[]>([])
@@ -72,6 +78,15 @@ export default function OrdersPage() {
     const [selectedOrder, setSelectedOrder] = useState<Order | null>(null)
     const [isDetailsOpen, setIsDetailsOpen] = useState(false)
     const [confirmAction, setConfirmAction] = useState<{ id: string, type: 'CANCEL' | 'DELETE' | 'REFUND' } | null>(null)
+    const [isTrackingModalOpen, setIsTrackingModalOpen] = useState(false)
+    const [trackingForm, setTrackingForm] = useState({
+        status: '',
+        message: '',
+        notes: '',
+        trackingNumber: '',
+        courier: '',
+        estimatedDelivery: ''
+    })
 
 
 
@@ -96,6 +111,27 @@ export default function OrdersPage() {
         const interval = setInterval(fetchOrders, 10000) // Poll every 10s
         return () => clearInterval(interval)
     }, [])
+
+    const handleUpdateTracking = async () => {
+        if (!selectedOrder) return
+        const toastId = toast.loading("Updating logistics telemetry...")
+        try {
+            const res = await fetch(`/api/admin/orders/${selectedOrder.id}/status`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(trackingForm)
+            })
+            if (!res.ok) throw new Error("Failed to update tracking")
+
+            toast.success("Logistics manifest updated", { id: toastId })
+            
+            // Refresh order data
+            fetchOrders()
+            setIsTrackingModalOpen(false)
+        } catch (error) {
+            toast.error("Failed to update tracking registry", { id: toastId })
+        }
+    }
 
     // Logic: Order Action Handlers
     const updateOrderStatus = async (orderId: string, newStatus: string) => {
@@ -158,20 +194,40 @@ export default function OrdersPage() {
     const issueRefund = async (orderId: string) => {
         const toastId = toast.loading("Processing financial reversal protocol...")
         try {
-            const res = await fetch(`/api/orders/${orderId}`, {
-                method: "PATCH",
+            const res = await fetch(`/api/admin/orders/${orderId}/payment-status`, {
+                method: "PUT",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ paymentStatus: 'Refunded', status: 'Returned' })
+                body: JSON.stringify({ paymentStatus: 'Refunded' })
             })
             if (!res.ok) throw new Error("Refund protocol failed")
 
             toast.success("Refund processed successfully", { id: toastId })
-            setOrders(orders.map(o => o.id === orderId ? { ...o, status: 'Returned' as any, paymentStatus: 'Refunded' } : o))
+            setOrders(orders.map(o => o.id === orderId ? { ...o, paymentStatus: 'Refunded' } : o))
             if (selectedOrder?.id === orderId) {
-                setSelectedOrder({ ...selectedOrder, status: 'Returned' as any, paymentStatus: 'Refunded' })
+                setSelectedOrder({ ...selectedOrder, paymentStatus: 'Refunded' })
             }
         } catch (error) {
             toast.error("Refund protocol failed", { id: toastId })
+        }
+    }
+
+    const updatePaymentStatus = async (orderId: string, newStatus: string) => {
+        const toastId = toast.loading(`Updating payment to ${newStatus}...`)
+        try {
+            const res = await fetch(`/api/admin/orders/${orderId}/payment-status`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ paymentStatus: newStatus })
+            })
+            if (!res.ok) throw new Error("Failed to update payment status")
+
+            toast.success(`Payment set to ${newStatus}`, { id: toastId })
+            setOrders(orders.map(o => o.id === orderId ? { ...o, paymentStatus: newStatus } : o))
+            if (selectedOrder?.id === orderId) {
+                setSelectedOrder({ ...selectedOrder, paymentStatus: newStatus })
+            }
+        } catch (error) {
+            toast.error("Failed to update payment status", { id: toastId })
         }
     }
 
@@ -403,7 +459,7 @@ export default function OrdersPage() {
                                                 <Button variant="ghost" size="icon" className="h-10 w-10 rounded-xl hover:bg-muted group-hover/actions:bg-muted">
                                                     <MoreHorizontal size={18} />
                                                 </Button>
-                                                <div className="absolute right-0 top-full mt-2 w-56 bg-card border border-border rounded-2xl shadow-2xl p-2 z-50 opacity-0 group-hover/actions:opacity-100 pointer-events-none group-hover/actions:pointer-events-auto transition-all transform origin-top-right scale-95 group-hover/actions:scale-100">
+                                                <div className="absolute right-0 top-full mt-2 w-56 bg-card border border-border rounded-xl shadow-2xl p-2 z-50 opacity-0 group-hover/actions:opacity-100 pointer-events-none group-hover/actions:pointer-events-auto transition-all transform origin-top-right scale-95 group-hover/actions:scale-100">
                                                     <div className="px-3 py-2 text-[8px] font-black text-muted-foreground uppercase tracking-widest border-b border-border/50 mb-1">Logistics Flow</div>
                                                     {[
                                                         { tag: 'Processing', icon: <Clock size={14} /> },
@@ -417,6 +473,23 @@ export default function OrdersPage() {
                                                             className="w-full flex items-center gap-3 px-3 py-2 text-[9px] font-black uppercase tracking-widest text-muted-foreground hover:text-primary hover:bg-primary/5 rounded-xl transition-all"
                                                         >
                                                             {step.icon} Mark as {step.tag}
+                                                        </button>
+                                                    ))}
+                                                    <div className="h-px bg-border/50 my-2" />
+                                                    <div className="px-3 py-2 text-[8px] font-black text-muted-foreground uppercase tracking-widest border-b border-border/50 mb-1">Financial Protocol</div>
+                                                    {[
+                                                        { tag: 'Pending', icon: <Clock size={14} /> },
+                                                        { tag: 'Paid', icon: <CheckCircle2 size={14} /> },
+                                                        { tag: 'Failed', icon: <AlertCircle size={14} /> },
+                                                        { tag: 'Refunded', icon: <RefreshCcw size={14} /> },
+                                                        { tag: 'Cancelled', icon: <Ban size={14} /> },
+                                                    ].map(step => (
+                                                        <button
+                                                            key={step.tag}
+                                                            onClick={() => updatePaymentStatus(order.id, step.tag)}
+                                                            className="w-full flex items-center gap-3 px-3 py-2 text-[9px] font-black uppercase tracking-widest text-muted-foreground hover:text-primary hover:bg-primary/5 rounded-xl transition-all"
+                                                        >
+                                                            {step.icon} Set as {step.tag}
                                                         </button>
                                                     ))}
                                                     <div className="h-px bg-border/50 my-2" />
@@ -583,6 +656,26 @@ export default function OrdersPage() {
                                                 )}
                                             </div>
                                         </div>
+                                        <div className="flex flex-col gap-6">
+                                            <div className="flex items-center gap-3 text-primary"><Truck size={20} /> <span className="text-xs font-black uppercase tracking-widest">Logistics Hub</span></div>
+                                            <Button 
+                                                onClick={() => {
+                                                    setTrackingForm({
+                                                        status: selectedOrder.status,
+                                                        message: '',
+                                                        notes: '',
+                                                        trackingNumber: (selectedOrder as any).trackingNumber || '',
+                                                        courier: (selectedOrder as any).courier || '',
+                                                        estimatedDelivery: (selectedOrder as any).estimatedDelivery ? (selectedOrder as any).estimatedDelivery.split('T')[0] : ''
+                                                    });
+                                                    setIsTrackingModalOpen(true);
+                                                }}
+                                                variant="outline" 
+                                                className="w-full h-14 rounded-[2.5rem] border-primary/20 hover:bg-primary/5 text-primary text-[10px] font-black uppercase tracking-widest gap-2 shadow-sm"
+                                            >
+                                                MANAGE TRACKING PROTOCOL
+                                            </Button>
+                                        </div>
                                     </div>
                                 </div>
                                 <div className="mt-12 pt-8 border-t border-border/30 hidden print:block">
@@ -597,6 +690,101 @@ export default function OrdersPage() {
                                         </div>
                                     </div>
                                 </div>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
+
+            {/* Logistics & Tracking Management Modal */}
+            <AnimatePresence>
+                {isTrackingModalOpen && selectedOrder && (
+                    <div className="fixed inset-0 z-[160] flex items-center justify-center p-6 bg-slate-900/60 backdrop-blur-md">
+                        <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="w-full max-w-xl bg-card border border-border rounded-[2.5rem] p-10 shadow-2xl flex flex-col gap-8">
+                            <div className="flex items-center gap-4 text-primary">
+                                <div className="p-3 bg-primary/10 rounded-2xl">
+                                    <Truck size={28} />
+                                </div>
+                                <div className="flex flex-col">
+                                    <h3 className="text-xl font-black uppercase italic tracking-tight">Logistics Protocol</h3>
+                                    <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Update Order #{selectedOrder.id.slice(0, 8)}</span>
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-6">
+                                <div className="flex flex-col gap-2">
+                                    <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">New Status</label>
+                                    <select 
+                                        value={trackingForm.status}
+                                        onChange={(e) => setTrackingForm({...trackingForm, status: e.target.value})}
+                                        className="h-12 bg-muted border-none rounded-xl px-4 text-xs font-bold uppercase tracking-widest"
+                                    >
+                                        <option value="">Select Status</option>
+                                        <option value="Order Placed">Order Placed</option>
+                                        <option value="Payment Confirmed">Payment Confirmed</option>
+                                        <option value="Processing">Processing</option>
+                                        <option value="Shipped">Shipped</option>
+                                        <option value="Out for Delivery">Out for Delivery</option>
+                                        <option value="Delivered">Delivered</option>
+                                    </select>
+                                </div>
+                                <div className="flex flex-col gap-2">
+                                    <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Courier</label>
+                                    <Input 
+                                        value={trackingForm.courier}
+                                        onChange={(e) => setTrackingForm({...trackingForm, courier: e.target.value})}
+                                        placeholder="E.G. FEDEX, DHL"
+                                        className="h-12 bg-muted border-none rounded-xl px-4 text-xs font-bold uppercase tracking-widest"
+                                    />
+                                </div>
+                                <div className="flex flex-col gap-2">
+                                    <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Tracking Number</label>
+                                    <Input 
+                                        value={trackingForm.trackingNumber}
+                                        onChange={(e) => setTrackingForm({...trackingForm, trackingNumber: e.target.value})}
+                                        placeholder="ASSET TRACKING REF"
+                                        className="h-12 bg-muted border-none rounded-xl px-4 text-xs font-bold uppercase tracking-widest"
+                                    />
+                                </div>
+                                <div className="flex flex-col gap-2">
+                                    <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Est. Delivery</label>
+                                    <Input 
+                                        type="date"
+                                        value={trackingForm.estimatedDelivery}
+                                        onChange={(e) => setTrackingForm({...trackingForm, estimatedDelivery: e.target.value})}
+                                        className="h-12 bg-muted border-none rounded-xl px-4 text-xs"
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="flex flex-col gap-2">
+                                <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Status Message (Customer facing)</label>
+                                <Input 
+                                    value={trackingForm.message}
+                                    onChange={(e) => setTrackingForm({...trackingForm, message: e.target.value})}
+                                    placeholder="Your hardware is being verified..."
+                                    className="h-12 bg-muted border-none rounded-xl px-4 text-xs"
+                                />
+                            </div>
+
+                            <div className="flex flex-col gap-2">
+                                <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Internal Notes (Private)</label>
+                                <Input 
+                                    value={trackingForm.notes}
+                                    onChange={(e) => setTrackingForm({...trackingForm, notes: e.target.value})}
+                                    placeholder="Priority dispatch clearance..."
+                                    className="h-12 bg-muted border-none rounded-xl px-4 text-xs"
+                                />
+                            </div>
+
+                            <div className="flex gap-4 mt-2">
+                                <Button variant="outline" className="flex-1 h-12 rounded-xl text-[10px] font-black uppercase tracking-widest" onClick={() => setIsTrackingModalOpen(false)}>Abort</Button>
+                                <Button
+                                    className="flex-1 h-12 rounded-xl bg-primary hover:bg-primary/90 text-white text-[10px] font-black uppercase tracking-widest shadow-xl shadow-primary/20"
+                                    onClick={handleUpdateTracking}
+                                >
+                                    Record Update
+                                </Button>
                             </div>
                         </motion.div>
                     </div>
