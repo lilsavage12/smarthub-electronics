@@ -1,7 +1,5 @@
 import { NextResponse } from "next/server"
-import { prisma } from "@/lib/prisma"
-import bcrypt from "bcryptjs"
-import { cookies } from "next/headers"
+import { supabaseAdmin } from "@/lib/supabase"
 
 export async function POST(req: Request) {
     try {
@@ -11,56 +9,35 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: "Missing required fields" }, { status: 400 })
         }
 
-        const existingUser = await prisma.user.findUnique({
-            where: { email }
-        })
-
-        if (existingUser) {
-            return NextResponse.json({ error: "Email already registered" }, { status: 400 })
-        }
-
-        const hashedPassword = await bcrypt.hash(password, 10)
-
-        const user = await prisma.user.create({
-            data: {
-                email,
-                password: hashedPassword,
-                displayName,
+        // 1. Register with Supabase Auth
+        // Using admin client to avoid confirmation email for now (simplifies migration/dev)
+        const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
+            email,
+            password,
+            email_confirm: true,
+            user_metadata: {
+                display_name: displayName,
                 role: "USER"
             }
         })
 
-        const cookieStore = await cookies()
-        const deviceId = cookieStore.get('deviceId')?.value
-
-        if (deviceId) {
-            const session = await prisma.deviceSession.findUnique({ where: { deviceId } })
-            if (session) {
-                await prisma.deviceSession.update({
-                    where: { deviceId },
-                    data: { userId: user.id }
-                })
-            } else {
-                await prisma.deviceSession.create({
-                    data: {
-                        deviceId,
-                        userId: user.id,
-                        expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
-                    }
-                })
-            }
+        if (authError) {
+            return NextResponse.json({ error: authError.message }, { status: 400 })
         }
+
+        const user = authData.user
 
         return NextResponse.json({
             success: true,
             user: {
                 id: user.id,
                 email: user.email,
-                role: user.role,
-                displayName: user.displayName
+                role: "USER",
+                displayName: displayName
             }
         })
     } catch (error: any) {
+        console.error("Supabase Register error:", error)
         return NextResponse.json({ error: error.message }, { status: 500 })
     }
 }

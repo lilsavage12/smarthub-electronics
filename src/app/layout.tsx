@@ -10,6 +10,8 @@ import { Chatbot } from "@/components/shared/Chatbot";
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 const outfit = Outfit({ subsets: ["latin"], variable: "--font-outfit" });
 
+import { SessionSyncProvider } from "@/components/shared/SessionSyncProvider";
+
 export const metadata: Metadata = {
   title: "SmartHub Electronics | Premium Smartphone Retail",
   description: "Secure, scalable eCommerce platform for the latest smartphones and certified refurbished electronics.",
@@ -32,10 +34,12 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          {children}
-          <div suppressHydrationWarning>
-            <ModernToaster />
-          </div>
+          <SessionSyncProvider>
+            {children}
+            <div suppressHydrationWarning>
+              <ModernToaster />
+            </div>
+          </SessionSyncProvider>
         </ThemeProvider>
       </body>
     </html>

@@ -23,6 +23,24 @@ export function middleware(request: NextRequest) {
         })
     }
 
+    // Simplified security check for protected routes
+    const isDashboard = request.nextUrl.pathname.startsWith('/dashboard')
+    const isHubControl = request.nextUrl.pathname.startsWith('/hub-control')
+    
+    // Check for any Supabase auth related cookies (including chunked ones)
+    const allCookies = request.cookies.getAll()
+    const hasAuthToken = allCookies.some(c => 
+        c.name.includes('auth-token') || 
+        c.name.includes('access-token') || 
+        c.name.startsWith('sb-')
+    )
+
+    if ((isDashboard || isHubControl) && !hasAuthToken && !request.nextUrl.pathname.includes('/login') && !request.nextUrl.pathname.startsWith('/hub-control/invite')) {
+        const url = request.nextUrl.clone()
+        url.pathname = isHubControl ? '/hub-control/login' : '/login'
+        return NextResponse.redirect(url)
+    }
+
     return response
 }
 

@@ -69,7 +69,7 @@ export const Footer = () => {
     ]
 
     return (
-        <footer className="bg-muted pt-16 pb-8 px-6 md:px-12 border-t border-border">
+        <footer className="bg-muted pt-16 pb-8 px-6 md:px-12 border-t border-border" suppressHydrationWarning>
             <div className="max-w-7xl mx-auto">
                 {/* Trust Badges */}
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-8 pb-12 border-b border-border/50">

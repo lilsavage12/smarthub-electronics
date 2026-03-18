@@ -1,6 +1,7 @@
 "use client"
 
 import React, { useState, useEffect } from "react"
+import { supabase } from "@/lib/supabase"
 import { motion, AnimatePresence } from "framer-motion"
 import {
     LayoutDashboard, ShoppingCart, Smartphone, Tags,
@@ -16,6 +17,7 @@ import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { ThemeToggle } from "@/components/shared/ThemeToggle"
 import { toast } from "react-hot-toast"
+import { useAuth } from "@/lib/auth-store"
 
 interface AdminLayoutProps {
     children: React.ReactNode
@@ -25,6 +27,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(true)
     const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false)
     const [isNotificationsOpen, setIsNotificationsOpen] = useState(false)
+    const { user: authUser, isInitialized, logout: authLogout } = useAuth()
     const [isAuthorized, setIsAuthorized] = useState<boolean | null>(null)
     const [user, setUser] = useState<any>(null)
     const pathname = usePathname()
@@ -36,7 +39,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
 
     const markAllRead = () => {
         setNotifications(prev => prev.map(n => ({ ...n, read: true })))
-        toast.success("All notifications protocolled")
+        toast.success("All notifications marked as read")
     }
 
     const markAsRead = (id: number) => {
@@ -92,8 +95,8 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
 
                             const newNotify = {
                                 id: Date.now(),
-                                title: "New Order Captured",
-                                message: `Protocol ${latestOrder.id.slice(-6)} received: $${latestOrder.totalAmount}`,
+                                title: "New Order Received",
+                                message: `Order #${latestOrder.orderNumber || latestOrder.id.slice(-6)}: $${latestOrder.totalAmount}`,
                                 time: "Just now",
                                 type: "order",
                                 read: false
@@ -124,8 +127,8 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
 
                         const newNotify = {
                             id: Date.now() + Math.random(),
-                            title: "Critical Stock Alert",
-                            message: `${p.name} inventory reaching critical threshold.`,
+                            title: "Low Stock Warning",
+                            message: `${p.name} has only ${p.stock} units left.`,
                             time: "Just now",
                             type: "alert",
                             read: false
@@ -135,7 +138,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                     })
                 }
             } catch (err) {
-                console.error("Notification Sync Error", err)
+                console.error("Notification check failed:", err)
             }
         }
 
@@ -146,36 +149,36 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     }, [isAuthorized, lastOrderTimestamp, processedLowStockIds])
 
     useEffect(() => {
-        // Simple session check using localStorage
-        const checkAuth = () => {
-            const savedUser = localStorage.getItem("sh_admin_user")
-            if (savedUser) {
-                try {
-                    const userData = JSON.parse(savedUser)
-                    setUser(userData)
-                    setIsAuthorized(true)
-                } catch (e) {
-                    setIsAuthorized(false)
-                    localStorage.removeItem("sh_admin_user")
-                    if (pathname !== "/hub-control/login") router.push("/hub-control/login")
-                }
+        if (!isInitialized) return
+
+        if (authUser) {
+            if (authUser.role === "ADMIN" || authUser.role === "SUPER_ADMIN") {
+                setUser(authUser)
+                setIsAuthorized(true)
             } else {
                 setIsAuthorized(false)
-                if (pathname !== "/hub-control/login" && !pathname.startsWith("/hub-control/invite")) {
-                    router.push("/hub-control/login")
-                }
+                toast.error("Security Protocol Violation: Admin Privileges Required.")
+                router.push("/")
+            }
+        } else {
+            setIsAuthorized(false)
+            if (pathname !== "/hub-control/login" && !pathname.startsWith("/hub-control/invite")) {
+                router.push("/hub-control/login")
             }
         }
+    }, [authUser, isInitialized, pathname, router])
 
-        checkAuth()
-    }, [pathname, router])
-
-    const handleLogout = () => {
+    const handleLogout = async () => {
+        await authLogout()
         localStorage.removeItem("sh_admin_user")
         setIsAuthorized(false)
         setUser(null)
-        toast.success("Identity Protocol Terminated")
+        toast.success("Logged out successfully")
         router.push("/hub-control/login")
+    }
+
+    if (pathname === "/hub-control/login" || pathname.startsWith("/hub-control/invite")) {
+        return <>{children}</>
     }
 
     if (isAuthorized === null) {
@@ -187,10 +190,6 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                 </div>
             </div>
         )
-    }
-
-    if (pathname === "/hub-control/login" || pathname.startsWith("/hub-control/invite")) {
-        return <>{children}</>
     }
 
     const menuItems = [
@@ -211,6 +210,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
         },
         {
             group: "Settings", items: [
+                { name: "Documents", icon: <FileText className="w-[18px] h-[18px]" />, href: "/hub-control/templates" },
                 { name: "Audit Logs", icon: <Activity className="w-[18px] h-[18px]" />, href: "/hub-control/audit" },
                 { name: "Data Sync", icon: <RefreshCcw className="w-[18px] h-[18px]" />, href: "/hub-control/sync" },
                 { name: "Security", icon: <Shield className="w-[18px] h-[18px]" />, href: "/hub-control/security" },
@@ -510,7 +510,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                 </header>
 
                 <main className="flex-1 p-4 sm:p-6 lg:p-12 overflow-x-hidden no-scrollbar">
-                    <div className="max-w-[1600px] mx-auto animate-in fade-in duration-500">
+                    <div className="max-w-[1600px] mx-auto animate-fade-in">
                         {children}
                     </div>
                 </main>

@@ -9,11 +9,24 @@ import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { toast } from "react-hot-toast"
 import { useAuth } from "@/lib/auth-store"
+import { useCart } from "@/lib/cart-store"
+import { useWishlist } from "@/lib/wishlist-store"
 
 export default function LoginPage() {
     const [email, setEmail] = useState("")
     const [password, setPassword] = useState("")
+    const [loading, setLoading] = useState(false)
     const [rememberMe, setRememberMe] = useState(false)
+    const router = useRouter()
+    const { setAuth, user, isInitialized } = useAuth()
+    const { syncOnLogin: syncCart } = useCart()
+    const { syncOnLogin: syncWishlist } = useWishlist()
+
+    React.useEffect(() => {
+        if (isInitialized && user) {
+            router.push("/dashboard")
+        }
+    }, [isInitialized, user, router])
 
     React.useEffect(() => {
         const savedEmail = localStorage.getItem("sh_remember_email")
@@ -44,23 +57,29 @@ export default function LoginPage() {
                     localStorage.removeItem("sh_remember_email")
                 }
 
-                toast.success("Welcome back!", {
+                toast.success("LOGGED IN SUCCESSFULLY", {
                     style: {
-                        background: '#0F0F12',
+                        background: '#10B981',
                         color: '#fff',
                         borderRadius: '16px',
                         border: '1px solid rgba(255,255,255,0.1)',
-                        fontSize: '12px',
-                        fontWeight: 'bold'
+                        fontSize: '10px',
+                        fontWeight: 'black',
+                        letterSpacing: '0.1em',
+                        textTransform: 'uppercase'
                     }
                 })
+                // Sync Cart and Wishlist FIRST
+                await syncCart(data.user.id)
+                await syncWishlist(data.user.id)
+
                 setAuth(data.user)
                 router.push("/dashboard")
             } else {
-                toast.error(data.error || "Login failed. Please check your credentials.")
+                toast.error(data.error || "Incorrect email or password. Please try again.")
             }
         } catch (error) {
-            toast.error("Network error. Please try again.")
+            toast.error("Connection error. Please check your internet.")
         } finally {
             setLoading(false)
         }
@@ -68,28 +87,15 @@ export default function LoginPage() {
 
     const handleRecovery = () => {
         if (!email) {
-            toast.error("Enter your email for recovery protocol", {
-                style: { background: '#0F0F12', color: '#fff', fontSize: '10px', fontWeight: 'bold' }
-            })
+            toast.error("Please enter your email address")
             return
         }
         toast.promise(
             new Promise(resolve => setTimeout(resolve, 1500)),
             {
-                loading: 'Initializing Recovery Protocol...',
-                success: `Recovery link dispatched to ${email}`,
-                error: 'Protocol Error',
-            },
-            {
-                style: {
-                    background: '#0F0F12',
-                    color: '#fff',
-                    fontSize: '10px',
-                    fontWeight: 'bold',
-                    textTransform: 'uppercase',
-                    border: '1px solid rgba(255,255,255,0.1)',
-                    borderRadius: '16px'
-                }
+                loading: 'Sending recovery link...',
+                success: `Recovery link sent to ${email}`,
+                error: 'Failed to send recovery link',
             }
         )
     }
@@ -116,21 +122,21 @@ export default function LoginPage() {
                             </div>
                             <div className="flex flex-col gap-1">
                                 <h1 className="text-4xl font-black font-outfit uppercase tracking-tighter italic leading-none text-foreground">
-                                    Sign <span className="text-primary italic">In</span>
+                                    Log <span className="text-primary italic">In</span>
                                 </h1>
-                                <p className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.3em] mt-2 opacity-60">Manage your connected ecosystem</p>
+                                <p className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.3em] mt-2 opacity-60">Access your account</p>
                             </div>
                         </div>
 
                         <form onSubmit={handleLogin} className="flex flex-col gap-6">
                             <div className="flex flex-col gap-3">
-                                <label className="text-[9px] font-black uppercase text-muted-foreground tracking-[0.2em] ml-1">Email Protocol</label>
+                                <label className="text-[9px] font-black uppercase text-muted-foreground tracking-[0.2em] ml-1">Email Address</label>
                                 <div className="relative group/input">
                                     <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground group-focus-within/input:text-primary transition-colors" />
                                     <input
                                         type="email"
                                         required
-                                        placeholder="admin@smarthub.com"
+                                        placeholder="your@email.com"
                                         className="w-full h-14 bg-white/[0.03] border border-white/10 rounded-2xl pl-12 pr-4 outline-none focus:border-primary/50 transition-all text-sm font-bold placeholder:text-muted-foreground/30"
                                         value={email}
                                         onChange={(e) => setEmail(e.target.value)}
@@ -139,13 +145,13 @@ export default function LoginPage() {
                             </div>
 
                             <div className="flex flex-col gap-3">
-                                <label className="text-[9px] font-black uppercase text-muted-foreground tracking-[0.2em] ml-1">Secure Passkey</label>
+                                <label className="text-[9px] font-black uppercase text-muted-foreground tracking-[0.2em] ml-1">Password</label>
                                 <div className="relative group/input">
                                     <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground group-focus-within/input:text-primary transition-colors" />
                                     <input
                                         type="password"
                                         required
-                                        placeholder="••••••••••••"
+                                        placeholder="Enter your password"
                                         className="w-full h-14 bg-white/[0.03] border border-white/10 rounded-2xl pl-12 pr-4 outline-none focus:border-primary/50 transition-all text-sm font-bold placeholder:text-muted-foreground/30"
                                         value={password}
                                         onChange={(e) => setPassword(e.target.value)}

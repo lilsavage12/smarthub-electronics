@@ -19,11 +19,26 @@ import { ProductCard } from "@/components/products/ProductCard"
 import { cn } from "@/lib/utils"
 
 export default function Home() {
-  const featuredProducts = PRODUCTS.slice(0, 4)
+  const [products, setProducts] = React.useState<any[]>([])
+  const [promos, setPromos] = React.useState<any[]>([])
   const [email, setEmail] = React.useState("")
   const [banner, setBanner] = React.useState<any>(null)
+  const [isLoading, setIsLoading] = React.useState(true)
+  const [homeConfig, setHomeConfig] = React.useState<any>(null)
 
   React.useEffect(() => {
+    const fetchHomePromos = async () => {
+      try {
+        const res = await fetch("/api/promotions?showOnHome=true")
+        if (res.ok) {
+          const data = await res.json()
+          setPromos(data)
+        }
+      } catch (error) {
+        console.error(error)
+      }
+    }
+
     const fetchBanner = async () => {
       try {
         const res = await fetch("/api/banner")
@@ -37,8 +52,55 @@ export default function Home() {
         console.error(error)
       }
     }
+
+    const fetchProducts = async () => {
+      try {
+        const res = await fetch("/api/products")
+        if (res.ok) {
+          const data = await res.json()
+          setProducts(data)
+        }
+      } catch (error) {
+        console.error(error)
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    const fetchHomeConfig = async () => {
+      try {
+        const res = await fetch("/api/config/homepage")
+        if (res.ok) {
+          const data = await res.json()
+          setHomeConfig(data)
+        }
+      } catch (error) {
+        console.error("Home config fetch failed")
+      }
+    }
+
+    fetchHomePromos()
     fetchBanner()
+    fetchProducts()
+    fetchHomeConfig()
   }, [])
+
+  const flashSales = products.filter(p => p.promotions?.some((promo: any) => promo.category === 'FLASH_SALE'))
+  const dailyDeals = products.filter(p => p.promotions?.some((promo: any) => promo.category === 'DAILY_DEAL'))
+  const seasonalCampaigns = promos.filter(p => p.category === 'SEASONAL' && p.isActive)
+  const otherActivePromos = promos.filter(p => !['FLASH_SALE', 'DAILY_DEAL', 'SEASONAL'].includes(p.category) && p.isActive)
+  
+  // Sort by Featured (Priority 1) then Newest (Priority 2)
+  const featuredProducts = [...products]
+    .sort((a, b) => {
+      const aFeat = a.specs?.identity?.isFeatured ? 1 : 0
+      const bFeat = b.specs?.identity?.isFeatured ? 1 : 0
+      if (aFeat !== bFeat) return bFeat - aFeat
+      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    })
+    .slice(0, 12)
+
+  const sortedSections = homeConfig ? Object.keys(homeConfig).sort((a, b) => homeConfig[a].order - homeConfig[b].order) : ['flashSale', 'dailyDeals', 'seasonal', 'featured']
 
   const handleSubscribe = () => {
     if (!email) return toast.error("Please enter email")
@@ -228,28 +290,154 @@ export default function Home() {
         </section>
       )}
 
-      {/* Featured Hardware Silos */}
-      <section className="px-6 max-w-6xl mx-auto w-full">
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12">
-          <div className="flex flex-col gap-3">
-            <div className="flex items-center gap-2 bg-foreground text-background w-fit px-3 py-1 rounded-full">
-              <Zap size={12} fill="currentColor" />
-              <span className="text-[8px] font-black uppercase tracking-widest">In Stock</span>
-            </div>
-            <h2 className="text-3xl md:text-4xl font-black font-outfit uppercase tracking-tighter italic">BEST <span className="text-primary">SELLERS</span></h2>
-          </div>
-          <Link href="/products" className="flex items-center gap-2 text-[10px] font-black italic uppercase tracking-widest text-primary group underline decoration-1 underline-offset-4">
-            VIEW ALL PRODUCTS
-            <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-          </Link>
-        </div>
+      {/* DYNAMIC SECTIONS RENDERER */}
+      {sortedSections.map((sectionKey) => {
+        const config = homeConfig ? homeConfig[sectionKey] : { visible: true, title: "" }
+        if (!config.visible) return null
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          {featuredProducts.map((product) => (
-            <ProductCard key={product.id} product={product} />
-          ))}
-        </div>
-      </section>
+        if (sectionKey === 'flashSale' && flashSales.length > 0) {
+          return (
+            <section key={sectionKey} className="px-6 max-w-6xl mx-auto w-full">
+              <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-8">
+                <div className="flex items-center gap-4">
+                  <div className="bg-rose-600 text-white p-3 rounded-2xl shadow-xl shadow-rose-600/20">
+                    <Zap className="w-8 h-8 fill-white animate-pulse" />
+                  </div>
+                  <div className="flex flex-col">
+                    <h2 className="text-3xl font-black font-outfit uppercase italic tracking-tighter">{config.title || "FLASH SALES"}</h2>
+                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest leading-none mt-1">LIMITED TIME OFFERS • EXPIRES SOON</p>
+                  </div>
+                </div>
+                <Link href="/deals/flash" className="flex items-center gap-2 text-[10px] font-black italic uppercase tracking-widest text-rose-600 group underline decoration-1 underline-offset-4">
+                  VIEW ALL FLASH DEALS
+                  <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                </Link>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                {flashSales.map((product) => (
+                  <ProductCard key={product.id} product={product} />
+                ))}
+              </div>
+            </section>
+          )
+        }
+
+        if (sectionKey === 'dailyDeals' && dailyDeals.length > 0) {
+          return (
+            <section key={sectionKey} className="px-6 bg-muted/30 py-16 rounded-[4rem]">
+              <div className="max-w-6xl mx-auto w-full">
+                <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-8">
+                  <div className="flex items-center gap-4">
+                    <div className="bg-amber-500 text-white p-3 rounded-2xl shadow-xl shadow-amber-500/20">
+                      <Gift className="w-8 h-8 fill-white" />
+                    </div>
+                    <div className="flex flex-col">
+                      <h2 className="text-3xl font-black font-outfit uppercase italic tracking-tighter">{config.title || "DAILY DEALS"}</h2>
+                      <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest leading-none mt-1">SPECIAL PRICING • REFRESHES EVERY 24H</p>
+                    </div>
+                  </div>
+                  <Link href="/deals/daily" className="flex items-center gap-2 text-[10px] font-black italic uppercase tracking-widest text-amber-500 group underline decoration-1 underline-offset-4">
+                    EXPLORE DAILY REVIEWS
+                    <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                  </Link>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                  {dailyDeals.map((product) => (
+                    <ProductCard key={product.id} product={product} />
+                  ))}
+                </div>
+              </div>
+            </section>
+          )
+        }
+
+        if (sectionKey === 'seasonal' && seasonalCampaigns.length > 0) {
+          return (
+            <section key={sectionKey} className="px-6">
+              <div className="max-w-6xl mx-auto flex flex-col gap-8">
+                {seasonalCampaigns.map((promo) => (
+                  <div key={promo.id} className="relative w-full aspect-[21/9] md:aspect-[32/10] rounded-[3rem] overflow-hidden group border border-border bg-slate-900">
+                    {promo.bannerUrl ? (
+                      <img src={promo.bannerUrl} alt={promo.title} className="w-full h-full object-cover group-hover:scale-105 transition-all duration-1000" />
+                    ) : (
+                      <div className="absolute inset-0 bg-gradient-to-br from-primary/40 via-purple-600/20 to-background opacity-60" />
+                    )}
+                    <div className="absolute inset-0 bg-gradient-to-r from-background via-background/60 to-transparent" />
+                    <div className="absolute inset-0 p-8 md:p-16 flex flex-col justify-center gap-6">
+                      <div className="flex items-center gap-2 bg-purple-600 text-white px-4 py-1.5 rounded-full w-fit">
+                        <Sparkles size={14} fill="white" />
+                        <span className="text-[10px] font-black uppercase tracking-widest italic">{promo.title}</span>
+                      </div>
+                      <h2 className="text-4xl md:text-6xl font-black font-outfit uppercase italic tracking-tighter leading-[0.85] max-w-xl text-foreground">
+                        {promo.description || "Limited seasonal synchronization active."}
+                      </h2>
+                      <Link href="/deals/seasonal">
+                        <Button variant="premium" className="h-16 px-10 rounded-2xl text-[10px] font-black italic uppercase tracking-widest shadow-2xl shadow-primary/20">
+                          EXPLORE CAMPAIGN
+                          <ChevronRight size={18} className="ml-2" />
+                        </Button>
+                      </Link>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )
+        }
+
+        if (sectionKey === 'featured') {
+          return (
+            <section key={sectionKey} className="px-6 max-w-6xl mx-auto w-full">
+              <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12">
+                <div className="flex flex-col gap-3">
+                  <div className="flex items-center gap-2 bg-foreground text-background w-fit px-3 py-1 rounded-full">
+                    <Zap size={12} fill="currentColor" />
+                    <span className="text-[8px] font-black uppercase tracking-widest">In Stock</span>
+                  </div>
+                  <h2 className="text-3xl md:text-4xl font-black font-outfit uppercase tracking-tighter italic">{config.title || "BEST SELLERS"}</h2>
+                </div>
+                <Link href="/products" className="flex items-center gap-2 text-[10px] font-black italic uppercase tracking-widest text-primary group underline decoration-1 underline-offset-4">
+                  VIEW ALL PRODUCTS
+                  <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                </Link>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                {featuredProducts.map((product) => (
+                  <ProductCard key={product.id} product={product} />
+                ))}
+              </div>
+            </section>
+          )
+        }
+
+        return null
+      })}
+
+      {/* ADDITIONAL CAMPAIGNS (REGULAR/EXCLUSIVE) */}
+      {otherActivePromos.length > 0 && (
+        <section className="px-6">
+          <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-6">
+            {otherActivePromos.map((promo) => (
+              <div key={promo.id} className="relative aspect-[21/9] rounded-[2rem] overflow-hidden group border border-border bg-muted/20">
+                {promo.bannerUrl ? (
+                  <img src={promo.bannerUrl} alt={promo.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
+                ) : (
+                  <div className="absolute inset-0 bg-gradient-to-tr from-primary/10 to-transparent flex items-center justify-center">
+                    <Gift className="text-primary/20 w-24 h-24" />
+                  </div>
+                )}
+                <div className="absolute inset-0 bg-black/40 group-hover:bg-black/20 transition-all flex flex-col justify-end p-8">
+                  <div className="bg-primary px-3 py-1 rounded-full w-fit mb-2">
+                    <span className="text-[10px] font-black text-white uppercase italic">{promo.category}</span>
+                  </div>
+                  <h3 className="text-2xl font-black text-white italic lowercase tracking-tighter">{promo.title}</h3>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
 
       <section className="px-6 py-8">
         <div className="max-w-6xl mx-auto bg-card rounded-[3rem] p-8 md:p-16 relative overflow-hidden flex flex-col lg:flex-row items-center gap-12 border border-border/50 shadow-2xl">

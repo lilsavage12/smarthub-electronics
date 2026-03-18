@@ -1,11 +1,11 @@
 "use client"
 
-import React, { useState } from "react"
+import React, { useState, useEffect } from "react"
 import {
-    Plus, Search, Tags, Smartphone,
-    MoreHorizontal, Edit2, Trash2, Image as ImageIcon,
-    ChevronRight, ArrowRight, Zap, Layers,
-    Monitor, Headphones, Watch, X, Save, Upload
+    Plus, Search, Smartphone, Edit2, Trash2,
+    ArrowRight, Zap, Layers,
+    Monitor, Headphones, Watch, X, Upload,
+    Tablet, Laptop, Gamepad2, RefreshCcw, ShoppingBag
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
@@ -16,12 +16,15 @@ import Image from "next/image"
 import { useRouter } from "next/navigation"
 
 const INITIAL_CATEGORIES = [
-    { id: "1", name: "Apple", count: 24, icon: <Zap className="text-blue-500" />, type: "Brand", color: "bg-blue-50", banner: "/images/categories/apple.jpg" },
-    { id: "2", name: "Samsung", count: 18, icon: <Layers className="text-emerald-500" />, type: "Brand", color: "bg-emerald-50", banner: "/images/categories/samsung.jpg" },
-    { id: "3", name: "Smartphones", count: 86, icon: <Smartphone className="text-purple-500" />, type: "Type", color: "bg-purple-50", banner: "/images/categories/phones.jpg" },
-    { id: "4", name: "Accessories", count: 142, icon: <Headphones className="text-amber-500" />, type: "Type", color: "bg-amber-50", banner: "/images/categories/audio.jpg" },
-    { id: "5", name: "Xiaomi", count: 12, icon: <Zap className="text-orange-500" />, type: "Brand", color: "bg-orange-50" },
-    { id: "6", name: "Tablets", count: 34, icon: <Monitor className="text-indigo-500" />, type: "Type", color: "bg-indigo-50" },
+    { id: "1", name: "Smartphones", count: 0, icon: <Smartphone className="text-blue-500" />, type: "Type", color: "bg-blue-50" },
+    { id: "2", name: "Tablets", count: 0, icon: <Tablet className="text-purple-500" />, type: "Type", color: "bg-purple-50" },
+    { id: "3", name: "Accessories", count: 0, icon: <ShoppingBag className="text-amber-500" />, type: "Type", color: "bg-amber-50" },
+    { id: "4", name: "Laptops", count: 0, icon: <Laptop className="text-emerald-500" />, type: "Type", color: "bg-emerald-50" },
+    { id: "5", name: "Smart Watches", count: 0, icon: <Watch className="text-rose-500" />, type: "Type", color: "bg-rose-50" },
+    { id: "6", name: "Headphones", count: 0, icon: <Headphones className="text-indigo-500" />, type: "Type", color: "bg-indigo-50" },
+    { id: "7", name: "Foldables", count: 0, icon: <Layers className="text-cyan-500" />, type: "Type", color: "bg-cyan-50" },
+    { id: "8", name: "Gaming", count: 0, icon: <Gamepad2 className="text-orange-500" />, type: "Type", color: "bg-orange-50" },
+    { id: "9", name: "Refurbished", count: 0, icon: <RefreshCcw className="text-slate-500" />, type: "Type", color: "bg-slate-50" },
 ]
 
 export default function CategoriesPage() {
@@ -29,6 +32,23 @@ export default function CategoriesPage() {
     const [categories, setCategories] = useState(INITIAL_CATEGORIES)
     const [isAddModalOpen, setIsAddModalOpen] = useState(false)
     const [searchQuery, setSearchQuery] = useState("")
+
+    useEffect(() => {
+        const loadCounts = async () => {
+            try {
+                const res = await fetch("/api/products")
+                if (!res.ok) return
+                const products = await res.json()
+                setCategories(prev => prev.map(cat => ({
+                    ...cat,
+                    count: products.filter((p: any) =>
+                        (p.category || "").toLowerCase() === cat.name.toLowerCase()
+                    ).length
+                })))
+            } catch (e) {}
+        }
+        loadCounts()
+    }, [])
 
     const filteredCategories = categories.filter(c =>
         c.name.toLowerCase().includes(searchQuery.toLowerCase())
@@ -56,9 +76,9 @@ export default function CategoriesPage() {
             {/* Structure KPI */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 {[
-                    { label: "Active Brands", value: "8", icon: <Zap className="text-blue-500" />, bg: "bg-blue-50" },
-                    { label: "Core Categories", value: "12", icon: <Layers className="text-emerald-500" />, bg: "bg-emerald-50" },
-                    { label: "Unused Categories", value: "2", icon: <AlertTriangle className="text-amber-500" />, bg: "bg-amber-50" },
+                    { label: "Total Categories", value: categories.length.toString(), icon: <Layers className="text-emerald-500" />, bg: "bg-emerald-50" },
+                    { label: "Product Types", value: "9", icon: <Smartphone className="text-blue-500" />, bg: "bg-blue-50" },
+                    { label: "Custom Added", value: Math.max(0, categories.length - 9).toString(), icon: <Plus className="text-amber-500" />, bg: "bg-amber-50" },
                 ].map((stat, i) => (
                     <Card key={i} className="rounded-2xl border-border shadow-sm p-6 bg-card flex items-center gap-6 group hover:shadow-xl transition-all cursor-pointer overflow-hidden relative">
                         <div className="absolute inset-0 bg-primary/5 opacity-0 group-hover:opacity-100 transition-opacity" />
@@ -99,23 +119,21 @@ export default function CategoriesPage() {
                                 transition={{ delay: i * 0.05 }}
                                 className="group relative overflow-hidden bg-card border border-border rounded-[2.5rem] shadow-sm hover:shadow-2xl hover:-translate-y-2 transition-all duration-500"
                             >
-                                {/* Banner Mask */}
-                                <div className="h-28 w-full bg-primary relative overflow-hidden">
-                                    <div className="absolute inset-0 bg-gradient-to-t from-primary via-primary/40 to-transparent z-10" />
-                                    {cat.banner ? (
-                                        <div className="absolute inset-0 opacity-40 group-hover:scale-110 transition-transform duration-700">
-                                            <div className="bg-muted w-full h-full animate-pulse" /> {/* Placeholder for banner */}
-                                        </div>
-                                    ) : (
-                                        <div className="absolute inset-0 flex items-center justify-center opacity-10">
-                                            <Zap size={100} className="text-primary-foreground fill-primary-foreground" />
-                                        </div>
-                                    )}
+                                {/* Colored Banner */}
+                                <div className={cn("h-28 w-full relative overflow-hidden", cat.color.replace("bg-", "bg-").replace("-50", "-100"))}>
+                                    <div className="absolute inset-0 bg-gradient-to-br from-transparent to-black/10" />
+                                    <div className="absolute inset-0 flex items-center justify-center opacity-20 group-hover:opacity-30 transition-opacity group-hover:scale-110 transition-transform duration-700">
+                                        {React.cloneElement(cat.icon as React.ReactElement<any>, { size: 80 })}
+                                    </div>
                                     <div className="absolute bottom-4 left-6 z-20">
-                                        <div className={cn("p-1.5 rounded-lg w-fit mb-1 bg-muted/20 backdrop-blur-md")}>
+                                        <div className="p-1.5 rounded-lg w-fit mb-1 bg-white/40 backdrop-blur-sm">
                                             {React.cloneElement(cat.icon as React.ReactElement<any>, { size: 14 })}
                                         </div>
-                                        <span className="text-[7px] font-black uppercase tracking-[0.2em] text-primary-foreground italic">TYPE: {cat.type}</span>
+                                    </div>
+                                    <div className="absolute top-4 right-4">
+                                        <span className={cn("text-[7px] font-black uppercase tracking-widest px-2 py-1 rounded-full bg-white/50 backdrop-blur-sm")}>
+                                            {cat.count > 0 ? `${cat.count} products` : 'Empty'}
+                                        </span>
                                     </div>
                                 </div>
 
@@ -123,7 +141,7 @@ export default function CategoriesPage() {
                                     <div className="flex items-end justify-between">
                                         <div className="flex flex-col gap-1">
                                             <h3 className="text-xl font-black italic tracking-tighter text-foreground uppercase">{cat.name}</h3>
-                                            <span className="text-[8px] font-bold text-muted-foreground uppercase tracking-widest opacity-60 italic">{cat.count} HARDWARE UNITS</span>
+                                            <span className="text-[8px] font-bold text-muted-foreground uppercase tracking-widest opacity-60 italic">{cat.count} PRODUCT{cat.count !== 1 ? 'S' : ''} IN CATEGORY</span>
                                         </div>
                                         <div className="flex items-center gap-2">
                                             <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-primary rounded-lg transition-all">
@@ -237,23 +255,3 @@ export default function CategoriesPage() {
     )
 }
 
-function AlertTriangle(props: any) {
-    return (
-        <svg
-            {...props}
-            xmlns="http://www.w3.org/2000/svg"
-            width="24"
-            height="24"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-        >
-            <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z" />
-            <path d="M12 9v4" />
-            <path d="M12 17h.01" />
-        </svg>
-    )
-}

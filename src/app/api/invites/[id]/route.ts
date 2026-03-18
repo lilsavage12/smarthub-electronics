@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server"
-import { prisma } from "@/lib/prisma"
+import { supabase } from "@/lib/supabase"
 
 export async function DELETE(
     req: Request,
@@ -7,11 +7,11 @@ export async function DELETE(
 ) {
     const { id } = await params;
     try {
-        await prisma.invite.delete({
-            where: { id: id }
-        })
+        const { error } = await supabase.from('Invite').delete().eq('id', id)
+        if (error) throw error
         return NextResponse.json({ message: "Invite deleted" })
     } catch (error) {
+        console.error("Supabase Invite Delete Error:", error)
         return NextResponse.json({ error: "Delete failed" }, { status: 500 })
     }
 }

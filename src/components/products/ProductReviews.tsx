@@ -68,24 +68,25 @@ export function ProductReviews({ productId }: ProductReviewsProps) {
                 })
             })
 
-            if (res.ok) {
-                toast.success("Experience Logged in Vault")
-                setNewReview({ userName: "", comment: "" })
-                setRating(5)
-                setShowForm(false)
-
-                // Refresh reviews
-                const res2 = await fetch(`/api/reviews?productId=${productId}`)
-                if (res2.ok) {
-                    const updated = await res2.json()
-                    setReviews(updated.map((r: any) => ({ ...r, userName: r.user })))
-                }
-            } else {
-                throw new Error("POST failed")
+            if (!res.ok) {
+                const errorData = await res.json().catch(() => ({}))
+                throw new Error(errorData.details || "POST failed")
             }
-        } catch (error) {
+
+            toast.success("Review Saved Successfully")
+            setNewReview({ userName: "", comment: "" })
+            setRating(5)
+            setShowForm(false)
+
+            // Refresh reviews
+            const res2 = await fetch(`/api/reviews?productId=${productId}`)
+            if (res2.ok) {
+                const updated = await res2.json()
+                setReviews(updated.map((r: any) => ({ ...r, userName: r.user })))
+            }
+        } catch (error: any) {
             console.error(error)
-            toast.error("Protocol Error: Feedback sync failed")
+            toast.error(error.message || "Feedback submission failed. Please try again.")
         } finally {
             setIsSubmitting(false)
         }
@@ -114,7 +115,7 @@ export function ProductReviews({ productId }: ProductReviewsProps) {
                                     />
                                 ))}
                             </div>
-                            <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mt-1">Based on {reviews.length} Verified Logs</span>
+                            <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mt-1">Based on {reviews.length} Customer Reviews</span>
                         </div>
                     </div>
                 </div>
@@ -124,7 +125,7 @@ export function ProductReviews({ productId }: ProductReviewsProps) {
                         className="rounded-xl h-12 px-6 text-xs font-black italic uppercase tracking-wider shadow-lg hover:scale-105 transition-transform"
                         variant="premium"
                     >
-                        Log Your Experience
+                        Share Your Experience
                     </Button>
                 )}
             </div>
@@ -140,13 +141,13 @@ export function ProductReviews({ productId }: ProductReviewsProps) {
                         onSubmit={handleSubmit}
                     >
                         <div className="flex items-center justify-between">
-                            <h3 className="text-xl font-black font-outfit uppercase italic tracking-tighter">New <span className="text-primary italic">Feedback</span> Log</h3>
-                            <button type="button" onClick={() => setShowForm(false)} className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground hover:text-foreground">Abort Protocol</button>
+                            <h3 className="text-xl font-black font-outfit uppercase italic tracking-tighter">New <span className="text-primary italic">Feedback</span></h3>
+                            <button type="button" onClick={() => setShowForm(false)} className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground hover:text-foreground">Cancel</button>
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div className="flex flex-col gap-2">
-                                <label className="text-[9px] font-black uppercase tracking-widest ml-3">Identity Specification</label>
+                                <label className="text-[9px] font-black uppercase tracking-widest ml-3">Full Name</label>
                                 <input
                                     type="text"
                                     placeholder="Enter your name..."
@@ -156,7 +157,7 @@ export function ProductReviews({ productId }: ProductReviewsProps) {
                                 />
                             </div>
                             <div className="flex flex-col gap-2">
-                                <label className="text-[9px] font-black uppercase tracking-widest ml-3">Satisfaction Metric</label>
+                                <label className="text-[9px] font-black uppercase tracking-widest ml-3">Your Rating</label>
                                 <div className="flex items-center gap-3 h-12 px-5 bg-muted/40 rounded-xl">
                                     {[1, 2, 3, 4, 5].map((s) => (
                                         <button
@@ -174,7 +175,7 @@ export function ProductReviews({ productId }: ProductReviewsProps) {
                         </div>
 
                         <div className="flex flex-col gap-2">
-                            <label className="text-[9px] font-black uppercase tracking-widest ml-3">Operational Feedback</label>
+                            <label className="text-[9px] font-black uppercase tracking-widest ml-3">Your Review</label>
                             <textarea
                                 placeholder="Describe your experience with the hardware..."
                                 className="bg-muted/40 border-none rounded-[1.5rem] p-5 text-xs font-bold min-h-[100px] focus:ring-2 ring-primary/50 outline-none"
@@ -188,7 +189,7 @@ export function ProductReviews({ productId }: ProductReviewsProps) {
                             className="h-14 rounded-xl text-xs font-black italic uppercase tracking-widest"
                             disabled={isSubmitting}
                         >
-                            {isSubmitting ? "Syncing..." : "Commit Log"}
+                            {isSubmitting ? "Submitting..." : "Submit Review"}
                             <Send className="ml-2 w-3.5 h-3.5" />
                         </Button>
                     </motion.form>
@@ -200,7 +201,7 @@ export function ProductReviews({ productId }: ProductReviewsProps) {
                 {reviews.length === 0 ? (
                     <div className="flex flex-col items-center justify-center py-24 gap-6 opacity-30">
                         <MessageSquare className="w-16 h-16" />
-                        <h4 className="text-sm font-black uppercase tracking-widest">No Experience Logs Found</h4>
+                        <h4 className="text-sm font-black uppercase tracking-widest">No Reviews Found</h4>
                     </div>
                 ) : (
                     reviews.map((review) => (

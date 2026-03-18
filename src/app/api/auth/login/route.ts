@@ -1,63 +1,82 @@
 import { NextResponse } from "next/server"
-import { prisma } from "@/lib/prisma"
-import bcrypt from "bcryptjs"
-import { cookies } from "next/headers"
+import { supabase } from "@/lib/supabase"
 
 export async function POST(req: Request) {
     try {
         const { email, password } = await req.json()
-        const cookieStore = await cookies()
-        const deviceId = cookieStore.get('deviceId')?.value
 
-        const user = await prisma.user.findUnique({
-            where: { email }
+        if (!email || !password) {
+            return NextResponse.json({ error: "Email and password required" }, { status: 400 })
+        }
+
+        // 1. Sign in with Supabase Auth
+        const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+            email,
+            password
         })
 
-        if (!user || !user.password) {
+        if (authError) {
             return NextResponse.json({ error: "Invalid credentials" }, { status: 401 })
         }
 
-        const isMatch = await bcrypt.compare(password, user.password)
+        // 2. Fetch profile data from User table
+        // We use email as the bridge because auth.users.id (UUID) 
+        // doesn't match User.id (CUID) for many existing accounts.
+        const { data: profile, error: profileError } = await supabase
+            .from('User')
+            .select('*')
+            .eq('email', authData.user.email)
+            .maybeSingle()
 
-        if (!isMatch) {
-            // Also maintain legacy plain-text support for the mock ADMIN user
-            if (user.password !== password) {
-                return NextResponse.json({ error: "Invalid credentials" }, { status: 401 })
+        if (!profile) {
+            const SESSION_MODIFIER = 30 * 24 * 60 * 60 // 30 days
+            
+            const userData = {
+                id: authData.user.id,
+                email: authData.user.email,
+                role: 'USER',
+                displayName: authData.user.user_metadata?.display_name || null
             }
+            const response = NextResponse.json({
+                success: true,
+                user: userData
+            })
+            // Set cookie for middleware
+            response.cookies.set('sb-access-token', authData.session.access_token, {
+                path: '/',
+                maxAge: SESSION_MODIFIER,
+                secure: process.env.NODE_ENV === 'production',
+                sameSite: 'lax',
+                httpOnly: true
+            })
+            return response
         }
 
-        // Link Device Session
-        if (deviceId) {
-            // Upsert the session link
-            const session = await prisma.deviceSession.findUnique({ where: { deviceId } })
-            if (session) {
-                await prisma.deviceSession.update({
-                    where: { deviceId },
-                    data: { userId: user.id }
-                })
-            } else {
-                await prisma.deviceSession.create({
-                    data: {
-                        deviceId,
-                        userId: user.id,
-                        expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
-                    }
-                })
-            }
-        }
-
-        // Return user data (in a real app, you would also set an auth token cookie here if needed)
-        // Since the prompt asks to track sessions via device cookie, deviceId acts as a session token here.
-        return NextResponse.json({
+        const SESSION_MODIFIER = 30 * 24 * 60 * 60 // 30 days
+        
+        const response = NextResponse.json({
             success: true,
             user: {
-                id: user.id,
-                email: user.email,
-                role: user.role,
-                displayName: user.displayName
+                id: authData.user.id, // CRITICAL: Use Supabase UUID for database compatibility
+                email: profile.email,
+                role: profile.role,
+                displayName: profile.displayName,
+                profileId: profile.id // Optional: keep for legacy references
             }
         })
+
+        // Set cookie for middleware
+        response.cookies.set('sb-access-token', authData.session.access_token, {
+            path: '/',
+            maxAge: SESSION_MODIFIER,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'lax',
+            httpOnly: true
+        })
+
+        return response
     } catch (error: any) {
+        console.error("Supabase Login error:", error)
         return NextResponse.json({ error: error.message }, { status: 500 })
     }
 }

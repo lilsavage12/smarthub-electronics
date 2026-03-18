@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server"
-import { prisma } from "@/lib/prisma"
+import { supabase } from "@/lib/supabase"
 
 export async function POST(req: Request) {
     try {
@@ -9,10 +9,14 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: "No code provided" }, { status: 400 })
         }
 
-        const discount = await prisma.discount.findUnique({
-            where: { code }
-        })
+        const { data: discount, error } = await supabase
+            .from('Discount')
+            .select('*')
+            .eq('code', code)
+            .maybeSingle()
 
+        if (error) throw error
+        
         if (!discount) {
             return NextResponse.json({ error: "Invalid discount code" }, { status: 404 })
         }
@@ -36,7 +40,7 @@ export async function POST(req: Request) {
         })
 
     } catch (error) {
-        console.error("Discount Verification Error:", error)
+        console.error("Supabase Discount Verification Error:", error)
         return NextResponse.json({ error: "Failed to verify discount" }, { status: 500 })
     }
 }

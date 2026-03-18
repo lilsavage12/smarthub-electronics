@@ -9,7 +9,7 @@ import { cn } from "@/lib/utils"
 export const Chatbot = () => {
     const [isOpen, setIsOpen] = useState(false)
     const [messages, setMessages] = useState([
-        { role: "ai", text: "Welcome to the SmartHub Vault. I am your AI mobility strategist. How can I assist your tech journey today?", time: "14:20" }
+        { role: "ai", text: "Welcome to the SmartHub Store. I am your AI strategist. How can I help you find your next flagship device today?", time: "14:20" }
     ])
     const [inputValue, setInputValue] = useState("")
     const [isTyping, setIsTyping] = useState(false)
@@ -41,10 +41,10 @@ export const Chatbot = () => {
     const getAiResponse = (input: string) => {
         const lowInput = input.toLowerCase()
         if (lowInput.includes("price") || lowInput.includes("cost")) return "Lumina ZX starts at $1199, while the Aurora Fold Pro is $1799. Would you like to check current trade-in credits?"
-        if (lowInput.includes("trade") || lowInput.includes("old")) return "Our trade-in protocol can offer up to $850 for like-new iPhone 15 Pro Max models. Use our Trade-In tool for a custom estimate."
+        if (lowInput.includes("trade") || lowInput.includes("old")) return "Our trade-in program can offer up to $850 for like-new iPhone 15 Pro Max models. Use our Trade-In tool for a custom estimate."
         if (lowInput.includes("delivery") || lowInput.includes("ship")) return "Express 1-hour delivery is active for Nairobi. Outer regions typically arrive within 24-48 business hours via SmartHub Logistics."
         if (lowInput.includes("warranty")) return "Every device includes 24 months of SmartWarranty protection. It covers mechanical failures and battery health degradation."
-        return "Fascinating query. I've logged your request into our Hub database. Could you specify if you're interested in flagships, corporate bulk orders, or trade-in credits?"
+        return "Great question! I've noted your interest. Could you specify if you're interested in flagships, corporate bulk orders, or trade-in credits?"
     }
 
     return (
@@ -91,7 +91,7 @@ export const Chatbot = () => {
                                     <h3 className="text-xl font-black font-outfit uppercase tracking-tighter italic leading-none">SmartHub <span className="text-primary italic">AI</span></h3>
                                     <div className="flex items-center gap-2 mt-1">
                                         <div className="h-2 w-2 bg-emerald-500 rounded-full animate-pulse" />
-                                        <span className="text-[10px] font-black uppercase tracking-widest text-emerald-600">Sync Active • High Priority</span>
+                                        <span className="text-[10px] font-black uppercase tracking-widest text-emerald-600">Online • Reaching Out</span>
                                     </div>
                                 </div>
                                 <button onClick={() => setIsOpen(false)} className="ml-auto text-muted-foreground hover:text-foreground hover:rotate-90 transition-all p-2 bg-muted/50 rounded-full">
@@ -161,7 +161,7 @@ export const Chatbot = () => {
                             ))}
                         </div>
 
-                        {/* Message Entry Protocol */}
+                        {/* Message Entry Area */}
                         <form
                             onSubmit={handleSend}
                             className="p-6 bg-background pt-2 mb-2"
@@ -170,7 +170,7 @@ export const Chatbot = () => {
                                 <input
                                     value={inputValue}
                                     onChange={(e) => setInputValue(e.target.value)}
-                                    placeholder="INITIATE SYNC..."
+                                    placeholder="ASK A QUESTION..."
                                     className="w-full bg-muted border border-transparent rounded-[2rem] pl-6 pr-14 py-5 text-xs font-black uppercase tracking-[0.2em] outline-none focus:border-primary transition-all shadow-inner"
                                 />
                                 <button

@@ -62,7 +62,7 @@ export default function CorporatePage() {
             <section className="px-6 max-w-7xl mx-auto w-full grid grid-cols-1 md:grid-cols-4 gap-12">
                 {[
                     { icon: <BarChart3 className="w-8 h-8" />, title: "Volume Discounts", text: "Save up to 25% on bulk purchases of flagships and accessories." },
-                    { icon: <ShieldCheck className="w-8 h-8" />, title: "MDM Integration", text: "Pre-configured and ready to integrate with your existing MDM protocols." },
+                    { icon: <ShieldCheck className="w-8 h-8" />, title: "MDM Integration", text: "Pre-configured and ready to integrate with your existing MDM standards." },
                     { icon: <Truck className="w-8 h-8" />, title: "Priority Logistics", text: "Dedicated shipping lanes and expedited customs clearance for global hubs." },
                     { icon: <Briefcase className="w-8 h-8" />, title: "Business Credit", text: "Flexible 30/60/90 day payment cycles according to corporate policies." }
                 ].map((pill, i) => (
@@ -116,8 +116,8 @@ export default function CorporatePage() {
                                         <input required placeholder="YOUR NAME" className="bg-muted border border-transparent rounded-2xl px-6 py-4 outline-none focus:border-primary transition-all text-sm uppercase font-black" />
                                     </div>
                                     <div className="flex flex-col gap-2">
-                                        <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-4">Business Protocol (Email)</label>
-                                        <input required type="email" placeholder="PROTO@CORP.IO" className="bg-muted border border-transparent rounded-2xl px-6 py-4 outline-none focus:border-primary transition-all text-sm uppercase font-black" />
+                                        <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-4">Business Email</label>
+                                        <input required type="email" placeholder="EX@CORP.IO" className="bg-muted border border-transparent rounded-2xl px-6 py-4 outline-none focus:border-primary transition-all text-sm uppercase font-black" />
                                     </div>
                                     <div className="flex flex-col gap-2">
                                         <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-4">Approx Fleet Size</label>
@@ -137,7 +137,7 @@ export default function CorporatePage() {
                                     GET CUSTOMIZED PRICE
                                     <ChevronRight className="ml-2 w-6 h-6" />
                                 </Button>
-                                <p className="text-[10px] text-muted-foreground uppercase font-bold text-center mt-2 px-12">By submitting you agree to our corporate privacy standards and data protection protocols.</p>
+                                <p className="text-[10px] text-muted-foreground uppercase font-bold text-center mt-2 px-12">By submitting you agree to our corporate privacy standards and data protection policies.</p>
                             </motion.form>
                         ) : (
                             <motion.div
@@ -150,7 +150,7 @@ export default function CorporatePage() {
                                     <CheckCircle2 className="w-full h-full text-white" />
                                 </div>
                                 <div className="flex flex-col gap-3">
-                                    <h3 className="text-3xl font-black font-outfit uppercase italic tracking-tighter">Transmission Successful</h3>
+                                    <h3 className="text-3xl font-black font-outfit uppercase italic tracking-tighter">Request Received</h3>
                                     <p className="text-muted-foreground max-w-sm px-8">Our Enterprise Hub has received your request. A dedicated Account Strategist will reach out via email shortly.</p>
                                 </div>
                                 <Button variant="outline" onClick={() => setFormSubmitted(false)} className="rounded-xl border-2 uppercase font-black tracking-widest text-xs px-12 py-6">Reset Form Status</Button>

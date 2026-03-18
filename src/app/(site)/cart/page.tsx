@@ -6,11 +6,13 @@ import Image from "next/image"
 import { motion, AnimatePresence } from "framer-motion"
 import { ShoppingCart, ArrowRight, Trash2, ShieldCheck, Truck, RefreshCw, CreditCard, ChevronLeft, Minus, Plus, Zap, AlertCircle } from "lucide-react"
 import { useCart } from "@/lib/cart-store"
+import { useAuth } from "@/lib/auth-store"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 
 export default function CartPage() {
     const { items, removeItem, updateQuantity, totalPrice, totalItems } = useCart()
+    const { user } = useAuth()
     const [promoInput, setPromoInput] = React.useState("")
     const [activeDiscount, setActiveDiscount] = React.useState<{ type: string, value: string, code: string } | null>(null)
     const [verifyingPromo, setVerifyingPromo] = React.useState(false)
@@ -56,7 +58,7 @@ export default function CartPage() {
                 setActiveDiscount(data.discount)
                 setPromoInput("") // Clear input
             } else {
-                toast.error(data.error || "Invalid or Expired Protocol Token", {
+                toast.error(data.error || "Invalid or expired promo code", {
                     icon: "🚫",
                     style: {
                         background: '#0F0F12',
@@ -71,7 +73,7 @@ export default function CartPage() {
                 setActiveDiscount(null)
             }
         } catch (error) {
-            toast.error("Network constraint: Unable to verify protocol")
+            toast.error("Connection error. Please try again.")
         } finally {
             setVerifyingPromo(false)
         }
@@ -131,7 +133,7 @@ export default function CartPage() {
                                 <div className="flex-1 flex flex-col gap-1 w-full text-center md:text-left">
                                     <div className="flex items-start justify-between">
                                         <h3 className="text-base font-black font-outfit uppercase italic leading-tight hover:text-primary transition-colors cursor-pointer">{item.name}</h3>
-                                        <button onClick={() => removeItem(item.id)} className="text-muted-foreground hover:text-red-500 p-1.5 transition-colors">
+                                        <button onClick={() => removeItem(item.id, user?.id)} className="text-muted-foreground hover:text-red-500 p-1.5 transition-colors">
                                             <Trash2 className="w-4 h-4" />
                                         </button>
                                     </div>
@@ -143,9 +145,9 @@ export default function CartPage() {
 
                                     <div className="flex items-center justify-center md:justify-start gap-3 mt-3">
                                         <div className="flex items-center gap-3 bg-background border border-border rounded-lg px-3 py-1.5">
-                                            <button onClick={() => updateQuantity(item.id, Math.max(1, item.quantity - 1))} className="text-sm font-black text-muted-foreground hover:text-primary">-</button>
+                                            <button onClick={() => updateQuantity(item.id, Math.max(1, item.quantity - 1), user?.id)} className="text-sm font-black text-muted-foreground hover:text-primary">-</button>
                                             <span className="text-xs font-black min-w-[15px] text-center">{item.quantity}</span>
-                                            <button onClick={() => updateQuantity(item.id, item.quantity + 1)} className="text-sm font-black text-muted-foreground hover:text-primary">+</button>
+                                            <button onClick={() => updateQuantity(item.id, item.quantity + 1, user?.id)} className="text-sm font-black text-muted-foreground hover:text-primary">+</button>
                                         </div>
                                         <div className="h-6 w-[1px] bg-border mx-1" />
                                         <div className="flex flex-col">
@@ -218,31 +220,6 @@ export default function CartPage() {
                             </Link>
                         </div>
 
-                        <div className="relative">
-                            <input
-                                type="text"
-                                placeholder="PROMO CODE"
-                                value={promoInput}
-                                onChange={(e) => setPromoInput(e.target.value)}
-                                onKeyDown={(e) => e.key === "Enter" && handleApplyPromo()}
-                                className="w-full h-10 bg-background border border-border rounded-lg pl-3 pr-20 text-[9px] font-black uppercase tracking-widest outline-none focus:border-primary transition-all"
-                            />
-                            <button
-                                onClick={handleApplyPromo}
-                                disabled={verifyingPromo}
-                                className="absolute right-1.5 top-1.5 bottom-1.5 bg-primary text-primary-foreground px-3 rounded text-[8px] font-black uppercase tracking-widest hover:bg-primary/90 transition-all active:scale-95 disabled:opacity-50"
-                            >
-                                {verifyingPromo ? <RefreshCw className="animate-spin w-3 h-3" /> : "APPLY"}
-                            </button>
-                        </div>
-                        {activeDiscount && (
-                            <button
-                                onClick={() => setActiveDiscount(null)}
-                                className="text-[8px] font-black uppercase tracking-widest text-red-500 hover:text-red-400 mt-[-10px] text-right"
-                            >
-                                Remove Coupon
-                            </button>
-                        )}
                     </div>
                 </div>
             </div>

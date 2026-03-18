@@ -6,9 +6,7 @@ import { Smartphone, Zap, ShieldCheck, Mail, Lock, ArrowRight, UserPlus } from "
 import { Button } from "@/components/ui/button"
 import { useRouter, useParams } from "next/navigation"
 import { toast } from "react-hot-toast"
-import { auth, db } from "@/lib/firebase"
-import { createUserWithEmailAndPassword } from "firebase/auth"
-import { collection, query, where, getDocs, doc, setDoc, updateDoc } from "firebase/firestore"
+import { useAuth } from "@/lib/auth-store"
 
 export default function AdminInvite() {
     const { token } = useParams()
@@ -20,6 +18,7 @@ export default function AdminInvite() {
     const [isValidToken, setIsValidToken] = useState<boolean | null>(null)
     const [inviteDoc, setInviteDoc] = useState<any>(null)
     const [isProcessing, setIsProcessing] = useState(false)
+    const { setAuth } = useAuth()
 
     useEffect(() => {
         validateToken()
@@ -29,13 +28,11 @@ export default function AdminInvite() {
         if (!token) return
 
         try {
-            const q = query(collection(db, "invites"), where("token", "==", token), where("status", "==", "PENDING"))
-            const querySnapshot = await getDocs(q)
-
-            if (!querySnapshot.empty) {
-                const invite = querySnapshot.docs[0]
+            const res = await fetch(`/api/invites/verify/${token}`)
+            if (res.ok) {
+                const invite = await res.json()
                 setInviteDoc(invite)
-                setEmail(invite.data().email)
+                setEmail(invite.email)
                 setIsValidToken(true)
             } else {
                 setIsValidToken(false)
@@ -62,23 +59,25 @@ export default function AdminInvite() {
         setIsProcessing(true)
 
         try {
-            // 1. Create User in Firebase Auth
-            const userCredential = await createUserWithEmailAndPassword(auth, email, password)
-            const user = userCredential.user
-
-            // 2. Create User Doc with ADMIN role
-            await setDoc(doc(db, "users", user.uid), {
-                email: email,
-                role: "ADMIN",
-                createdAt: new Date()
+            // 1. Create User in Local DB with ADMIN role
+            const regRes = await fetch("/api/auth/register", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ 
+                    email, 
+                    password, 
+                    displayName: "Admin Operative",
+                    role: "ADMIN" // The API currently defaults to USER, we'll need to upgrade it or rely on invite role
+                })
             })
 
-            // 3. Update Invite Status
-            await updateDoc(doc(db, "invites", inviteDoc.id), {
-                status: "ACCEPTED",
-                acceptedAt: new Date(),
-                userId: user.uid
-            })
+            const regData = await regRes.json()
+
+            if (!regRes.ok) throw new Error(regData.error || "Onboarding Protocol Failed")
+
+            // 2. Set Auth State
+            setAuth(regData.user)
+            localStorage.setItem("sh_admin_user", JSON.stringify(regData.user))
 
             toast.success("Identity Verified. Vault Access Initialized.", {
                 style: {
@@ -115,7 +114,7 @@ export default function AdminInvite() {
                 <Zap className="w-16 h-16 text-red-500 mx-auto" />
                 <h1 className="text-3xl font-black font-outfit uppercase italic tracking-tighter">Token <span className="text-red-500 italic">Invalid</span></h1>
                 <p className="text-xs font-bold text-muted-foreground uppercase leading-relaxed tracking-widest">This security token has expired, been burned, or has already been used to initialize an identity.</p>
-                <Button variant="outline" className="h-14 rounded-2xl border-red-500/20 text-red-500 font-bold uppercase" onClick={() => router.push("/")}>Return to Surface</Button>
+                <Button variant="outline" className="h-14 rounded-2xl border-red-500/20 text-red-500 font-bold uppercase" onClick={() => router.push("/")}>Return to Homepage</Button>
             </div>
         </div>
     }

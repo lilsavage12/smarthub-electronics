@@ -14,17 +14,21 @@ import { motion, AnimatePresence } from "framer-motion"
 import { useCart } from "@/lib/cart-store"
 import { useWishlist } from "@/lib/wishlist-store"
 import { PRODUCTS } from "@/lib/mock-data"
+import { useAuth } from "@/lib/auth-store"
 import { toast } from "react-hot-toast"
 import Image from "next/image"
 import { cn } from "@/lib/utils"
 import { ProductReviews } from "@/components/products/ProductReviews"
+import { getEffectivePromotion, calculateDiscountedPrice } from "@/lib/promo-utils"
+import { CountdownTimer } from "@/components/products/CountdownTimer"
 
 export default function ProductDetailPage() {
     const { id: rawId } = useParams()
     const id = (rawId as string)?.includes('--') ? (rawId as string).split('--').pop() : rawId
     const router = useRouter()
     const { addItem } = useCart()
-    const { addItem: addToWishlist, removeItem: removeFromWishlist, isInWishlist } = useWishlist()
+    const { toggleWishlist, isInWishlist } = useWishlist()
+    const { user } = useAuth()
     const [product, setProduct] = useState<any>(null)
     const [loading, setLoading] = useState(true)
     const [selectedImage, setSelectedImage] = useState(0)
@@ -34,15 +38,7 @@ export default function ProductDetailPage() {
     useEffect(() => {
         const fetchProduct = async () => {
             try {
-                // 1. Try local mock data first for speed and flagship reliability
-                const mockProduct = PRODUCTS.find(p => p.id === id)
-                if (mockProduct) {
-                    setProduct(mockProduct)
-                    setLoading(false)
-                    return
-                }
-
-                // 2. Fallback to Primary Data Vault (Postgres)
+                // 1. Fetch from Primary Data Vault (Postgres)
                 const res = await fetch(`/api/products/${id}`)
                 if (res.ok) {
                     const data = await res.json()
@@ -58,11 +54,15 @@ export default function ProductDetailPage() {
                     }
 
                     setProduct({ ...data, specs: parsedSpecs })
-                    // We DO NOT set the default selectedVariant here anymore, 
-                    // so the main product is shown by default.
                 } else {
-                    toast.error("Unit not found in primary registry")
-                    router.push("/products")
+                    // 2. Fallback to local mock data if API fails or unit is legacy
+                    const mockProduct = PRODUCTS.find(p => p.id === id)
+                    if (mockProduct) {
+                        setProduct(mockProduct)
+                    } else {
+                        toast.error("Unit not found in primary registry")
+                        router.push("/products")
+                    }
                 }
             } catch (error) {
                 console.error("Vault uplink error", error)
@@ -104,29 +104,29 @@ export default function ProductDetailPage() {
     const battery = extractSpecString(specs.battery || specs.batteryCapacity, "All-day Battery")
     const camera = extractSpecString(specs.camera || specs.rearCamera, "Pro-Grade Camera")
 
+    const effectivePromo = getEffectivePromotion(product.promotions || [])
+    const basePrice = selectedVariant ? selectedVariant.price : product.price
+    const { discountedPrice, percentOff, savings } = calculateDiscountedPrice(basePrice, effectivePromo)
+
     const handleAddToCart = () => {
         addItem({
             id: selectedVariant ? `${product.id}-${selectedVariant.id}` : product.id,
             name: `${product.name || product.modelName}${selectedVariant ? ` - ${selectedVariant.color}` : ''}`,
-            price: selectedVariant ? selectedVariant.price : product.price,
+            price: discountedPrice,
             quantity: 1,
             image: selectedVariant && selectedVariant.images ? (typeof selectedVariant.images === 'string' ? JSON.parse(selectedVariant.images)[0] || product.image : selectedVariant.images[0] || product.image) : (product.image || product.images?.[0])
-        })
+        }, user?.id)
         toast.success(`${product.name || product.modelName} ADDED TO CART`)
     }
 
-    const handleAddToWishlist = () => {
-        if (isInWishlist(product.id)) {
-            removeFromWishlist(product.id)
-            toast.success("REMOVED FROM VAULT")
+    const handleAddToWishlist = async () => {
+        const isCurrentlyIn = isInWishlist(product.id)
+        await toggleWishlist(product.id, user?.id)
+        
+        if (isCurrentlyIn) {
+            toast.error("REMOVED FROM WISHLIST")
         } else {
-            addToWishlist({
-                id: product.id,
-                name: product.name || product.modelName,
-                price: product.price,
-                image: product.image || product.images?.[0]
-            })
-            toast.success("SAVED TO VAULT")
+            toast.success("ADDED TO WISHLIST")
         }
     }
 
@@ -136,8 +136,15 @@ export default function ProductDetailPage() {
     }
 
     const handleZoom = () => {
-        toast("ZOOM PROTOCOL ENGAGED", { icon: "🔍" })
+        toast("Image zoom activated", { icon: "🔍" })
     }
+
+    console.log("[DEBUG] Product Data on Detail Page:", {
+        id: product.id,
+        hasPromotions: !!product.promotions,
+        promoCount: product.promotions?.length,
+        discountedPrice
+    })
 
     return (
         <div className="min-h-screen bg-background text-foreground font-inter">
@@ -209,8 +216,20 @@ export default function ProductDetailPage() {
                             </h1>
                             <div className="flex items-center gap-6 mt-4">
                                 <div className="flex flex-col">
-                                    <span className="text-4xl font-black italic tracking-tighter text-primary">${selectedVariant ? selectedVariant.price : product.price}</span>
-                                    {product.originalPrice && <span className="text-sm font-bold text-muted-foreground line-through decoration-primary/30 opacity-40">${product.originalPrice}</span>}
+                                    <div className="flex items-center gap-3">
+                                        <span className="text-4xl font-black italic tracking-tighter text-primary">${discountedPrice.toFixed(2)}</span>
+                                        {effectivePromo && (
+                                            <span className="text-sm font-bold text-muted-foreground line-through decoration-primary/30 opacity-40">${basePrice}</span>
+                                        )}
+                                    </div>
+                                    {effectivePromo && (
+                                        <div className="flex items-center gap-2 mt-1">
+                                            <span className="text-[10px] font-black uppercase tracking-widest text-red-500 bg-red-500/10 px-2 py-0.5 rounded-lg">
+                                                -{percentOff}% OFF / SAVE ${savings.toFixed(2)}
+                                            </span>
+                                            {effectivePromo.category === 'FLASH_SALE' && <CountdownTimer endDate={effectivePromo.endDate} />}
+                                        </div>
+                                    )}
                                 </div>
                                 <div className="h-12 w-[1px] bg-border mx-2" />
                                 <div className="flex flex-col gap-1">
@@ -365,20 +384,101 @@ export default function ProductDetailPage() {
                                     initial={{ opacity: 0, y: 20 }}
                                     animate={{ opacity: 1, y: 0 }}
                                     exit={{ opacity: 0, y: -20 }}
-                                    className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-12"
+                                    className="flex flex-col gap-8"
                                 >
-                                    {Object.entries(product.specs || {}).map(([key, value]: [string, any]) => (
-                                        <div key={key} className="flex flex-col gap-1 p-4 rounded-2xl bg-card border border-border/50">
-                                            <span className="text-[9px] font-black uppercase tracking-[0.2em] text-muted-foreground/50">{key.replace(/([A-Z])/g, ' $1')}</span>
-                                            <span className="text-sm font-bold uppercase tracking-tight text-foreground">{String(value)}</span>
+                                    {(() => {
+                                        const s = product.specs || {}
+                                        const formatVal = (v: any): string | null => {
+                                            if (v === null || v === undefined || v === '') return null
+                                            if (typeof v === 'boolean') return v ? 'Yes' : 'No'
+                                            if (typeof v === 'object') return null
+                                            return String(v)
+                                        }
+                                        const specGroups = [
+                                            {
+                                                title: 'Display', items: [
+                                                    { label: 'Size', val: formatVal(s.display?.size) },
+                                                    { label: 'Type', val: formatVal(s.display?.type) },
+                                                    { label: 'Resolution', val: formatVal(s.display?.resolution) },
+                                                    { label: 'Refresh Rate', val: s.display?.refreshRate ? `${s.display.refreshRate}Hz` : null },
+                                                    { label: 'Protection', val: formatVal(s.display?.protection) },
+                                                ]
+                                            },
+                                            {
+                                                title: 'Performance', items: [
+                                                    { label: 'OS', val: s.performance?.os && s.performance?.osVersion ? `${s.performance.os} ${s.performance.osVersion}` : formatVal(s.performance?.os) },
+                                                    { label: 'Chipset', val: formatVal(s.performance?.chipset) },
+                                                    { label: 'GPU', val: formatVal(s.performance?.gpu) },
+                                                    { label: 'RAM', val: s.performance?.ram ? `${s.performance.ram} GB` : null },
+                                                    { label: 'Storage', val: formatVal(s.performance?.storage) },
+                                                    { label: 'Expandable', val: s.performance?.expandable != null ? (s.performance.expandable ? `Yes (up to ${s.performance.expandableCapacity || 'N/A'})` : 'No') : null },
+                                                ]
+                                            },
+                                            {
+                                                title: 'Camera', items: [
+                                                    { label: 'Rear Camera', val: formatVal(s.camera?.main) },
+                                                    { label: 'Ultra-Wide', val: formatVal(s.camera?.ultraWide) },
+                                                    { label: 'Telephoto', val: formatVal(s.camera?.telephoto) },
+                                                    { label: 'Front Camera', val: formatVal(s.camera?.front) },
+                                                    { label: 'Video', val: formatVal(s.camera?.video) },
+                                                    { label: 'Features', val: formatVal(s.camera?.features) },
+                                                ]
+                                            },
+                                            {
+                                                title: 'Battery', items: [
+                                                    { label: 'Capacity', val: s.battery?.capacity ? `${s.battery.capacity} mAh` : null },
+                                                    { label: 'Charging', val: s.battery?.chargingSpeed ? `${s.battery.chargingSpeed}W` : null },
+                                                    { label: 'Wireless Charging', val: s.battery?.wireless != null ? (s.battery.wireless ? 'Yes' : 'No') : null },
+                                                    { label: 'Reverse Charging', val: s.battery?.reverse != null ? (s.battery.reverse ? 'Yes' : 'No') : null },
+                                                ]
+                                            },
+                                            {
+                                                title: 'Connectivity', items: [
+                                                    { label: 'SIM', val: formatVal(s.connectivity?.simType) },
+                                                    { label: 'Network', val: formatVal(s.connectivity?.network) },
+                                                    { label: 'Wi-Fi', val: formatVal(s.connectivity?.wifi) },
+                                                    { label: 'Bluetooth', val: formatVal(s.connectivity?.bluetooth) },
+                                                    { label: 'NFC', val: s.connectivity?.nfc != null ? (s.connectivity.nfc ? 'Yes' : 'No') : null },
+                                                    { label: 'USB', val: formatVal(s.connectivity?.usbType) },
+                                                ]
+                                            },
+                                            {
+                                                title: 'Physical', items: [
+                                                    { label: 'Dimensions', val: formatVal(s.physical?.dimensions) },
+                                                    { label: 'Weight', val: s.physical?.weight ? `${s.physical.weight}g` : null },
+                                                    { label: 'Material', val: formatVal(s.physical?.material) },
+                                                    { label: 'IP Rating', val: formatVal(s.physical?.ipRating) },
+                                                ]
+                                            },
+                                        ]
+
+                                        return specGroups.map(group => {
+                                            const visibleItems = group.items.filter(i => i.val)
+                                            if (visibleItems.length === 0) return null
+                                            return (
+                                                <div key={group.title} className="flex flex-col gap-3">
+                                                    <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-primary italic pb-2 border-b border-border/30">{group.title}</h3>
+                                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                                                        {visibleItems.map(item => (
+                                                            <div key={item.label} className="flex flex-col gap-1 p-4 rounded-2xl bg-card border border-border/50">
+                                                                <span className="text-[9px] font-black uppercase tracking-[0.2em] text-muted-foreground/50">{item.label}</span>
+                                                                <span className="text-sm font-bold uppercase tracking-tight text-foreground">{item.val}</span>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            )
+                                        })
+                                    })()}
+                                    {/* Description */}
+                                    {product.description && (
+                                        <div className="p-6 rounded-[2rem] bg-muted/20 border border-border/50 mt-2">
+                                            <h4 className="text-[9px] font-black uppercase tracking-[0.3em] text-primary mb-3 italic">Operational Overview</h4>
+                                            <p className="text-base font-medium leading-relaxed opacity-80">{product.description}</p>
                                         </div>
-                                    ))}
-                                    {/* Default Description as part of Specs if necessary */}
-                                    <div className="md:col-span-2 lg:col-span-3 p-6 rounded-[2rem] bg-muted/20 border border-border/50 mt-2">
-                                        <h4 className="text-[9px] font-black uppercase tracking-[0.3em] text-primary mb-3 italic">Operational Overview</h4>
-                                        <p className="text-base font-medium leading-relaxed opacity-80">{product.description}</p>
-                                    </div>
+                                    )}
                                 </motion.div>
+
                             ) : (
                                 <motion.div
                                     key="reviews"

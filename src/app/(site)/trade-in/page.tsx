@@ -36,7 +36,7 @@ export default function TradeInPage() {
             <div className="text-center flex flex-col items-center gap-6 max-w-3xl mx-auto">
                 <div className="flex items-center gap-2 bg-primary/10 border border-primary/20 px-4 py-1.5 rounded-full">
                     <Zap className="w-4 h-4 text-primary" />
-                    <span className="text-xs font-black uppercase tracking-widest text-primary">SmartHub Trade-In Protocol</span>
+                    <span className="text-xs font-black uppercase tracking-widest text-primary">Device Trade-In</span>
                 </div>
                 <h1 className="text-5xl md:text-7xl font-black font-outfit uppercase tracking-tighter italic leading-none">Turn Old Tech <br /><span className="text-primary italic">Into New Credit</span></h1>
                 <p className="text-xl text-muted-foreground leading-relaxed">Upgrade to the latest flagship with ease. Simply tell us about your current device and get instant credit towards your next purchase.</p>
@@ -112,7 +112,7 @@ export default function TradeInPage() {
                                 </div>
 
                                 <Button onClick={handleNextStep} variant="premium" className="h-16 mt-auto rounded-2xl text-lg font-black italic tracking-widest">
-                                    CONTINUE ASSESSMENT
+                                    CHECK CONDITION
                                 </Button>
                             </motion.div>
                         )}
@@ -126,7 +126,7 @@ export default function TradeInPage() {
                                 className="flex flex-col gap-8 h-full"
                             >
                                 <div className="flex flex-col gap-3">
-                                    <h2 className="text-3xl font-black font-outfit uppercase italic tracking-tighter italic">Condition Report</h2>
+                                    <h2 className="text-3xl font-black font-outfit uppercase italic tracking-tighter italic">Device Condition</h2>
                                     <p className="text-muted-foreground">Be honest about the physical state of your device for an accurate voucher.</p>
                                 </div>
 
@@ -156,7 +156,7 @@ export default function TradeInPage() {
 
                                 <div className="flex items-center gap-3 p-4 bg-orange-500/10 rounded-2xl border border-orange-500/20 mt-4">
                                     <Info className="w-4 h-4 text-orange-500 flex-shrink-0" />
-                                    <p className="text-[10px] font-bold text-orange-700 uppercase tracking-widest leading-tight">Vouchers are subject to physical verification at an express hub location.</p>
+                                    <p className="text-[10px] font-bold text-orange-700 uppercase tracking-widest leading-tight">Trade-in values are subject to verification when you visit our store.</p>
                                 </div>
 
                                 <div className="flex gap-4 mt-auto">
@@ -185,16 +185,16 @@ export default function TradeInPage() {
                                 <div className="flex flex-col items-center gap-4 text-center">
                                     <div className="flex items-center gap-3 bg-teal-500/10 px-4 py-2 rounded-xl text-teal-600 border border-teal-500/20 font-bold uppercase tracking-widest text-xs">
                                         <ShieldCheck className="w-4 h-4" />
-                                        Certificate of Evaluation Generated
+                                        Device Value Estimated
                                     </div>
                                     <h3 className="text-3xl font-black uppercase italic tracking-tighter">{selectedModel} • {condition}</h3>
-                                    <p className="text-muted-foreground max-w-sm">This credit can be applied immediately toward your next Purchase or saved in your SmartHub Vault.</p>
+                                    <p className="text-muted-foreground max-w-sm">This credit can be applied immediately toward your next purchase or saved for later.</p>
                                 </div>
 
                                 <div className="flex flex-col gap-4 w-full mt-4">
                                     <Button variant="premium" className="h-20 text-xl font-black italic tracking-widest rounded-[2rem] shadow-2xl">APPLY CREDIT AT CHECKOUT</Button>
                                     <div className="flex gap-4">
-                                        <Button variant="outline" onClick={resetTradeIn} className="h-14 flex-1 rounded-2xl border-2 font-black uppercase tracking-widest text-xs">New Assessment</Button>
+                                        <Button variant="outline" onClick={resetTradeIn} className="h-14 flex-1 rounded-2xl border-2 font-black uppercase tracking-widest text-xs">Start New</Button>
                                         <Button variant="outline" className="h-14 flex-1 rounded-2xl border-2 font-black uppercase tracking-widest text-xs">Download Report (PDF)</Button>
                                     </div>
                                 </div>
@@ -225,7 +225,7 @@ export default function TradeInPage() {
                     </div>
 
                     <div className="bg-background border border-border rounded-[2rem] p-8 flex flex-col gap-6 shadow-sm">
-                        <h3 className="font-black italic uppercase tracking-tighter text-xl">Recent Evaluations</h3>
+                        <h3 className="font-black italic uppercase tracking-tighter text-xl">Recent Estimates</h3>
                         <div className="flex flex-col gap-4">
                             {[
                                 { name: "iPhone 14 Pro", val: "$540", time: "2m ago" },

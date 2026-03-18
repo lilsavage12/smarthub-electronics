@@ -13,6 +13,8 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 import { motion, AnimatePresence } from "framer-motion"
 import { cn } from "@/lib/utils"
 import { toast } from "react-hot-toast"
+import { PromotionManager } from "@/components/admin/PromotionManager"
+import { HomepageManager } from "@/components/admin/HomepageManager"
 
 export default function DiscountsPage() {
     const [discounts, setDiscounts] = useState<any[]>([])
@@ -28,6 +30,7 @@ export default function DiscountsPage() {
 
     const [isPromoActive, setIsPromoActive] = useState(false)
     const [loadingPromo, setLoadingPromo] = useState(false)
+    const [activeTab, setActiveTab] = useState<'codes' | 'automated' | 'layout'>('codes')
 
     const handleNewCode = () => {
         setNewDiscount({ code: "", type: "Percentage", value: "", maxUses: "" })
@@ -80,6 +83,10 @@ export default function DiscountsPage() {
     }, [])
 
     const deleteDiscount = async (id: string, code: string) => {
+        if (!id || id === "undefined") {
+            toast.error("Invalid discount ID")
+            return
+        }
         try {
             const res = await fetch(`/api/discounts/${id}`, { method: 'DELETE' })
             if (res.ok) {
@@ -92,6 +99,7 @@ export default function DiscountsPage() {
     }
 
     const toggleDiscount = async (id: string, currentStatus: string, code: string) => {
+        if (!id || id === "undefined") return
         const newStatus = currentStatus === "Active" ? "Paused" : "Active"
         try {
             const res = await fetch(`/api/discounts/${id}`, {
@@ -126,8 +134,13 @@ export default function DiscountsPage() {
         }
 
         try {
-            const method = isEditCodeOpen ? "PATCH" : "POST"
-            const url = isEditCodeOpen ? `/api/discounts/${newDiscount.id}` : "/api/discounts"
+            const isEdit = isEditCodeOpen
+            if (isEdit && (!newDiscount.id || newDiscount.id === "undefined")) {
+                toast.error("Missing discount ID for update")
+                return
+            }
+            const method = isEdit ? "PATCH" : "POST"
+            const url = isEdit ? `/api/discounts/${newDiscount.id}` : "/api/discounts"
 
             const payload = {
                 code: newDiscount.code,
@@ -209,7 +222,43 @@ export default function DiscountsPage() {
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 mb-8">
+            <div className="flex items-center gap-4 border-b border-border pb-1">
+                <button 
+                    onClick={() => setActiveTab('codes')}
+                    className={cn(
+                        "pb-4 px-4 text-[10px] font-black uppercase tracking-widest transition-all relative",
+                        activeTab === 'codes' ? "text-primary" : "text-muted-foreground hover:text-foreground"
+                    )}
+                >
+                    Promo Codes
+                    {activeTab === 'codes' && <motion.div layoutId="tab" className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />}
+                </button>
+                <button 
+                    onClick={() => setActiveTab('automated')}
+                    className={cn(
+                        "pb-4 px-4 text-[10px] font-black uppercase tracking-widest transition-all relative",
+                        activeTab === 'automated' ? "text-primary" : "text-muted-foreground hover:text-foreground"
+                    )}
+                >
+                    Automated Promotions
+                    {activeTab === 'automated' && <motion.div layoutId="tab" className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />}
+                </button>
+                <button 
+                    onClick={() => setActiveTab('layout')}
+                    className={cn(
+                        "pb-4 px-4 text-[10px] font-black uppercase tracking-widest transition-all relative",
+                        activeTab === 'layout' ? "text-primary" : "text-muted-foreground hover:text-foreground"
+                    )}
+                >
+                    Homepage Layout
+                    {activeTab === 'layout' && <motion.div layoutId="tab" className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />}
+                </button>
+            </div>
+
+            {activeTab === 'codes' ? (
+                <div className="flex flex-col gap-6 animate-in fade-in slide-in-from-bottom-2 duration-500">
+                    <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 mb-8">
+                        {/* ... existing code ... */}
                 {/* Discount Management Hub */}
                 <Card className="xl:col-span-2 rounded-2xl border-border shadow-sm overflow-hidden bg-card">
                     <CardHeader className="p-5 border-b border-border">
@@ -520,6 +569,16 @@ export default function DiscountsPage() {
                     </motion.div>
                 )}
             </AnimatePresence>
+                </div>
+            ) : activeTab === 'automated' ? (
+                <div className="animate-in fade-in slide-in-from-bottom-2 duration-500">
+                    <PromotionManager />
+                </div>
+            ) : (
+                <div className="animate-in fade-in slide-in-from-bottom-2 duration-500">
+                    <HomepageManager />
+                </div>
+            )}
         </div>
     )
 }

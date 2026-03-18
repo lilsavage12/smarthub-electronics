@@ -19,7 +19,7 @@ import Image from "next/image"
 import { cn } from "@/lib/utils"
 
 const BRANDS = ["Apple", "Samsung", "Xiaomi", "Oppo", "Infinix", "Tecno", "Google", "Huawei", "Nothing", "OnePlus"]
-const CATEGORIES = ["Smartphones", "Foldables", "Tablets", "Accessories", "Refurbished"]
+const CATEGORIES = ["Smartphones", "Tablets", "Accessories", "Laptops", "Smart Watches", "Headphones", "Foldables", "Gaming", "Refurbished"]
 const OS_TYPES = ["iOS", "Android", "HarmonyOS", "Other"]
 const DISPLAY_TYPES = ["OLED", "AMOLED", "Super AMOLED", "LTPO OLED", "LCD", "IPS LCD", "IPS", "Liquid Retina"]
 const FIELD_TYPES = ["Text", "Number", "Dropdown", "Boolean", "Multi-select"]
@@ -185,6 +185,14 @@ export default function ProductsPage() {
 
     const [newProduct, setNewProduct] = useState(initialProductState)
 
+    // Safely parse specs — API now returns parsed objects, but defend against
+    // cached string data or any edge case where specs is still a raw string.
+    const parseSpecs = (raw: any): Record<string, any> => {
+        if (!raw) return {}
+        if (typeof raw === 'object') return raw
+        try { return JSON.parse(raw) } catch { return {} }
+    }
+
     const handleOpenAddModal = () => {
         setEditingProduct(null)
         setNewProduct(initialProductState)
@@ -193,8 +201,8 @@ export default function ProductsPage() {
 
     const handleOpenEditModal = (product: any) => {
         setEditingProduct(product)
-        // Map product.specs back to newProduct state
-        const s = product.specs || {}
+        // Defensively parse specs — API returns objects now, but guard against old string cache
+        const s = parseSpecs(product.specs)
         setNewProduct({
             brand: product.brand || "",
             model: (product.name || "").replace(product.brand || "", "").trim(),
@@ -210,7 +218,7 @@ export default function ProductsPage() {
             category: product.category || "Smartphones",
             images: s.gallery || (product.image ? [product.image] : []),
             displaySize: s.display?.size || "",
-            displayType: s.display?.type || "",
+            displayType: s.display?.type || "OLED",
             resolution: s.display?.resolution || "",
             refreshRate: s.display?.refreshRate || "",
             protection: s.display?.protection || "",
@@ -250,7 +258,9 @@ export default function ProductsPage() {
                 color: v.color || "",
                 stock: String(v.stock || "0"),
                 price: v.price ? String(v.price) : "",
-                images: v.images ? typeof v.images === 'string' ? JSON.parse(v.images) : v.images : []
+                // API now returns parsed arrays, but defend against old string format
+                images: Array.isArray(v.images) ? v.images
+                    : (typeof v.images === 'string' ? (() => { try { return JSON.parse(v.images) } catch { return [] } })() : [])
             })) || []
         })
         setIsAddModalOpen(true)
@@ -433,13 +443,28 @@ export default function ProductsPage() {
                 body: JSON.stringify(payload)
             })
 
-            if (res.ok) {
-                toast.success(editingProduct ? "Product Updated" : "Product Saved", { id: saveToast })
-                setIsAddModalOpen(false)
-                fetchProducts()
-            } else {
-                throw new Error("Failed to save")
+            if (!res.ok) {
+                const errData = await res.json().catch(() => ({}))
+                throw new Error(errData.error || "Failed to save")
             }
+
+            // API returns the updated product with specs already parsed
+            const savedProduct = await res.json()
+
+            toast.success(editingProduct ? "Product Updated" : "Product Saved", { id: saveToast })
+            setIsAddModalOpen(false)
+
+            // Immediately update local state from API response (no full refetch lag)
+            setProducts(prev => {
+                if (editingProduct) {
+                    return prev.map(p => p.id === savedProduct.id ? savedProduct : p)
+                } else {
+                    return [savedProduct, ...prev]
+                }
+            })
+
+            // Background sync to ensure consistency
+            fetchProducts()
         } catch (error) {
             toast.error("Process failed", { id: saveToast })
         } finally {

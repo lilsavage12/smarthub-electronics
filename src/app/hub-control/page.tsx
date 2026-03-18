@@ -4,13 +4,14 @@ import React, { useState, useEffect } from "react"
 import {
     ShoppingCart, Download, Package, Smartphone, AlertTriangle,
     RefreshCw, CreditCard, Tag, ShieldCheck, ChevronRight,
-    TrendingUp, Star, MessageSquare
+    TrendingUp, Star, MessageSquare, Bell, X
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 import { cn } from "@/lib/utils"
 import { toast } from "react-hot-toast"
 import { useRouter } from "next/navigation"
+import { motion } from "framer-motion"
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts"
 
 export default function DashboardOverview() {
@@ -23,17 +24,35 @@ export default function DashboardOverview() {
 
     const fetchData = async () => {
         try {
+            console.log("Dashboard: Starting data fetch...")
             const [ordersRes, productsRes, discountsRes, reviewsRes] = await Promise.all([
-                fetch("/api/orders"),
-                fetch("/api/products"),
-                fetch("/api/discounts"),
-                fetch("/api/reviews")
+                fetch("/api/orders").catch(e => ({ ok: false, statusText: e.message })),
+                fetch("/api/products").catch(e => ({ ok: false, statusText: e.message })),
+                fetch("/api/discounts").catch(e => ({ ok: false, statusText: e.message })),
+                fetch("/api/reviews").catch(e => ({ ok: false, statusText: e.message }))
             ])
 
-            if (ordersRes.ok) setLiveOrders(await ordersRes.json())
-            if (productsRes.ok) setProducts(await productsRes.json())
-            if (discountsRes.ok) setDiscounts(await discountsRes.json())
-            if (reviewsRes.ok) setReviews(await reviewsRes.json())
+            if (ordersRes.ok) {
+                const data = await (ordersRes as Response).json()
+                setLiveOrders(Array.isArray(data) ? data : [])
+            } else {
+                console.error("Orders fetch failed:", (ordersRes as any).statusText)
+            }
+
+            if (productsRes.ok) {
+                const data = await (productsRes as Response).json()
+                setProducts(Array.isArray(data) ? data : [])
+            }
+
+            if (discountsRes.ok) {
+                const data = await (discountsRes as Response).json()
+                setDiscounts(Array.isArray(data) ? data : [])
+            }
+
+            if (reviewsRes.ok) {
+                const data = await (reviewsRes as Response).json()
+                setReviews(Array.isArray(data) ? data : [])
+            }
         } catch (error) {
             console.error("Dashboard Sync Error:", error)
         } finally {
@@ -43,7 +62,7 @@ export default function DashboardOverview() {
 
     useEffect(() => {
         fetchData()
-        const interval = setInterval(fetchData, 10000) // 10s polling
+        const interval = setInterval(fetchData, 10000)
         return () => clearInterval(interval)
     }, [])
 
@@ -54,30 +73,34 @@ export default function DashboardOverview() {
 
     // KPI Calculations
     const today = new Date().toISOString().split('T')[0]
-    const ordersToday = liveOrders.filter(o => o.createdAt.startsWith(today)).length
-    const totalRevenue = liveOrders.reduce((acc, o) => acc + (o.totalAmount || 0), 0)
+    const ordersToday = liveOrders.filter(o => o.createdAt && typeof o.createdAt === 'string' && o.createdAt.startsWith(today)).length
+    const totalRevenue = liveOrders.reduce((acc, o) => acc + (parseFloat(o.totalAmount) || 0), 0)
     const phonesSold = liveOrders.reduce((acc, o) => {
-        const phoneItems = o.items?.filter((i: any) => i.name.toLowerCase().includes('iphone') || i.name.toLowerCase().includes('galaxy') || i.name.toLowerCase().includes('phone')) || []
-        return acc + phoneItems.reduce((sum: number, i: any) => sum + i.quantity, 0)
+        const phoneItems = o.items?.filter((i: any) => 
+            i.name && (i.name.toLowerCase().includes('iphone') || 
+            i.name.toLowerCase().includes('galaxy') || 
+            i.name.toLowerCase().includes('phone'))
+        ) || []
+        return acc + phoneItems.reduce((sum: number, i: any) => sum + (parseInt(i.quantity) || 0), 0)
     }, 0)
-    const lowStockAlerts = products.filter(p => p.stock < 10).length
+    const lowStockAlerts = (products || []).filter(p => p.stock < 10).length
     const returnsCount = liveOrders.filter(o => o.status === 'RETURNED').length
-    const pendingPayments = liveOrders.filter(o => o.paymentStatus === 'UNPAID').reduce((acc, o) => acc + o.totalAmount, 0)
+    const pendingPayments = liveOrders.filter(o => o.paymentStatus === 'UNPAID').reduce((acc, o) => acc + (parseFloat(o.totalAmount) || 0), 0)
 
-    const activeCoupons = discounts.filter(d => d.status === 'Active').length
-    const totalSaved = discounts.reduce((acc, d) => acc + (d.usedCount * (parseFloat(d.value) || 0)), 0) // Simplified
-    const totalRedemptions = discounts.reduce((acc, d) => acc + d.usedCount, 0)
+    const activeCoupons = (discounts || []).filter(d => d.status === 'Active').length
+    const totalSaved = (discounts || []).reduce((acc, d) => acc + ((parseInt(d.usedCount) || 0) * (parseFloat(d.value) || 0)), 0)
+    const totalRedemptions = (discounts || []).reduce((acc, d) => acc + (parseInt(d.usedCount) || 0), 0)
 
     // Brand Affinity
     const brandSales: Record<string, number> = {}
     liveOrders.forEach(o => {
         o.items?.forEach((item: any) => {
-            // Find product brand
-            const product = products.find(p => p.id === item.productId)
+            const product = (products || []).find(p => p.id === item.productId)
             const brand = product?.brand || "Other"
-            brandSales[brand] = (brandSales[brand] || 0) + item.quantity
+            brandSales[brand] = (brandSales[brand] || 0) + (parseInt(item.quantity) || 0)
         })
     })
+
     const totalUnits = Object.values(brandSales).reduce((acc, v) => acc + v, 0)
     const affinityData = Object.entries(brandSales)
         .map(([name, units]) => ({ name, percentage: totalUnits > 0 ? Math.round((units / totalUnits) * 100) : 0 }))
@@ -88,7 +111,8 @@ export default function DashboardOverview() {
         const d = new Date()
         d.setDate(d.getDate() - (6 - i))
         const dateStr = d.toISOString().split('T')[0]
-        const revenue = liveOrders.filter(o => o.createdAt.startsWith(dateStr)).reduce((acc, o) => acc + o.totalAmount, 0)
+        const revenue = liveOrders.filter(o => o.createdAt && typeof o.createdAt === 'string' && o.createdAt.startsWith(dateStr))
+            .reduce((acc, o) => acc + (parseFloat(o.totalAmount) || 0), 0)
         return { name: d.toLocaleDateString('en-US', { weekday: 'short' }), revenue }
     })
 
@@ -243,37 +267,74 @@ export default function DashboardOverview() {
                 <Card className="rounded-[2.5rem] border-border shadow-sm bg-card p-8 flex flex-col gap-6">
                     <div className="flex items-center justify-between">
                         <div className="flex flex-col gap-1">
-                            <h2 className="text-xl font-black italic tracking-tight uppercase leading-none">Customer Sentiment</h2>
-                            <span className="text-[10px] text-muted-foreground font-black uppercase tracking-widest mt-1">Experience Logs & Sentiment Score</span>
-                        </div>
-                        <div className="flex items-center gap-2 text-amber-500">
-                            <Star size={18} className="fill-current" />
-                            <span className="text-lg font-black italic">4.8</span>
-                        </div>
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                        <div className="p-5 bg-muted rounded-3xl flex flex-col gap-4 border border-border">
-                            <div className="flex items-center justify-between text-primary"><span className="text-[9px] font-black uppercase tracking-widest">Active Warranties</span><ShieldCheck size={14} /></div>
-                            <div className="flex flex-col"><span className="text-2xl font-black italic uppercase italic tracking-tighter leading-none">842 Units</span><span className="text-[9px] font-bold text-muted-foreground mt-2 uppercase tracking-widest">92.4% Coverage Rate</span></div>
-                        </div>
-                        <div className="p-5 bg-muted rounded-3xl flex flex-col gap-4 border border-border">
-                            <div className="flex items-center justify-between text-red-500"><span className="text-[9px] font-black uppercase tracking-widest">Returned Phones</span><Package size={14} /></div>
-                            <div className="flex flex-col"><span className="text-2xl font-black italic uppercase italic tracking-tighter leading-none">{returnsCount} Units</span><span className="text-[9px] font-bold text-muted-foreground mt-2 uppercase tracking-widest">1.2% RMA Rate (Healthy)</span></div>
-                        </div>
-                    </div>
-                    <div className="flex flex-col gap-4 mt-2">
-                        <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-1">Global Log Entries</span>
-                        {reviews.length > 0 ? reviews.slice(0, 2).map((review, i) => (
-                            <div key={i} className="flex gap-4 p-4 bg-muted/30 rounded-2xl border border-border hover:border-primary/20 transition-all cursor-pointer group">
-                                <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center font-black text-xs text-primary">{review.user[0]}</div>
-                                <div className="flex flex-col gap-1 flex-1">
-                                    <div className="flex items-center justify-between"><span className="text-[10px] font-black uppercase italic tracking-tight group-hover:text-primary transition-colors">{review.user}</span><span className="text-[8px] font-bold text-muted-foreground uppercase">Real-time</span></div>
-                                    <p className="text-[10px] font-bold italic text-muted-foreground leading-tight line-clamp-1">"{review.comment}"</p>
-                                </div>
+                            <div className="flex items-center gap-2">
+                                <Bell className="w-5 h-5 text-primary" />
+                                <h2 className="text-xl font-black italic tracking-tight uppercase leading-none">Intelligence <span className="text-primary italic">Feed</span></h2>
                             </div>
-                        )) : (
-                            <div className="flex flex-col items-center justify-center py-6 opacity-30"><MessageSquare size={32} /><span className="text-[9px] font-black uppercase tracking-widest mt-2">No Experience Logs</span></div>
-                        )}
+                            <span className="text-[10px] text-muted-foreground font-black uppercase tracking-widest mt-1">Real-time system telemetry</span>
+                        </div>
+                        <Button variant="ghost" className="text-[10px] font-black uppercase tracking-widest text-primary hover:bg-primary/5">Acknowledge All</Button>
+                    </div>
+
+                    <div className="flex flex-col gap-4 max-h-[400px] overflow-y-auto pr-2 no-scrollbar">
+                        {[
+                            {
+                                title: "Revenue Milestone",
+                                desc: "Daily gross revenue has crossed the $50,000 threshold. +14% deviation.",
+                                time: "Just Now",
+                                type: "reward",
+                                icon: <TrendingUp className="w-4 h-4" />
+                            },
+                            {
+                                title: "Database Sync",
+                                desc: "Global inventory nodes synchronized with Supabase Primary Cluster.",
+                                time: "12m ago",
+                                type: "success",
+                                icon: <RefreshCw className="w-4 h-4" />
+                            },
+                            {
+                                title: "Security Alert",
+                                desc: "Unusual login attempt blocked from unregistered terminal in 'Oslo, NO'.",
+                                time: "1h ago",
+                                type: "warning",
+                                icon: <ShieldCheck className="w-4 h-4" />
+                            },
+                            {
+                                title: "New Review",
+                                desc: "User 'DigitalNomad' left a 5-star rating for 'iPhone 15 Pro Max'.",
+                                time: "2h ago",
+                                type: "info",
+                                icon: <Star className="w-4 h-4" />
+                            }
+                        ].map((notif, i) => (
+                            <motion.div 
+                                initial={{ opacity: 0, scale: 0.95 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                transition={{ delay: i * 0.1 }}
+                                key={i} 
+                                className="group bg-muted/30 hover:bg-muted/50 border border-border rounded-2xl p-4 flex items-start gap-4 transition-all duration-300 relative overflow-hidden"
+                            >
+                                <div className={cn(
+                                    "mt-0.5 p-2 rounded-xl border shrink-0 transition-transform group-hover:scale-110",
+                                    notif.type === 'success' ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-500" :
+                                    notif.type === 'reward' ? "bg-primary/10 border-primary/20 text-primary" :
+                                    notif.type === 'warning' ? "bg-red-500/10 border-red-500/20 text-red-500" :
+                                    "bg-blue-500/10 border-blue-500/20 text-blue-500"
+                                )}>
+                                    {notif.icon}
+                                </div>
+                                <div className="flex flex-col gap-0.5 flex-1">
+                                    <div className="flex items-center justify-between">
+                                        <span className="text-[10px] font-black uppercase tracking-widest italic text-foreground">{notif.title}</span>
+                                        <span className="text-[8px] font-black text-muted-foreground uppercase tracking-widest">{notif.time}</span>
+                                    </div>
+                                    <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider leading-tight pr-4">{notif.desc}</p>
+                                </div>
+                                <button className="opacity-0 group-hover:opacity-40 hover:opacity-100 transition-opacity">
+                                    <X className="w-3 h-3" />
+                                </button>
+                            </motion.div>
+                        ))}
                     </div>
                 </Card>
             </div>

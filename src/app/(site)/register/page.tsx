@@ -8,6 +8,8 @@ import { UserPlus, ArrowRight, Loader2, Mail, Lock, User, UserCircle } from "luc
 import { Button } from "@/components/ui/button"
 import { toast } from "react-hot-toast"
 import { useAuth } from "@/lib/auth-store"
+import { useCart } from "@/lib/cart-store"
+import { useWishlist } from "@/lib/wishlist-store"
 
 export default function RegisterPage() {
     const [email, setEmail] = useState("")
@@ -16,6 +18,8 @@ export default function RegisterPage() {
     const [loading, setLoading] = useState(false)
     const router = useRouter()
     const { setAuth } = useAuth()
+    const { syncOnLogin: syncCart } = useCart()
+    const { syncOnLogin: syncWishlist } = useWishlist()
 
     const handleRegister = async (e: React.FormEvent) => {
         e.preventDefault()
@@ -32,23 +36,29 @@ export default function RegisterPage() {
             const data = await res.json()
 
             if (res.ok) {
-                toast.success("Profile created successfully!", {
+                toast.success("ACCOUNT CREATED SUCCESSFULLY", {
                     style: {
-                        background: '#0F0F12',
+                        background: '#10B981',
                         color: '#fff',
                         borderRadius: '16px',
                         border: '1px solid rgba(255,255,255,0.1)',
-                        fontSize: '12px',
-                        fontWeight: 'bold'
+                        fontSize: '10px',
+                        fontWeight: 'black',
+                        letterSpacing: '0.1em',
+                        textTransform: 'uppercase'
                     }
                 })
+                // Sync Cart and Wishlist FIRST
+                await syncCart(data.user.id)
+                await syncWishlist(data.user.id)
+
                 setAuth(data.user)
                 router.push("/dashboard")
             } else {
-                toast.error(data.error || "Registration encountered a protocol error.")
+                toast.error(data.error || "Registration failed. Please try again.")
             }
         } catch (error) {
-            toast.error("Network synchronization failed. Retry requested.")
+            toast.error("Connection error. Please try again.")
         } finally {
             setLoading(false)
         }

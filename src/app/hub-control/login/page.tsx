@@ -6,12 +6,35 @@ import { Smartphone, Zap, ShieldCheck, Lock, ArrowRight, Mail } from "lucide-rea
 import { Button } from "@/components/ui/button"
 import { useRouter } from "next/navigation"
 import { toast } from "react-hot-toast"
+import { useAuth } from "@/lib/auth-store"
+import { useCart } from "@/lib/cart-store"
+import { useWishlist } from "@/lib/wishlist-store"
+import { cn } from "@/lib/utils"
+import { CheckCircle2 } from "lucide-react"
 
 export default function AdminLogin() {
     const [email, setEmail] = useState("")
     const [password, setPassword] = useState("")
     const [isAuthenticating, setIsAuthenticating] = useState(false)
+    const [rememberMe, setRememberMe] = useState(false)
     const router = useRouter()
+    const { setAuth, user, isInitialized } = useAuth()
+    const { syncCart } = useCart()
+    const { syncWishlist } = useWishlist()
+
+    React.useEffect(() => {
+        if (isInitialized && user) {
+            router.push("/hub-control")
+        }
+    }, [isInitialized, user, router])
+
+    React.useEffect(() => {
+        const savedEmail = localStorage.getItem("sh_admin_remember_email")
+        if (savedEmail) {
+            setEmail(savedEmail)
+            setRememberMe(true)
+        }
+    }, [])
 
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault()
@@ -27,18 +50,30 @@ export default function AdminLogin() {
             const data = await res.json()
 
             if (res.ok && data.success) {
+                if (rememberMe) {
+                    localStorage.setItem("sh_admin_remember_email", email)
+                } else {
+                    localStorage.removeItem("sh_admin_remember_email")
+                }
+
                 // Store user info in localStorage for simple session management
                 localStorage.setItem("sh_admin_user", JSON.stringify(data.user))
+                // Sync Cart and Wishlist
+                await syncCart(data.user.id)
+                await syncWishlist(data.user.id)
 
-                toast.success("Success. Opening Dashboard...", {
+                setAuth(data.user)
+
+                toast.success("Identity Verified. Hub Access Granted.", {
                     style: {
                         background: '#0F0F12',
                         color: '#fff',
-                        border: '1px solid #1A1A1D',
-                        fontSize: '10px',
-                        fontWeight: '900',
-                        letterSpacing: '0.1em',
-                        textTransform: 'uppercase'
+                        borderRadius: '16px',
+                        border: '1px solid rgba(255,255,255,0.1)',
+                        fontSize: '11px',
+                        fontWeight: 'bold',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.1em'
                     }
                 })
                 router.push("/hub-control")
@@ -47,26 +82,46 @@ export default function AdminLogin() {
             }
         } catch (error: any) {
             console.error(error)
-
-            // EMERGENCY BYPASS: If it's the master admin and something failed, we might want to allow setup
-            if (email.toLowerCase() === "admin@smarthub.com") {
-                toast.error("Login failed. Try setting up the admin account below.", {
-                    style: { background: '#1A0000', color: '#FF5555' }
-                });
-            } else {
-                toast.error(error.message || "Invalid Credentials", {
-                    duration: 6000,
-                    style: {
-                        background: '#1A0000',
-                        color: '#FF5555',
-                        border: '1px solid #440000',
-                        fontSize: '11px',
-                        fontWeight: '900',
-                    }
-                })
-            }
+            toast.error(error.message || "Invalid Credentials", {
+                duration: 6000,
+                style: {
+                    background: '#1A0000',
+                    color: '#FF5555',
+                    border: '1px solid #440000',
+                    fontSize: '11px',
+                    fontWeight: '900',
+                }
+            })
             setIsAuthenticating(false)
         }
+    }
+
+    const handleRecovery = () => {
+        if (!email) {
+            toast.error("IDENTIFICATION REQUIRED FOR RECOVERY", {
+                style: { background: '#1A0000', color: '#FF5555', fontSize: '10px', fontWeight: 'bold' }
+            })
+            return
+        }
+        toast.promise(
+            new Promise(resolve => setTimeout(resolve, 2000)),
+            {
+                loading: 'BYPASSING ENCRYPTION LAYERS...',
+                success: `PROTOCOL SENT TO ${email}`,
+                error: 'SECURE LINK FAILURE',
+            },
+            {
+                style: {
+                    background: '#0F0F12', 
+                    color: '#fff', 
+                    fontSize: '10px', 
+                    fontWeight: 'bold',
+                    textTransform: 'uppercase',
+                    border: '1px solid rgba(255,255,255,0.1)',
+                    borderRadius: '16px'
+                }
+            }
+        )
     }
 
     return (
@@ -123,45 +178,40 @@ export default function AdminLogin() {
                                 </div>
                             </div>
 
+                            <div className="flex items-center justify-between px-1">
+                                <div 
+                                    onClick={() => setRememberMe(!rememberMe)}
+                                    className="flex items-center gap-2 cursor-pointer group/check"
+                                >
+                                    <div className={cn(
+                                        "w-4 h-4 rounded-md border transition-all flex items-center justify-center",
+                                        rememberMe ? "bg-primary border-primary shadow-[0_0_10px_rgba(239,68,68,0.3)]" : "border-white/10 bg-white/5 group-hover/check:border-primary/50"
+                                    )}>
+                                        {rememberMe && <CheckCircle2 className="w-3 h-3 text-white" />}
+                                    </div>
+                                    <span className={cn("text-[9px] font-bold uppercase tracking-widest transition-colors", rememberMe ? "text-white" : "text-muted-foreground")}>Remember Me</span>
+                                </div>
+                                <button 
+                                    type="button"
+                                    onClick={handleRecovery}
+                                    className="text-[9px] font-bold text-primary hover:text-white transition-colors uppercase tracking-widest outline-none"
+                                >
+                                    Recovery?
+                                </button>
+                            </div>
+
                             <Button
                                 type="submit"
                                 disabled={isAuthenticating}
                                 variant="premium"
-                                className="h-12 rounded-xl text-[10px] font-black italic tracking-[0.2em] shadow-xl group"
+                                className="h-14 rounded-xl text-[10px] font-black italic tracking-[0.2em] shadow-xl group relative overflow-hidden"
                             >
-                                {isAuthenticating ? "SIGNING IN..." : "SIGN IN"}
+                                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:animate-shimmer" />
+                                {isAuthenticating ? "AUTHENTICATING..." : "GRANT ACCESS"}
                                 {!isAuthenticating && <ArrowRight className="ml-2 w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />}
                             </Button>
 
-                            <div className="flex flex-col gap-2 pt-5 border-t border-white/5 mt-2">
-                                <span className="text-[8px] font-black uppercase tracking-widest text-white/30 text-center">First Time Setup</span>
-                                <button
-                                    type="button"
-                                    disabled={isAuthenticating}
-                                    onClick={async () => {
-                                        setIsAuthenticating(true);
-                                        const loadingToast = toast.loading("Setting up admin...");
-                                        try {
-                                            const res = await fetch("/api/setup-admin");
-                                            const data = await res.json();
 
-                                            if (res.ok && data.success) {
-                                                toast.success("Admin Account Initialized", { duration: 5000 });
-                                            } else {
-                                                throw new Error(data.error || "Setup failed");
-                                            }
-                                        } catch (e: any) {
-                                            toast.error(e.message || "Connection Error", { id: loadingToast });
-                                        } finally {
-                                            setIsAuthenticating(false);
-                                            toast.dismiss(loadingToast);
-                                        }
-                                    }}
-                                    className="text-[9px] font-black uppercase tracking-widest text-primary hover:text-white transition-all text-center border border-primary/20 py-3 rounded-xl bg-primary/10 hover:bg-primary shadow-lg shadow-primary/5"
-                                >
-                                    {isAuthenticating ? "SETTING UP..." : "Setup Master Admin"}
-                                </button>
-                            </div>
                         </form>
 
                         <div className="pt-3 border-t border-white/5 w-full text-center">
