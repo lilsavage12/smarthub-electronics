@@ -1,19 +1,81 @@
 import { NextResponse } from "next/server"
-import { supabase } from "@/lib/supabase"
+import { supabaseAdmin } from "@/lib/supabase"
 
-function parseProduct(product: any) {
+// Helper: safely parse specs and images JSON strings back to objects
+function parseProduct(product: any, promotions: any[] = []) {
     if (!product) return null
+    
+    let parsedSpecs = {}
+    if (typeof product.specs === "string" && product.specs.length > 2) {
+        try { parsedSpecs = JSON.parse(product.specs) } catch { parsedSpecs = {} }
+    } else {
+        parsedSpecs = product.specs || {}
+    }
+
+    let parsedImages = []
+    const rawGallery = product.galleryImages || product.images // Support both for transition
+    if (typeof rawGallery === "string" && rawGallery.length > 2) {
+        try { parsedImages = JSON.parse(rawGallery) } catch { parsedImages = [] }
+    } else {
+        parsedImages = Array.isArray(rawGallery) ? rawGallery : []
+    }
+
+    const finalImages = (Array.isArray(parsedImages) && parsedImages.length > 0) ? parsedImages : (product.image ? [product.image] : [])
+    
+    const rawCat = (product.category || "Smartphones").trim()
+    const normalizedCategory = rawCat.toLowerCase().includes("phone") ? "Smartphones" : (rawCat.charAt(0).toUpperCase() + rawCat.slice(1))
+
+    // Parse Variants
+    const enrichedVariants = (product.variants || []).map((v: any) => {
+        let vImages = []
+        if (typeof v.images === "string") {
+            try { vImages = JSON.parse(v.images) } catch { vImages = [] }
+        } else { vImages = v.images || [] }
+
+        let vColors = []
+        if (typeof v.productColors === "string") {
+            try { vColors = JSON.parse(v.productColors) } catch { vColors = [] }
+        } else { vColors = v.productColors || [] }
+
+        let vFields = []
+        if (typeof v.customFields === "string") {
+            try { vFields = JSON.parse(v.customFields) } catch { vFields = [] }
+        } else { vFields = v.customFields || [] }
+
+        return {
+            ...v,
+            images: Array.isArray(vImages) ? vImages : [],
+            productColors: Array.isArray(vColors) ? vColors : [],
+            customFields: Array.isArray(vFields) ? vFields : []
+        }
+    })
+
+    const productPromos = (promotions || []).filter(p => {
+        // Only include promotions that explicitly target this product ID
+        return (p.products || []).some((link: any) => String(link.productId) === String(product.id)) || String(product.id) === String(p.productId)
+    }).map(p => {
+        // Extract product-specific stock values from the junction link
+        const link = (p.products || []).find((l: any) => String(l.productId) === String(product.id))
+        return {
+            ...p,
+            saleStock: link?.saleStock !== undefined && link?.saleStock !== null ? link.saleStock : p.saleStock,
+            soldInPromo: link?.soldInPromo !== undefined && link?.soldInPromo !== null ? link.soldInPromo : p.soldInPromo,
+            discount: p.value || p.discount,
+            productId: product.id 
+        }
+    })
+
     return {
         ...product,
-        specs: typeof product.specs === "string" ? (() => {
-            try { return JSON.parse(product.specs) } catch { return {} }
-        })() : (product.specs || {}),
-        variants: product.variants?.map((v: any) => ({
-            ...v,
-            images: typeof v.images === "string" ? (() => {
-                try { return JSON.parse(v.images) } catch { return [] }
-            })() : (v.images || [])
-        })) ?? []
+        name: (product.name || "").trim(),
+        price: Number(product.price || 0),
+        category: normalizedCategory,
+        brand: (product.brand || "").trim(),
+        specs: parsedSpecs,
+        images: finalImages,
+        variants: enrichedVariants,
+        promotions: productPromos,
+        traditionalSpecs: { ...parsedSpecs }
     }
 }
 
@@ -23,55 +85,63 @@ export async function GET(
 ) {
     const { id } = await params
     try {
-        // 1. Fetch base product
-        const { data: product, error } = await supabase
+        console.log(`Supabase: Resolving product for ID: "${id}"`)
+
+        // Strategy: Use UUID if it matches pattern, otherwise treat as slug/name
+        const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id) || id.length > 30
+        
+        let query = supabaseAdmin
             .from('Product')
             .select('*, variants:ProductVariant(*)')
-            .eq('id', id)
-            .single()
+        
+        if (isUUID) {
+            query = query.eq('id', id)
+        } else {
+            // SLUG RESOLUTION (CLEAN MATCHING)
+            // Replace dashes back to spaces and attempt a targeted name match
+            const searchPattern = id.split('-').join(' ')
+            query = query.or(`name.ilike.${searchPattern}, name.ilike.${searchPattern} %`) // Handle trailing spaces or prefixes
+        }
 
-        if (error) throw error
-        if (!product) {
+        const { data: product, error: productError } = await query.maybeSingle()
+
+        if (productError || !product) {
+            console.log(`Supabase: Failure to resolve product "${id}".`)
             return NextResponse.json({ error: "Product not found" }, { status: 404 })
         }
 
-        // 2. Fetch active promotions for this product
-        const now = new Date().toISOString()
-        const { data: promotions } = await supabase
+        // 2. Fetch Active Promotions (Syncing with Indefinite Campaigns)
+        const nowStr = new Date().toISOString()
+        const { data: cloudPromos } = await supabaseAdmin
             .from('Promotion')
             .select('*, products:PromotionProduct(productId, saleStock, soldInPromo)')
             .eq('isActive', true)
-            .lte('startDate', now)
-            .gte('endDate', now)
+            .lte('startDate', nowStr)
 
-        const productPromos = promotions?.filter(promo => {
-            const match = promo.products?.some((pp: any) => 
-                String(pp.productId).trim().toLowerCase() === String(id).trim().toLowerCase()
-            )
-            return match
-        }).map(promo => {
-            const link = promo.products?.find((pp: any) => 
-                String(pp.productId).trim().toLowerCase() === String(id).trim().toLowerCase()
-            )
-            return {
-                ...promo,
-                saleStock: link?.saleStock,
-                soldInPromo: link?.soldInPromo
-            }
-        }) || []
+        const activePromos = (cloudPromos || []).filter(p => !p.endDate || new Date(p.endDate) >= new Date())
 
-        console.log(`[API DEBUG] Querying promos for ID: "${id}"`)
-        console.log(`[API DEBUG] Found ${productPromos.length} matching promotions out of ${promotions?.length || 0} active ones`)
+        const enrichedProduct = parseProduct(product, activePromos || [])
 
-        const enrichedProduct = {
-            ...parseProduct(product),
-            promotions: productPromos
-        }
+        // 3. Fetch Related Products
+        const { data: relatedProducts } = await supabaseAdmin
+            .from('Product')
+            .select('*, variants:ProductVariant(*)')
+            .eq('category', product.category)
+            .neq('id', product.id)
+            .limit(4)
 
-        return NextResponse.json(enrichedProduct)
+        const enrichedRelated = (relatedProducts || []).map(p => parseProduct(p, cloudPromos || []))
+        
+        return NextResponse.json({
+            ...enrichedProduct,
+            relatedProducts: enrichedRelated
+        })
     } catch (error: any) {
-        console.error("Supabase Fetch error:", error)
-        return NextResponse.json({ error: "Fetch failure", details: error.message }, { status: 500 })
+        console.error("Supabase Database Sync Failure:", error)
+        return NextResponse.json({ 
+            error: "Database Error: Failed to resolve product data",
+            details: error.message 
+        }, { status: 500 })
     }
 }
 
@@ -80,52 +150,69 @@ export async function PATCH(
     { params }: { params: Promise<{ id: string }> }
 ) {
     const { id } = await params
+    let body: any = {}
     try {
-        const body = await req.json()
-        const { variants, specs, ...updateData } = body
+        body = await req.json()
+        const { variants, specs, images, ...updateData } = body
 
-        // 1. Update main product
-        const { data: product, error: productError } = await supabase
+        // 1. Explicitly select valid database columns to avoid SQL errors from extra fields
+        const validUpdateData = {
+            name: updateData.name,
+            description: updateData.detailedDescription || updateData.description || "",
+            quickDescription: updateData.quickDescription,
+            price: parseFloat(updateData.price) || 0,
+            stock: parseInt(updateData.stock) || 0,
+            image: updateData.image,
+            category: updateData.category,
+            brand: updateData.brand,
+            sku: updateData.sku,
+            condition: updateData.condition,
+            isNew: !!updateData.isNew,
+            id: id,
+            isSale: !!updateData.isSale || !!updateData.discountPrice || !!updateData.discountPercent,
+            discount: updateData.discountPercent ? Number(updateData.discountPercent) : (updateData.discountPrice ? Math.round(((Number(updateData.price) - Number(updateData.discountPrice)) / Number(updateData.price)) * 100) : null),
+            isFeatured: !!updateData.isFeatured,
+            specs: specs ? JSON.stringify(specs) : undefined,
+            galleryImages: images ? JSON.stringify(images) : undefined,
+        }
+
+        const { error: productError } = await supabaseAdmin
             .from('Product')
-            .update({
-                ...updateData,
-                specs: specs !== undefined ? JSON.stringify(specs) : undefined,
-                updatedAt: new Date().toISOString()
-            })
+            .update(validUpdateData)
             .eq('id', id)
-            .select()
-            .single()
 
         if (productError) throw productError
 
-        // 2. Clear and recreate variants (matching old Prisma behavior)
+        // 2. Update Variants using resilient Upsert logic
         if (variants !== undefined) {
-            await supabase.from('ProductVariant').delete().eq('productId', id)
-            
-            if (variants.length > 0) {
-                const variantData = variants.map((v: any) => ({
-                    productId: id,
-                    color: v.color || "",
-                    stock: parseInt(v.stock) || 0,
-                    price: v.price ? parseFloat(v.price) : null,
-                    images: JSON.stringify(Array.isArray(v.images) ? v.images : [])
-                }))
-                await supabase.from('ProductVariant').insert(variantData)
-            }
+             const variantsToUpsert = variants.map((v: any) => ({
+                 id: (v.id && !v.id.startsWith('new_')) ? v.id : crypto.randomUUID(),
+                 productId: id,
+                 ram: v.ram || "",
+                 storage: v.storage || "",
+                 color: "", 
+                 price: v.price ? parseFloat(v.price) : null,
+                 productColors: JSON.stringify(v.productColors || []),
+                 customFields: JSON.stringify(v.customFields || []),
+                 images: JSON.stringify([]) 
+             }))
+
+             if (variantsToUpsert.length > 0) {
+                 const { error: variantsError } = await supabaseAdmin
+                    .from('ProductVariant')
+                    .upsert(variantsToUpsert, { onConflict: 'id' })
+
+                 if (variantsError) {
+                     console.error("Supabase: Variant synchronization warning:", variantsError.message);
+                 }
+             }
         }
 
-        const { data: updated, error: fetchError } = await supabase
-            .from('Product')
-            .select('*, variants:ProductVariant(*)')
-            .eq('id', id)
-            .single()
-
-        if (fetchError) throw fetchError
-
-        return NextResponse.json(parseProduct(updated))
-    } catch (error) {
-        console.error("Supabase Update error:", error)
-        return NextResponse.json({ error: "Update failed" }, { status: 500 })
+        return NextResponse.json({ message: "Product record updated" })
+    } catch (error: any) {
+        try { require('fs').appendFileSync('tmp/api_trace.log', `\n[PATCH ERROR ${new Date().toISOString()}] ${id}: ${error.stack || error.message}\nPAYLOAD: ${JSON.stringify(body || {}, null, 2)}\n`) } catch {}
+        console.error("Supabase Database Update Failure:", error)
+        return NextResponse.json({ error: "Update failed", details: error.message }, { status: 500 })
     }
 }
 
@@ -135,11 +222,12 @@ export async function DELETE(
 ) {
     const { id } = await params
     try {
-        const { error } = await supabase.from('Product').delete().eq('id', id)
+        const { error } = await supabaseAdmin.from('Product').delete().eq('id', id)
         if (error) throw error
-        return NextResponse.json({ message: "Product deleted" })
-    } catch (error) {
-        console.error("Supabase Deletion error:", error)
-        return NextResponse.json({ error: "Delete failed" }, { status: 500 })
+        
+        return NextResponse.json({ message: "Product removed from database" })
+    } catch (error: any) {
+        console.error("Supabase Database Deletion Failure:", error)
+        return NextResponse.json({ error: "Delete failed", details: error.message }, { status: 500 })
     }
 }

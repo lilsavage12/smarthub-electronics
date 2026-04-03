@@ -51,9 +51,9 @@ export default function SuppliersPage() {
             {/* Procurement KPIs */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                 {[
-                    { label: "Active Suppliers", value: "24 Units", icon: <Globe size={20} className="text-primary" />, sub: "Global Distribution" },
+                    { label: "Active Suppliers", value: "24 Partners", icon: <Globe size={20} className="text-primary" />, sub: "Global Distribution" },
                     { label: "Pending Orders", value: "8 Orders", icon: <Package size={20} className="text-primary" />, sub: "$42K Order Value" },
-                    { label: "Avg Lead Time", box: "4.2 Days", icon: <Clock size={20} className="text-primary" />, sub: "Fast Delivery Velocity" },
+                    { label: "Avg Lead Time", value: "4.2 Days", icon: <Clock size={20} className="text-primary" />, sub: "Average Fulfillment Speed" },
                     { label: "Quality Rating", value: "96.4%", icon: <Star size={20} className="text-primary" />, sub: "Performance Index" }
                 ].map((stat, i) => (
                     <Card key={i} className="rounded-2xl border-border shadow-sm p-6 bg-card flex flex-col gap-4 group hover:shadow-xl transition-all relative overflow-hidden">
@@ -64,7 +64,7 @@ export default function SuppliersPage() {
                                 <div className="p-2 bg-muted group-hover:bg-primary/10 rounded-lg group-hover:text-primary transition-colors">{stat.icon}</div>
                             </div>
                             <div className="flex flex-col">
-                                <span className="text-3xl font-black italic tracking-tighter text-foreground leading-none uppercase">{stat.value || stat.box}</span>
+                                <span className="text-3xl font-black italic tracking-tighter text-foreground leading-none uppercase">{stat.value}</span>
                                 <span className="text-[9px] font-black text-muted-foreground uppercase mt-2 opacity-60 italic leading-none">{stat.sub}</span>
                             </div>
                         </div>
@@ -73,7 +73,7 @@ export default function SuppliersPage() {
             </div>
 
             <div className="grid grid-cols-1 xl:grid-cols-3 gap-8 mb-12">
-                {/* Supplier Matrix Hub */}
+                {/* Supplier Network */}
                 <Card className="xl:col-span-2 rounded-[2.5rem] border-border shadow-sm overflow-hidden bg-card transition-colors">
                     <CardHeader className="p-8 border-b border-border">
                         <div className="flex flex-col gap-1">
@@ -171,7 +171,7 @@ export default function SuppliersPage() {
                     <Card className="rounded-[2.5rem] border-border shadow-sm overflow-hidden bg-card p-8 transition-colors">
                         <div className="flex flex-col gap-6">
                             <div className="flex flex-col gap-1">
-                                <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground leading-none">Supply Index</span>
+                                <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground leading-none">Procurement Overview</span>
                                 <p className="text-[10px] font-black leading-relaxed italic opacity-60 uppercase mt-2 tracking-widest">Orders optimized for fast delivery.</p>
                             </div>
                             <div className="h-[1px] w-full bg-border" />
@@ -180,7 +180,7 @@ export default function SuppliersPage() {
                                     <Smartphone size={18} className="text-primary" />
                                 </div>
                                 <div className="flex flex-col">
-                                    <span className="text-[10px] font-black uppercase text-foreground leading-none tracking-widest italic">Contact System Active</span>
+                                    <span className="text-[10px] font-black uppercase text-foreground leading-none tracking-widest italic">Supplier Network Active</span>
                                     <span className="text-[9px] font-black text-primary uppercase tracking-widest italic opacity-80 mt-1">9 Verified Partners</span>
                                 </div>
                             </div>

@@ -117,7 +117,7 @@ export default function PartnersPage() {
             <div className="max-w-6xl mx-auto px-6 flex flex-col gap-12">
                 <div className="flex flex-col gap-2">
                     <h3 className="text-2xl font-black italic uppercase tracking-tight">Select Your <span className="text-primary italic">Trajectory</span></h3>
-                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Choose the membership protocol that fits your business scale.</p>
+                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Choose the membership plan that fits your business.</p>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -172,10 +172,10 @@ export default function PartnersPage() {
                         <Handshake className="text-primary" size={64} />
                         <h2 className="text-4xl md:text-5xl font-black font-outfit text-white uppercase tracking-tighter italic">Ready to <span className="text-primary italic">Connect?</span></h2>
                         <p className="text-slate-400 max-w-lg font-medium uppercase tracking-[0.05em] text-sm leading-relaxed italic">
-                            Our onboarding protocols take less than 5 minutes. Enter the SmartHub ecosystem today and transform your enterprise scale.
+                            Getting started takes less than 5 minutes. Join the SmartHub community today and grow your business.
                         </p>
                         <Button variant="premium" className="h-20 px-16 rounded-3xl text-lg font-black italic tracking-widest shadow-2xl shadow-primary/20">
-                            COMMENCE ONBOARDING
+                            JOIN NOW
                         </Button>
                     </div>
                 </Card>

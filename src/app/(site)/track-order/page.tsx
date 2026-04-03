@@ -19,12 +19,12 @@ import { toast } from "react-hot-toast"
 import { supabase } from "@/lib/supabase"
 
 const TRACKING_STAGES = [
-    { key: 'Order Placed', label: 'Order Placed', icon: <ShoppingCart size={16} />, desc: 'Registry initialized' },
-    { key: 'Processing', label: 'Processing', icon: <Clock size={16} />, desc: 'Hardware prep in progress' },
-    { key: 'Payment Confirmed', label: 'Payment Confirmed', icon: <CreditCard size={16} />, desc: 'Financial clearance' },
-    { key: 'Shipped', label: 'Shipped', icon: <Truck size={16} />, desc: 'Asset in transit' },
-    { key: 'Out for Delivery', label: 'Out for Delivery', icon: <Box size={16} />, desc: 'Final mile dispatch' },
-    { key: 'Delivered', label: 'Delivered', icon: <CheckCircle2 size={16} />, desc: 'Operation complete' }
+    { key: 'Order Placed', label: 'Order Placed', icon: <ShoppingCart size={16} />, desc: 'Order received' },
+    { key: 'Processing', label: 'Processing', icon: <Clock size={16} />, desc: 'Order preparation in progress' },
+    { key: 'Payment Confirmed', label: 'Payment Confirmed', icon: <CreditCard size={16} />, desc: 'Payment verified' },
+    { key: 'Shipped', label: 'Shipped', icon: <Truck size={16} />, desc: 'Product in transit' },
+    { key: 'Out for Delivery', label: 'Out for Delivery', icon: <Box size={16} />, desc: 'Final delivery dispatch' },
+    { key: 'Delivered', label: 'Delivered', icon: <CheckCircle2 size={16} />, desc: 'Delivery complete' }
 ]
 
 export default function TrackOrderPage() {
@@ -142,13 +142,13 @@ export default function TrackOrderPage() {
                         animate={{ opacity: 1, scale: 1 }}
                         className="bg-primary/10 px-6 py-2 rounded-full border border-primary/20 text-primary text-[10px] font-black uppercase tracking-[0.2em] shadow-lg shadow-primary/5"
                     >
-                        Strategic Asset Tracking v2.0
+                        Order Logistics System
                     </motion.div>
                     <h1 className="text-5xl md:text-7xl font-black font-outfit uppercase tracking-tighter italic leading-none">
-                        Track Your <span className="text-primary italic">Hardware</span>
+                        Track Your <span className="text-primary italic">Order</span>
                     </h1>
                     <p className="text-muted-foreground max-w-xl text-xs font-bold uppercase tracking-widest leading-relaxed opacity-60">
-                        Enter your secure order reference to monitor hardware lifecycle in real-time.
+                        Enter your order reference number to monitor your package status in real-time.
                     </p>
                 </div>
 
@@ -171,7 +171,7 @@ export default function TrackOrderPage() {
                             disabled={isSearching}
                             className="h-16 px-12 rounded-[2rem] text-xs font-black italic tracking-widest bg-primary hover:bg-primary/90 text-white shadow-xl shadow-primary/20"
                         >
-                            {isSearching ? "SYNCING..." : "TRACK ASSET"}
+                            {isSearching ? "TRACKING..." : "TRACK ORDER"}
                             {!isSearching && <ArrowRight className="ml-2 w-4 h-4" />}
                         </Button>
                     </form>
@@ -197,11 +197,11 @@ export default function TrackOrderPage() {
                                                 <div className="flex items-center gap-2">
                                                     <Badge className="bg-emerald-500/10 text-emerald-500 border-none font-black text-[8px] uppercase tracking-widest flex items-center gap-1.5">
                                                         <span className="w-1 h-1 rounded-full bg-emerald-500 animate-pulse" />
-                                                        Live Monitoring
+                                                        Live Updates
                                                     </Badge>
-                                                    <span className="text-[10px] font-black italic uppercase text-primary tracking-widest">Manifest {trackData.orderNumber}</span>
+                                                    <span className="text-[10px] font-black italic uppercase text-primary tracking-widest">Order #{trackData.orderNumber}</span>
                                                 </div>
-                                                <h3 className="text-4xl font-black font-outfit uppercase tracking-tighter italic">Logistics Status</h3>
+                                                <h3 className="text-4xl font-black font-outfit uppercase tracking-tighter italic">Tracking Status</h3>
                                             </div>
                                             <div className="flex items-center gap-4 bg-muted/30 p-4 rounded-[2rem] border border-border group hover:border-primary/30 transition-colors">
                                                 <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center group-hover:scale-110 transition-transform">
@@ -241,19 +241,19 @@ export default function TrackOrderPage() {
 
                                         <div className="grid grid-cols-2 md:grid-cols-4 gap-6 pt-4">
                                             <div className="flex flex-col gap-1">
-                                                <span className="text-[8px] font-black uppercase text-muted-foreground tracking-[0.1em]">Internal UID</span>
+                                                <span className="text-[8px] font-black uppercase text-muted-foreground tracking-[0.1em]">Order Reference</span>
                                                 <span className="text-xs font-black uppercase font-mono">#{trackData.id.slice(0, 8)}</span>
                                             </div>
                                             <div className="flex flex-col gap-1">
-                                                <span className="text-[8px] font-black uppercase text-muted-foreground tracking-[0.1em]">Deployment Date</span>
+                                                <span className="text-[8px] font-black uppercase text-muted-foreground tracking-[0.1em]">Order Date</span>
                                                 <span className="text-xs font-black uppercase">{new Date(trackData.createdAt).toLocaleDateString()}</span>
                                             </div>
                                             <div className="flex flex-col gap-1">
-                                                <span className="text-[8px] font-black uppercase text-muted-foreground tracking-[0.1em]">Asset Valuation</span>
+                                                <span className="text-[8px] font-black uppercase text-muted-foreground tracking-[0.1em]">Total Value</span>
                                                 <span className="text-xs font-black uppercase">${trackData.totalAmount.toLocaleString()}</span>
                                             </div>
                                             <div className="flex flex-col gap-1">
-                                                <span className="text-[8px] font-black uppercase text-muted-foreground tracking-[0.1em]">Financial Status</span>
+                                                <span className="text-[8px] font-black uppercase text-muted-foreground tracking-[0.1em]">Payment Status</span>
                                                 <Badge variant="outline" className={cn(
                                                     "w-fit px-3 py-0.5 rounded-full text-[8px] font-black uppercase border",
                                                     trackData.paymentStatus === 'Paid' ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20" : "bg-amber-500/10 text-amber-500 border-amber-500/20"
@@ -341,7 +341,7 @@ export default function TrackOrderPage() {
                                     <div className="flex items-center justify-between mb-8">
                                         <h4 className="text-[10px] font-black uppercase italic tracking-widest text-primary flex items-center gap-2">
                                             <Activity size={14} />
-                                            Transmission History
+                                            Logistics History
                                         </h4>
                                     </div>
                                     <div className="flex flex-col gap-6">
@@ -428,7 +428,7 @@ export default function TrackOrderPage() {
                                                     } 
                                                     target="_blank"
                                                 >
-                                                    <Button variant="outline" className="w-full h-12 rounded-2xl text-[8px] font-black uppercase tracking-widest gap-2 bg-white border-primary/20 hover:bg-primary hover:text-white transition-all shadow-sm">
+                                                    <Button variant="outline" className="w-full h-12 rounded-2xl text-[8px] font-black uppercase tracking-widest gap-2 bg-card border-primary/20 hover:bg-primary hover:text-white transition-all shadow-sm">
                                                         EXTERNAL TRACKING <ExternalLink size={10} />
                                                     </Button>
                                                 </Link>
@@ -466,7 +466,7 @@ export default function TrackOrderPage() {
                                         <span className="text-[10px] font-black uppercase tracking-widest">Active Protection</span>
                                     </div>
                                     <p className="text-[10px] font-bold text-muted-foreground leading-relaxed uppercase tracking-widest italic opacity-70">
-                                        Our logistics chain is fully encrypted. Each hardware module is tracked and insured for $5M corporate liability coverage.
+                                        Our logistics chain is fully secured. Each product is tracked and insured for professional liability coverage.
                                     </p>
                                 </Card>
                             </div>
@@ -478,9 +478,9 @@ export default function TrackOrderPage() {
                             className="grid grid-cols-1 md:grid-cols-3 gap-8 pt-10"
                         >
                             {[
-                                { icon: <Globe className="text-primary" />, title: "Planetary Logistics", desc: "Real-time satellite tracking across all deployment sectors." },
-                                { icon: <ShieldCheck className="text-primary" />, title: "Insured Transit", desc: "Every module is covered by universal hardware protection." },
-                                { icon: <Activity className="text-primary" />, title: "Live Telemetry", desc: "Millisecond-accurate status updates from Kenya Central Hub." }
+                                { icon: <Globe className="text-primary" />, title: "Global Logistics", desc: "Real-time updates across all international shipping sectors." },
+                                { icon: <ShieldCheck className="text-primary" />, title: "Secure Transit", desc: "Every product is covered by business protection standards." },
+                                { icon: <Activity className="text-primary" />, title: "Real-time Updates", desc: "Accurate status updates from our global fulfillment centers." }
                             ].map((feat, i) => (
                                 <div key={i} className="p-10 rounded-[3rem] bg-muted/20 border border-border flex flex-col gap-6 text-center items-center group hover:bg-card transition-all duration-500 hover:shadow-2xl hover:-translate-y-2">
                                     <div className="w-20 h-20 bg-card rounded-[2rem] shadow-xl border border-border flex items-center justify-center transition-transform duration-500 group-hover:scale-110 group-hover:rotate-6">

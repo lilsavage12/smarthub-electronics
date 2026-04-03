@@ -1,131 +1,184 @@
 import { NextResponse } from "next/server"
-import { supabase, supabaseAdmin } from "@/lib/supabase"
-import { verifyAdmin } from "@/lib/server-auth"
+import { supabaseAdmin } from "@/lib/supabase"
 
 export async function POST(req: Request) {
     try {
         const body = await req.json()
-        let { items, promoCode, userId, ...orderData } = body
+        let { items, promoCode, userId, customerName, customerEmail, customerPhone, address, city, area, deliveryFee, paymentMethod, notes } = body
 
         if (!items || items.length === 0) {
             return NextResponse.json({ error: "No items in order" }, { status: 400 })
         }
 
-        // 0. ID Resilience: Bridge CUID to UUID if necessary
-        if (userId && userId.startsWith('cm')) {
-            const { data: userData } = await supabaseAdmin.from('User').select('email').eq('id', userId).single();
-            if (userData?.email) {
-                // Fetch from Auth directly (Service Role needed)
-                const { data: { users } } = await supabaseAdmin.auth.admin.listUsers();
-                const actualUser = users.find(u => u.email === userData.email);
-                if (actualUser) userId = actualUser.id;
-            }
+        if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
+            console.error("CRITICAL: SUPABASE_SERVICE_ROLE_KEY is not defined in environment variables. Inventory updates will likely fail due to RLS policies.")
         }
 
         const orderNumber = `SH-${Math.floor(1000 + Math.random() * 9000)}-${Date.now().toString().slice(-4)}`
 
-        // 1. Re-verify prices and stock limits for each item
-        const nowStr = new Date().toISOString()
+        // 1. Fetch & Verify Products (with Active Variants)
         const productIds = items.map((i: any) => i.productId)
-        
-        // Fetch base prices
-        const { data: baseProducts } = await supabase
+        const { data: products, error: productsError } = await supabaseAdmin
             .from('Product')
-            .select('id, price')
+            .select('*, variants:ProductVariant(*)')
             .in('id', productIds)
 
-        // Fetch active promos
-        const { data: activePromos } = await supabase
-            .from('Promotion')
-            .select('*, products:PromotionProduct(productId, saleStock, soldInPromo)')
-            .eq('isActive', true)
-            .lte('startDate', nowStr)
-            .gte('endDate', nowStr)
+        if (productsError) throw productsError
 
-        const verifiedItems = items.map((item: any) => {
-            const product = baseProducts?.find(p => p.id === item.productId)
-            if (!product) return item // Fallback if missing, but should handle error
+        const verifiedItems = []
+        let subtotal = 0
 
-            const promoLink = activePromos?.find(p => 
-                p.products?.some((pp: any) => pp.productId === item.productId)
-            )
+        for (const item of items) {
+            const product = products.find(p => p.id === item.productId)
+            if (!product) throw new Error(`Product ${item.productId} not found`)
+            
+            // Capture the specific variant name and price from the request
+            const itemPrice = item.price || product.price
+            const itemName = item.name || product.name
+            const originalPrice = item.originalPrice || product.price
 
-            let finalPrice = product.price
-            if (promoLink) {
-                const promoProduct = promoLink.products.find((pp: any) => pp.productId === item.productId)
-                const saleStock = promoProduct?.saleStock
-                const soldInPromo = promoProduct?.soldInPromo || 0
-                const remaining = saleStock !== null && saleStock !== undefined ? Math.max(0, saleStock - soldInPromo) : Infinity
-                
-                const discountedQty = Math.min(item.quantity, remaining)
-                const fullPriceQty = Math.max(0, item.quantity - discountedQty)
-                
-                let discountedPrice = product.price
-                if (promoLink.type === 'PERCENTAGE') {
-                    discountedPrice = product.price * (1 - promoLink.value / 100)
+            // STOCK DEDUCTION LOGIC
+            // 1. Deduct from base product regardless (global availability)
+            const newProductStock = (product.stock || 0) - item.quantity
+            console.log(`Inventory: Deducting ${item.quantity} from Base Product ${product.id} stock (${product.stock} -> ${newProductStock})`)
+            
+            const { error: stockError } = await supabaseAdmin
+                .from('Product')
+                .update({ stock: Math.max(0, newProductStock) })
+                .eq('id', product.id)
+            
+            if (stockError) {
+                console.error(`Inventory: Base stock update error for ${product.id}:`, stockError)
+                // Continue though, try to update variants
+            }
+
+            let matchedVariantId = null
+            
+            // 2. Identify and Deduct from Variant Stock
+            // Use storage and ram to find the variant
+            if (item.ram || item.storage) {
+                const variant = (product.variants || []).find((v: any) => 
+                    String(v.ram) === String(item.ram) && String(v.storage) === String(item.storage)
+                )
+                if (variant) {
+                    matchedVariantId = variant.id
+                    // Deduct from variant colors if color provided
+                    if (item.color) {
+                        let vColors = []
+                        try { vColors = typeof variant.productColors === 'string' ? JSON.parse(variant.productColors) : (variant.productColors || []) } catch { vColors = [] }
+                        
+                        const colorIdx = vColors.findIndex((c: any) => String(c.color || '').toLowerCase() === String(item.color || '').toLowerCase())
+                        if (colorIdx >= 0) {
+                            const currentStockValue = parseInt(vColors[colorIdx].stock) || 0
+                            vColors[colorIdx].stock = Math.max(0, currentStockValue - item.quantity).toString()
+                            
+                            console.log(`Inventory: Deducting from Variant ${variant.id} - Color ${item.color} (${currentStockValue} -> ${vColors[colorIdx].stock})`)
+                            
+                            const { error: variantError } = await supabaseAdmin
+                                .from('ProductVariant')
+                                .update({ productColors: JSON.stringify(vColors) })
+                                .eq('id', variant.id)
+                            
+                            if (variantError) {
+                                console.error(`Inventory: Variant stock update error for ${variant.id}:`, variantError)
+                                throw new Error(`Failed to update stock for variant ${variant.id}`)
+                            }
+                        } else {
+                            console.warn(`Inventory: Color ${item.color} not found in Variant ${variant.id}`)
+                        }
+                    }
                 } else {
-                    discountedPrice = product.price - promoLink.value
+                    console.warn(`Inventory: No variant found matching RAM: ${item.ram}, Storage: ${item.storage} for Product ${product.id}`)
                 }
+            } else if (item.color) {
+                // Deduct from master product colors if no specific RAM/Storage variant
+                let pSpecs = product.specs || {}
+                if (typeof pSpecs === 'string') try { pSpecs = JSON.parse(pSpecs) } catch { pSpecs = {} }
                 
-                finalPrice = ((discountedQty * discountedPrice) + (fullPriceQty * product.price)) / item.quantity
-            }
-
-            return {
-                ...item,
-                id: item.productId, // Ensure consistently using productId
-                price: Number(finalPrice.toFixed(2))
-            }
-        })
-
-        // Re-calculate Total for security + Tax
-        const itemsSubtotal = verifiedItems.reduce((acc: number, item: any) => acc + (item.price * item.quantity), 0)
-        const serverTax = itemsSubtotal * 0.08
-        const serverTotal = Number((itemsSubtotal + serverTax).toFixed(2))
-
-        // Use the RPC v2 for atomic transaction with promo code support
-        const { data, error } = await supabase.rpc('create_order_v2', {
-            p_user_id: userId || null,
-            p_order_number: orderNumber,
-            p_customer_name: orderData.customerName,
-            p_customer_email: orderData.customerEmail,
-            p_customer_phone: orderData.customerPhone,
-            p_address: orderData.address,
-            p_city: orderData.city,
-            p_total_amount: serverTotal,
-            p_payment_method: orderData.paymentMethod,
-            p_items: verifiedItems,
-            p_promo_code: promoCode || null
-        })
-
-        if (error) {
-            console.error("RPC Error:", error)
-            return NextResponse.json({ error: error.message }, { status: 400 })
-        }
-
-        // 3. Post-Order: Increment soldInPromo for items that had active promotions
-        // This ensures the global stock limit is enforced even if the RPC didn't do it
-        try {
-            const promoItems = verifiedItems.filter((i: any) => i.price < i.originalPrice)
-            for (const item of promoItems) {
-                // Find which promo this belongs to (best active one)
-                // Note: ideally we'd pass promoId from the frontend, but we can do a best-match
-                const promoLink = activePromos?.find(p => p.products?.some((pp: any) => pp.productId === item.productId))
-                if (promoLink) {
-                   await supabase.rpc('increment_sold_in_promo', {
-                       p_promo_id: promoLink.id,
-                       p_product_id: item.productId,
-                       p_amount: item.quantity
-                   })
+                let pColors = pSpecs.productColors || []
+                const colorIdx = pColors.findIndex((c: any) => String(c.color || '').toLowerCase() === String(item.color || '').toLowerCase())
+                if (colorIdx >= 0) {
+                    const currentStockValue = parseInt(pColors[colorIdx].stock) || 0
+                    pColors[colorIdx].stock = Math.max(0, currentStockValue - item.quantity).toString()
+                    pSpecs.productColors = pColors
+                    
+                    console.log(`Inventory: Deducting from Master Specs - Color ${item.color} (${currentStockValue} -> ${pColors[colorIdx].stock})`)
+                    
+                    const { error: specsError } = await supabaseAdmin
+                        .from('Product')
+                        .update({ specs: JSON.stringify(pSpecs) })
+                        .eq('id', product.id)
+                    
+                    if (specsError) console.error(`Inventory: Master specs update error for ${product.id}:`, specsError)
                 }
             }
-        } catch (soldError) {
-            console.error("Failed to increment soldInPromo:", soldError)
-            // Still return success since the order was created
+
+            verifiedItems.push({
+                productId: product.id,
+                variantId: matchedVariantId,
+                color: item.color || null,
+                name: itemName,
+                quantity: item.quantity,
+                price: itemPrice,
+                originalPrice: originalPrice,
+                image: item.image || product.image
+            })
+
+            subtotal += itemPrice * item.quantity
         }
 
-        return NextResponse.json(data)
+        const total = subtotal 
+
+        // 3. Save Order
+        const now = new Date().toISOString()
+        const { data: order, error: orderError } = await supabaseAdmin
+            .from('Order')
+            .insert({
+                id: crypto.randomUUID(),
+                orderNumber,
+                userId: userId || null,
+                customerName,
+                customerEmail,
+                customerPhone,
+                address,
+                city,
+                area: area || null,
+                deliveryFee: deliveryFee || 0,
+                totalAmount: total,
+                paymentMethod,
+                paymentStatus: "Pending", 
+                transactionCode: body.transactionCode || null,
+                notes: notes || null,
+                status: "Processing", 
+                createdAt: now,
+                updatedAt: now
+            })
+            .select()
+            .single()
+
+        if (orderError) throw orderError
+
+        // 4. Save Order Items
+        const { error: itemsError } = await supabaseAdmin
+            .from('OrderItem')
+            .insert(verifiedItems.map(vi => ({
+                id: crypto.randomUUID(),
+                orderId: order.id,
+                productId: vi.productId,
+                variantId: vi.variantId,
+                color: vi.color,
+                name: vi.name,
+                quantity: vi.quantity,
+                price: vi.price,
+                originalPrice: vi.originalPrice || vi.price,
+                image: vi.image
+            })))
+
+        if (itemsError) throw itemsError
+
+        return NextResponse.json({ ...order, items: verifiedItems })
     } catch (error: any) {
-        console.error("Order Creation Error:", error)
+        console.error("Supabase Order Creation Error:", error)
         return NextResponse.json({ 
             error: error.message || "Failed to process order" 
         }, { status: 500 })
@@ -137,31 +190,31 @@ export async function GET(req: Request) {
         const { searchParams } = new URL(req.url)
         const email = searchParams.get("email")
         const userId = searchParams.get("userId")
-        const limit = searchParams.get("limit")
         
-        // If no specific filters, must be admin to see ALL orders
-        if (!email && !userId) {
-            if (!(await verifyAdmin(req))) {
-                return NextResponse.json({ error: "Unauthorized access" }, { status: 401 })
-            }
+        console.log(`Supabase: Fetching orders for User: ${userId || 'N/A'}, Email: ${email || 'N/A'}`)
+
+        let query = supabaseAdmin
+            .from('Order')
+            .select('*, items:OrderItem(*)')
+            .order('createdAt', { ascending: false })
+
+        if (userId && userId !== "undefined" && userId !== "null") {
+            query = query.eq('userId', userId)
+        } else if (email && email !== "undefined" && email !== "null") {
+            query = query.ilike('customerEmail', email)
         }
 
-        let query = supabase.from('Order').select('*, items:OrderItem(*)')
-
-        if (email) query = query.eq('customerEmail', email)
-        if (userId) query = query.eq('userId', userId)
-
-        if (limit) {
-            query = query.limit(parseInt(limit))
-        }
-
-        const { data: orders, error } = await query.order('createdAt', { ascending: false })
-
+        const { data: orders, error } = await query
+        
         if (error) throw error
-
-        return NextResponse.json(orders)
-    } catch (error) {
-        console.error("Supabase Order Fetch Error:", error)
-        return NextResponse.json({ error: "Failed to fetch orders" }, { status: 500 })
+        
+        return NextResponse.json(orders || [])
+    } catch (error: any) {
+        console.error("Supabase Order Fetch Failure:", error)
+        return NextResponse.json({ 
+            error: "Failed to fetch orders",
+            details: error.message
+        }, { status: 500 })
     }
 }
+

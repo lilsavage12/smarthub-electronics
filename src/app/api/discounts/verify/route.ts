@@ -34,6 +34,7 @@ export async function POST(req: Request) {
             discount: {
                 id: discount.id,
                 code: discount.code,
+                name: discount.campaign, // Map campaign to name for clarity in front-end
                 type: discount.type,
                 value: discount.value
             }

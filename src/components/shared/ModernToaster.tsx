@@ -10,6 +10,11 @@ import {
 import { cn } from "@/lib/utils"
 
 export const ModernToaster = () => {
+    const [mounted, setMounted] = React.useState(false)
+    React.useEffect(() => setMounted(true), [])
+
+    if (!mounted) return null
+
     return (
         <Toaster 
             position="bottom-right" 

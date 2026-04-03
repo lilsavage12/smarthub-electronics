@@ -16,7 +16,8 @@ import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { cn } from "@/lib/utils"
-import Image from "next/image"
+import { OrderQuickView } from "@/components/admin/OrderQuickView"
+import { supabase } from "@/lib/supabase"
 
 // Define Order Interface
 interface Order {
@@ -34,6 +35,8 @@ interface Order {
     estimatedDelivery?: string
     createdAt: any
     updatedAt: any
+    cancellationRequested?: boolean
+    cancellationReason?: string
     shippingAddress: {
         fullName: string
         addressLine1: string
@@ -43,6 +46,8 @@ interface Order {
         country: string
         phone: string
     }
+    transactionCode?: string
+    notes?: string
 }
 
 const STATUS_COLORS: Record<string, string> = {
@@ -75,8 +80,11 @@ export default function OrdersPage() {
     const [loading, setLoading] = useState(true)
     const [searchQuery, setSearchQuery] = useState("")
     const [statusFilter, setStatusFilter] = useState("All")
+    const [specialFilter, setSpecialFilter] = useState<"All" | "Unpaid" | "Sales" | "Returns">("All")
+    const [dateFilter, setDateFilter] = useState({ start: "", end: "" })
     const [selectedOrder, setSelectedOrder] = useState<Order | null>(null)
     const [isDetailsOpen, setIsDetailsOpen] = useState(false)
+    const [expandedRows, setExpandedRows] = useState<string[]>([])
     const [confirmAction, setConfirmAction] = useState<{ id: string, type: 'CANCEL' | 'DELETE' | 'REFUND' } | null>(null)
     const [isTrackingModalOpen, setIsTrackingModalOpen] = useState(false)
     const [trackingForm, setTrackingForm] = useState({
@@ -92,7 +100,13 @@ export default function OrdersPage() {
 
     const fetchOrders = async () => {
         try {
-            const res = await fetch("/api/orders")
+            const { data: { session } } = await supabase.auth.getSession()
+            const headers: any = { "Content-Type": "application/json" }
+            if (session?.access_token) {
+                headers['Authorization'] = `Bearer ${session.access_token}`
+            }
+
+            const res = await fetch("/api/orders", { headers })
             if (res.ok) {
                 const data = await res.json()
                 setOrders(data)
@@ -114,7 +128,7 @@ export default function OrdersPage() {
 
     const handleUpdateTracking = async () => {
         if (!selectedOrder) return
-        const toastId = toast.loading("Updating logistics telemetry...")
+        const toastId = toast.loading("Updating order shipment status...")
         try {
             const res = await fetch(`/api/admin/orders/${selectedOrder.id}/status`, {
                 method: "POST",
@@ -123,41 +137,43 @@ export default function OrdersPage() {
             })
             if (!res.ok) throw new Error("Failed to update tracking")
 
-            toast.success("Logistics manifest updated", { id: toastId })
+            toast.success("Order shipment updated", { id: toastId })
             
             // Refresh order data
             fetchOrders()
             setIsTrackingModalOpen(false)
         } catch (error) {
-            toast.error("Failed to update tracking registry", { id: toastId })
+            toast.error("Failed to update tracking information", { id: toastId })
         }
     }
 
     // Logic: Order Action Handlers
     const updateOrderStatus = async (orderId: string, newStatus: string) => {
-        const toastId = toast.loading(`Updating order to ${newStatus}...`)
+        const toastId = toast.loading(`Updating status to ${newStatus}...`)
         try {
+            const targetStatus = newStatus
+
             const res = await fetch(`/api/orders/${orderId}`, {
                 method: "PATCH",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ status: newStatus })
+                body: JSON.stringify({ status: targetStatus })
             })
-            if (!res.ok) throw new Error("Failed to update status")
+            if (!res.ok) throw new Error("Failed to update order status")
 
-            toast.success(`Order set to ${newStatus}`, { id: toastId })
+            toast.success(`Order status updated to ${newStatus}`, { id: toastId })
 
-            // Optimistic update
-            setOrders(orders.map(o => o.id === orderId ? { ...o, status: newStatus as any } : o))
+            // Optimistic update of local records
+            setOrders(orders.map(o => o.id === orderId ? { ...o, status: targetStatus as any } : o))
             if (selectedOrder?.id === orderId) {
-                setSelectedOrder({ ...selectedOrder, status: newStatus as any })
+                setSelectedOrder({ ...selectedOrder, status: targetStatus as any })
             }
-        } catch (error) {
-            toast.error("Failed to update order status", { id: toastId })
+        } catch (error: any) {
+            toast.error(error.message || "Failed to update order status", { id: toastId })
         }
     }
 
     const cancelOrder = async (orderId: string) => {
-        const toastId = toast.loading("Cancelling order sequence...")
+        const toastId = toast.loading("Cancelling order...")
         try {
             const res = await fetch(`/api/orders/${orderId}`, {
                 method: "PATCH",
@@ -166,7 +182,7 @@ export default function OrdersPage() {
             })
             if (!res.ok) throw new Error("Failed to cancel order")
 
-            toast.success("Order cancelled effectively", { id: toastId })
+            toast.success("Order cancelled successfully", { id: toastId })
             setOrders(orders.map(o => o.id === orderId ? { ...o, status: 'Cancelled' as any } : o))
             setConfirmAction(null)
         } catch (error) {
@@ -175,31 +191,31 @@ export default function OrdersPage() {
     }
 
     const deleteOrder = async (orderId: string) => {
-        const toastId = toast.loading("Purging order from registries...")
+        const toastId = toast.loading("Deleting order from records...")
         try {
             const res = await fetch(`/api/orders/${orderId}`, {
                 method: "DELETE"
             })
-            if (!res.ok) throw new Error("Failed to delete order entry")
+            if (!res.ok) throw new Error("Failed to delete order")
 
-            toast.success("Order entry deleted definitively", { id: toastId })
+            toast.success("Order deleted successfully", { id: toastId })
             setOrders(orders.filter(o => o.id !== orderId))
             setConfirmAction(null)
             if (selectedOrder?.id === orderId) setIsDetailsOpen(false)
         } catch (error) {
-            toast.error("Failed to delete order entry", { id: toastId })
+            toast.error("Failed to delete order", { id: toastId })
         }
     }
 
     const issueRefund = async (orderId: string) => {
-        const toastId = toast.loading("Processing financial reversal protocol...")
+        const toastId = toast.loading("Processing refund...")
         try {
             const res = await fetch(`/api/admin/orders/${orderId}/payment-status`, {
                 method: "PUT",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ paymentStatus: 'Refunded' })
             })
-            if (!res.ok) throw new Error("Refund protocol failed")
+            if (!res.ok) throw new Error("Refund failed")
 
             toast.success("Refund processed successfully", { id: toastId })
             setOrders(orders.map(o => o.id === orderId ? { ...o, paymentStatus: 'Refunded' } : o))
@@ -207,27 +223,81 @@ export default function OrdersPage() {
                 setSelectedOrder({ ...selectedOrder, paymentStatus: 'Refunded' })
             }
         } catch (error) {
-            toast.error("Refund protocol failed", { id: toastId })
+            toast.error("Refund failed", { id: toastId })
         }
     }
 
     const updatePaymentStatus = async (orderId: string, newStatus: string) => {
-        const toastId = toast.loading(`Updating payment to ${newStatus}...`)
+        const toastId = toast.loading(`Updating payment status to ${newStatus}...`)
         try {
             const res = await fetch(`/api/admin/orders/${orderId}/payment-status`, {
                 method: "PUT",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ paymentStatus: newStatus })
             })
-            if (!res.ok) throw new Error("Failed to update payment status")
+            
+            const data = await res.json()
+            
+            if (!res.ok) {
+                let errorMsg = data.error || `Transition failed (${res.status})`
+                if (data.diagnostics) {
+                    const d = data.diagnostics
+                    errorMsg += ` [CF: ${d.cookiesFound}, ID: ${d.identityResolved ? 'Y' : 'N'}, S: ${d.sbStatus}]`
+                }
 
-            toast.success(`Payment set to ${newStatus}`, { id: toastId })
-            setOrders(orders.map(o => o.id === orderId ? { ...o, paymentStatus: newStatus } : o))
+                throw new Error(errorMsg)
+            }
+
+            toast.success(`Financial Settlement: ${newStatus}`, { id: toastId })
+            
+            // Logic: If Refunded, automatically mark as Returned
+            const additionalUpdates: any = {}
+            if (newStatus === 'Refunded') {
+                additionalUpdates.status = 'Returned'
+                // Trigger the background status update
+                fetch(`/api/orders/${orderId}`, {
+                    method: "PATCH",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ status: 'Returned' })
+                }).catch(err => console.error("Auto-return sync failed:", err))
+            }
+
+            setOrders(orders.map(o => o.id === orderId ? { ...o, paymentStatus: newStatus, ...additionalUpdates } : o))
             if (selectedOrder?.id === orderId) {
-                setSelectedOrder({ ...selectedOrder, paymentStatus: newStatus })
+                setSelectedOrder({ ...selectedOrder, paymentStatus: newStatus, ...additionalUpdates })
+            }
+        } catch (error: any) {
+            console.error("Payment Status Transition Error:", error)
+            toast.error(error.message || "Payment status update failed", { 
+                id: toastId,
+                duration: 5000 
+                })
+            }
+    }
+
+    const updateCancellation = async (orderId: string, requested: boolean, status?: string) => {
+        const action = status === 'Cancelled' ? 'Authorizing Cancellation' : 'Declining Request'
+        const toastId = toast.loading(`${action}...`)
+        try {
+            const body: any = { cancellationRequested: requested }
+            if (status) body.status = status
+
+            const res = await fetch(`/api/orders/${orderId}`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(body)
+            })
+            if (!res.ok) throw new Error("Update failed")
+
+            toast.success(status === 'Cancelled' ? "Order Cancelled" : "Cancellation Request Declined", { id: toastId })
+            
+            // Optimistic update
+            setOrders(orders.map(o => o.id === orderId ? { ...o, cancellationRequested: requested, status: (status || o.status) as any } : o))
+            if (selectedOrder?.id === orderId) {
+                setSelectedOrder({ ...selectedOrder, cancellationRequested: requested, status: (status || selectedOrder.status) as any })
             }
         } catch (error) {
-            toast.error("Failed to update payment status", { id: toastId })
+            toast.error("Update failed", { id: toastId })
         }
     }
 
@@ -259,7 +329,7 @@ export default function OrdersPage() {
         document.head.appendChild(style)
         window.print()
         document.head.removeChild(style)
-        toast.success("Manifest Generated", { icon: "📄" })
+        toast.success("Shipping Document Generated", { icon: "📄" })
     }
     const exportOrdersCSV = () => {
         const headers = ["Order ID", "Date", "Customer", "Email", "Amount", "Status", "Payment", "Items Count"]
@@ -280,15 +350,31 @@ export default function OrdersPage() {
         link.href = url
         link.download = `smarthub_orders_${new Date().toISOString().split('T')[0]}.csv`
         link.click()
-        toast.success("Orders manifest exported")
+        toast.success("Orders list exported")
     }
     const filteredOrders = orders.filter(order => {
         const matchesSearch =
             order.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
             (order.customerName || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
-            (order.shippingAddress?.fullName || "").toLowerCase().includes(searchQuery.toLowerCase())
-        const matchesStatus = statusFilter === "All" || order.status === statusFilter
-        return matchesSearch && matchesStatus
+            (order.shippingAddress?.fullName || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
+            (order.customerEmail || "").toLowerCase().includes(searchQuery.toLowerCase())
+        
+        let matchesStatus = true
+        if (specialFilter === "All") {
+            matchesStatus = statusFilter === "All" || order.status === statusFilter
+        } else if (specialFilter === "Unpaid") {
+            matchesStatus = order.paymentStatus !== "Paid"
+        } else if (specialFilter === "Sales") {
+            matchesStatus = order.status === "Processing" || order.status === "Order Placed"
+        } else if (specialFilter === "Returns") {
+            matchesStatus = order.status === "Returned"
+        }
+        
+        const orderDate = order.createdAt?.toDate ? order.createdAt.toDate() : new Date(order.createdAt)
+        const matchesStartDate = !dateFilter.start || orderDate >= new Date(dateFilter.start)
+        const matchesEndDate = !dateFilter.end || orderDate <= new Date(dateFilter.end + "T23:59:59")
+
+        return matchesSearch && matchesStatus && matchesStartDate && matchesEndDate
     })
 
     const handleExport = () => {
@@ -303,7 +389,7 @@ export default function OrdersPage() {
         a.href = url
         a.download = `inventory_orders_${new Date().toISOString().split('T')[0]}.csv`
         a.click()
-        toast.success("Registry Exported Successfully")
+        toast.success("Orders Exported Successfully")
     }
 
 
@@ -320,8 +406,8 @@ export default function OrdersPage() {
             {/* Page Header */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                 <div className="flex flex-col gap-1">
-                    <h1 className="text-3xl font-black tracking-tight text-foreground italic uppercase">Orders Registry</h1>
-                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest opacity-60">Complete audit and logistics control hub for client acquisition.</p>
+                    <h1 className="text-3xl font-black tracking-tight text-foreground italic uppercase">Order Management</h1>
+                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest opacity-60">Complete control dashboard for order fulfillment and logistics.</p>
                 </div>
                 <div className="flex items-center gap-3">
 
@@ -331,20 +417,30 @@ export default function OrdersPage() {
                         className="h-12 px-6 rounded-xl border-border font-black italic tracking-widest uppercase text-[10px] gap-2 hover:bg-muted transition-all"
                     >
                         <Download size={18} />
-                        EXPORT REGISTRY
+                        EXPORT ORDERS
                     </Button>
                 </div>
             </div>
 
             {/* Summary Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
                 {[
-                    { label: "New Sales", count: stats.processing, icon: <ShoppingBag className="text-blue-500" />, sub: "Awaiting Dispatch", bg: "bg-blue-500/5" },
-                    { label: "Shipping", count: stats.shipped, icon: <Truck className="text-amber-500" />, sub: "Active In-Transit", bg: "bg-amber-500/5" },
-                    { label: "Verification", count: stats.verification, icon: <ShieldAlert className="text-red-500" />, sub: "Security Checks Reqd", bg: "bg-red-500/5" },
-                    { label: "Returns", count: orders.filter(o => o.status === 'Returned').length, icon: <RefreshCcw className="text-emerald-500" />, sub: "Active RMA Sequence", bg: "bg-emerald-500/5" },
+                    { key: 'Sales', label: "New Sales", count: stats.processing, icon: <ShoppingBag className="text-blue-500" />, sub: "Awaiting Dispatch", bg: "bg-blue-500/5", active: specialFilter === 'Sales' },
+                    { key: 'All', label: "Total Orders", count: orders.length, icon: <FileText className="text-amber-500" />, sub: "All Registries", bg: "bg-amber-500/5", active: specialFilter === 'All' },
+                    { key: 'Unpaid', label: "Unpaid", count: orders.filter(o => o.paymentStatus !== 'Paid').length, icon: <ShieldAlert className="text-red-500" />, sub: "Financial Risk", bg: "bg-red-500/5", active: specialFilter === 'Unpaid' },
+                    { key: 'Returns', label: "Returns", count: orders.filter(o => o.status === 'Returned').length, icon: <RefreshCcw className="text-emerald-500" />, sub: "Active RMA Process", bg: "bg-emerald-500/5", active: specialFilter === 'Returns' },
                 ].map((s, i) => (
-                    <Card key={i} className="rounded-2xl border-border shadow-sm p-6 flex flex-col gap-4 group hover:shadow-md transition-all">
+                    <Card 
+                        key={i} 
+                        onClick={() => {
+                            setSpecialFilter(s.key as any)
+                            setStatusFilter('All')
+                        }}
+                        className={cn(
+                            "rounded-2xl border-border shadow-sm p-6 flex flex-col gap-4 group hover:shadow-md transition-all cursor-pointer",
+                            s.active ? "border-primary ring-1 ring-primary/20 bg-primary/5" : "hover:border-primary/20"
+                        )}
+                    >
                         <div className={cn("p-3 w-fit rounded-xl transition-colors", s.bg)}>
                             {s.icon}
                         </div>
@@ -353,7 +449,7 @@ export default function OrdersPage() {
                                 <span className="text-2xl font-black italic tracking-tighter">{s.count}</span>
                                 <span className="text-[8px] font-black uppercase text-primary mb-1">Orders</span>
                             </div>
-                            <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">{s.label}</span>
+                            <span className="text-[10px] font-black uppercase tracking-widest text-foreground">{s.label}</span>
                             <span className="text-[8px] font-bold text-muted-foreground/40 uppercase tracking-widest mt-1">{s.sub}</span>
                         </div>
                     </Card>
@@ -361,32 +457,62 @@ export default function OrdersPage() {
             </div>
 
             {/* Main Table Interface */}
-            <div className="flex flex-col gap-6 bg-card border border-border rounded-[2.5rem] p-8 shadow-sm">
+            <div className="flex flex-col gap-6 bg-card border border-border rounded-3xl lg:rounded-[2.5rem] p-4 sm:p-8 shadow-sm">
                 <div className="flex flex-col md:flex-row gap-4 items-center justify-between border-b border-border/50 pb-8">
                     <div className="relative flex-1 w-full md:max-w-md">
                         <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
                         <Input
-                            placeholder="Universal search sequence..."
+                            placeholder="Search orders..."
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                             className="h-12 bg-muted border-none rounded-xl pl-12 pr-4 text-sm font-medium"
                         />
                     </div>
-                    <div className="flex items-center gap-2 overflow-x-auto w-full md:w-auto no-scrollbar">
-                        {["All", "Processing", "Shipped", "Delivered", "Completed", "Cancelled"].map(tab => (
-                            <button
-                                key={tab}
-                                onClick={() => setStatusFilter(tab)}
-                                className={cn(
-                                    "px-5 py-2.5 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all whitespace-nowrap",
-                                    statusFilter === tab
-                                        ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20"
-                                        : "bg-muted text-muted-foreground hover:bg-muted/80"
-                                )}
-                            >
-                                {tab}
-                            </button>
-                        ))}
+                    <div className="flex flex-wrap items-center gap-4 w-full md:w-auto">
+                        <div className="flex items-center gap-2 bg-muted p-1 rounded-xl">
+                            {["All", "Processing", "Shipped", "Completed"].map(tab => (
+                                <button
+                                    key={tab}
+                                    onClick={() => {
+                                        setStatusFilter(tab)
+                                        setSpecialFilter('All')
+                                    }}
+                                    className={cn(
+                                        "px-4 py-2 rounded-lg text-[8px] font-black uppercase tracking-widest transition-all whitespace-nowrap",
+                                        statusFilter === tab && specialFilter === 'All'
+                                            ? "bg-background text-primary shadow-sm"
+                                            : "text-muted-foreground hover:text-foreground"
+                                    )}
+                                >
+                                    {tab}
+                                </button>
+                            ))}
+                        </div>
+                        <div className="flex items-center gap-2">
+                           <input 
+                                type="date" 
+                                className="h-10 bg-muted border-none rounded-xl px-3 text-[9px] font-black uppercase tracking-widest outline-none"
+                                value={dateFilter.start}
+                                onChange={(e) => setDateFilter({...dateFilter, start: e.target.value})}
+                           />
+                           <span className="text-muted-foreground opacity-30 text-[9px] font-black">TO</span>
+                           <input 
+                                type="date" 
+                                className="h-10 bg-muted border-none rounded-xl px-3 text-[9px] font-black uppercase tracking-widest outline-none"
+                                value={dateFilter.end}
+                                onChange={(e) => setDateFilter({...dateFilter, end: e.target.value})}
+                           />
+                           {(dateFilter.start || dateFilter.end) && (
+                               <Button 
+                                    variant="ghost" 
+                                    size="icon" 
+                                    className="h-10 w-10 text-rose-500 rounded-xl" 
+                                    onClick={() => setDateFilter({start: "", end: ""})}
+                                >
+                                   <X size={14} />
+                               </Button>
+                           )}
+                        </div>
                     </div>
                 </div>
 
@@ -396,9 +522,9 @@ export default function OrdersPage() {
                             <tr className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/60">
                                 <th className="px-6 py-5">Order Reference</th>
                                 <th className="px-6 py-5">Customer Profile</th>
-                                <th className="px-6 py-5">Financial Audit</th>
-                                <th className="px-6 py-5 text-center">Status Matrix</th>
-                                <th className="px-6 py-5">Clearance</th>
+                                <th className="px-6 py-5 hidden md:table-cell">Payment Status</th>
+                                <th className="px-6 py-5 text-center">Status</th>
+                                <th className="px-6 py-5 hidden lg:table-cell">Method</th>
                                 <th className="px-6 py-5 text-right">Actions</th>
                             </tr>
                         </thead>
@@ -425,10 +551,10 @@ export default function OrdersPage() {
                                             <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest opacity-40 italic">{order.customerEmail}</span>
                                         </div>
                                     </td>
-                                    <td className="px-6 py-6">
+                                    <td className="px-6 py-6 hidden md:table-cell">
                                         <div className="flex flex-col">
-                                            <span className="text-xs font-black text-foreground">${order.totalAmount.toLocaleString()}</span>
-                                            <span className="text-[8px] font-black text-muted-foreground tracking-widest uppercase opacity-40">{order.items?.length || 0} ASSETS</span>
+                                            <span className="text-xs font-black text-foreground">KSh {Math.round(order.totalAmount).toLocaleString()}</span>
+                                            <span className="text-[8px] font-black text-muted-foreground tracking-widest uppercase opacity-40">{order.items?.length || 0} ITEMS</span>
                                         </div>
                                     </td>
                                     <td className="px-6 py-6 text-center">
@@ -439,7 +565,7 @@ export default function OrdersPage() {
                                             </Badge>
                                         </div>
                                     </td>
-                                    <td className="px-6 py-6">
+                                    <td className="px-6 py-6 hidden lg:table-cell">
                                         <div className="flex items-center gap-2">
                                             <div className={cn("w-2 h-2 rounded-full", order.paymentStatus === 'Paid' ? 'bg-emerald-500' : 'bg-amber-500')} />
                                             <span className="text-[10px] font-black uppercase tracking-widest text-foreground">{order.paymentMethod}</span>
@@ -460,28 +586,28 @@ export default function OrdersPage() {
                                                     <MoreHorizontal size={18} />
                                                 </Button>
                                                 <div className="absolute right-0 top-full mt-2 w-56 bg-card border border-border rounded-xl shadow-2xl p-2 z-50 opacity-0 group-hover/actions:opacity-100 pointer-events-none group-hover/actions:pointer-events-auto transition-all transform origin-top-right scale-95 group-hover/actions:scale-100">
-                                                    <div className="px-3 py-2 text-[8px] font-black text-muted-foreground uppercase tracking-widest border-b border-border/50 mb-1">Logistics Flow</div>
+                                                    <div className="px-3 py-2 text-[8px] font-black text-muted-foreground uppercase tracking-widest border-b border-border/50 mb-1">Order Fulfillment</div>
                                                     {[
                                                         { tag: 'Processing', icon: <Clock size={14} /> },
                                                         { tag: 'Shipped', icon: <Truck size={14} /> },
                                                         { tag: 'Delivered', icon: <Package size={14} /> },
                                                         { tag: 'Completed', icon: <CheckCircle size={14} /> },
+                                                        { tag: 'Refunded', icon: <RefreshCcw size={14} />, isPayment: true },
                                                     ].map(step => (
                                                         <button
                                                             key={step.tag}
-                                                            onClick={() => updateOrderStatus(order.id, step.tag)}
+                                                            onClick={() => step.isPayment ? updatePaymentStatus(order.id, step.tag) : updateOrderStatus(order.id, step.tag)}
                                                             className="w-full flex items-center gap-3 px-3 py-2 text-[9px] font-black uppercase tracking-widest text-muted-foreground hover:text-primary hover:bg-primary/5 rounded-xl transition-all"
                                                         >
                                                             {step.icon} Mark as {step.tag}
                                                         </button>
                                                     ))}
                                                     <div className="h-px bg-border/50 my-2" />
-                                                    <div className="px-3 py-2 text-[8px] font-black text-muted-foreground uppercase tracking-widest border-b border-border/50 mb-1">Financial Protocol</div>
+                                                    <div className="px-3 py-2 text-[8px] font-black text-muted-foreground uppercase tracking-widest border-b border-border/50 mb-1">Payment Status</div>
                                                     {[
                                                         { tag: 'Pending', icon: <Clock size={14} /> },
                                                         { tag: 'Paid', icon: <CheckCircle2 size={14} /> },
                                                         { tag: 'Failed', icon: <AlertCircle size={14} /> },
-                                                        { tag: 'Refunded', icon: <RefreshCcw size={14} /> },
                                                         { tag: 'Cancelled', icon: <Ban size={14} /> },
                                                     ].map(step => (
                                                         <button
@@ -497,13 +623,13 @@ export default function OrdersPage() {
                                                         onClick={() => setConfirmAction({ id: order.id, type: 'CANCEL' })}
                                                         className="w-full flex items-center gap-3 px-3 py-2 text-[9px] font-black uppercase tracking-widest text-red-500 hover:bg-red-500/5 rounded-xl transition-all"
                                                     >
-                                                        <Ban size={14} /> Cancel Sequence
+                                                        <Ban size={14} /> Cancel Order
                                                     </button>
                                                     <button
                                                         onClick={() => setConfirmAction({ id: order.id, type: 'DELETE' })}
                                                         className="w-full flex items-center gap-3 px-3 py-2 text-[9px] font-black uppercase tracking-widest text-red-600 hover:bg-red-600/10 rounded-xl transition-all"
                                                     >
-                                                        <Trash2 size={14} /> Purge Entry
+                                                        <Trash2 size={14} /> Delete Order
                                                     </button>
                                                 </div>
                                             </div>
@@ -526,15 +652,15 @@ export default function OrdersPage() {
                                     <ShieldAlert size={28} />
                                 </div>
                                 <div className="flex flex-col">
-                                    <h3 className="text-xl font-black uppercase italic tracking-tight">Security Alert</h3>
-                                    <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Protocol Confirmation Required</span>
+                                    <h3 className="text-xl font-black uppercase italic tracking-tight">Confirm Action</h3>
+                                    <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Confirmation Required</span>
                                 </div>
                             </div>
                             <p className="text-sm font-medium text-muted-foreground leading-relaxed italic">
                                 Are you certain you wish to {
-                                    confirmAction.type === 'CANCEL' ? 'permanently terminate this order sequence' :
-                                        confirmAction.type === 'REFUND' ? 'initiate a full financial reversal for this asset' :
-                                            'purge this order entry from the registry'
+                                    confirmAction.type === 'CANCEL' ? 'permanently cancel this order' :
+                                        confirmAction.type === 'REFUND' ? 'initiate a full refund for this order' :
+                                            'delete this order from the records'
                                 }? This action is non-reversible.
                             </p>
                             <div className="flex gap-4 mt-2">
@@ -555,146 +681,15 @@ export default function OrdersPage() {
                 )}
             </AnimatePresence>
 
-            {/* Order Details Inspection Modal (High Fidelity) */}
-            <AnimatePresence>
-                {isDetailsOpen && selectedOrder && (
-                    <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-slate-900/40 backdrop-blur-xl">
-                        <motion.div
-                            initial={{ opacity: 0, scale: 0.95, y: 20 }}
-                            animate={{ opacity: 1, scale: 1, y: 0 }}
-                            exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                            className="w-full max-w-5xl bg-card border border-border/50 rounded-[3.5rem] shadow-2xl overflow-hidden flex flex-col max-h-[95vh] print-area"
-                        >
-                            <div className="p-10 border-b border-border/30 flex items-center justify-between bg-muted/20">
-                                <div className="flex flex-col gap-2">
-                                    <div className="flex items-center gap-3">
-                                        <Badge className={cn("px-4 py-1.5 text-[9px] font-black uppercase tracking-widest shadow-sm", STATUS_COLORS[selectedOrder.status])}>
-                                            {selectedOrder.status}
-                                        </Badge>
-                                        <span className="text-[10px] font-black text-muted-foreground uppercase ml-2 tracking-widest border-l border-border pl-3">REF: #{selectedOrder.id}</span>
-                                    </div>
-                                    <h2 className="text-4xl font-black italic tracking-tighter text-foreground uppercase mt-2">Asset Inspection</h2>
-                                    <div className="hidden print:block text-[8px] font-bold text-muted-foreground uppercase tracking-widest mt-1">SmartHub Electronics Ltd • Digital Manifest</div>
-                                </div>
-                                <div className="flex items-center gap-4 no-print">
-                                    <Button onClick={handlePrint} variant="outline" className="h-12 w-12 rounded-2xl hover:bg-primary/5 hover:text-primary transition-all"><Printer size={20} /></Button>
-                                    <button onClick={() => setIsDetailsOpen(false)} className="h-12 w-12 flex items-center justify-center bg-muted hover:bg-muted/80 rounded-2xl transition-all">
-                                        <X size={24} />
-                                    </button>
-                                </div>
-                            </div>
-
-                            <div className="flex-1 overflow-y-auto p-12 no-scrollbar bg-muted/[0.02]">
-                                <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
-                                    <div className="lg:col-span-2 flex flex-col gap-10">
-                                        <div className="flex flex-col gap-6">
-                                            <div className="flex items-center gap-3 text-primary">
-                                                <ShoppingBag size={20} />
-                                                <span className="text-xs font-black uppercase tracking-widest mt-0.5">Hardware Registry</span>
-                                            </div>
-                                            <div className="flex flex-col gap-4">
-                                                {selectedOrder.items?.map((item, idx) => (
-                                                    <div key={idx} className="flex items-center justify-between p-6 rounded-[2rem] bg-muted/20 border border-border/10">
-                                                        <div className="flex items-center gap-6">
-                                                            <div className="h-20 w-20 bg-card rounded-2xl border border-border/50 relative p-3 flex items-center justify-center">
-                                                                <Image src={item.image || "/images/product-placeholder.png"} fill className="object-contain p-2" alt="p" />
-                                                            </div>
-                                                            <div className="flex flex-col gap-1">
-                                                                <span className="text-lg font-black text-foreground tracking-tight">{item.name}</span>
-                                                                <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest opacity-60">QTY: {item.quantity} UNIT(S) • UID: {item.id?.slice(0, 8)}</span>
-                                                            </div>
-                                                        </div>
-                                                        <div className="flex flex-col items-end">
-                                                            <span className="text-xl font-black italic">${item.price.toLocaleString()}</span>
-                                                            <span className="text-[9px] font-bold text-primary uppercase">MSRP VALUATION</span>
-                                                        </div>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <div className="flex flex-col gap-10">
-                                        <div className="flex flex-col gap-6">
-                                            <div className="flex items-center gap-3 text-primary"><User size={20} /> <span className="text-xs font-black uppercase tracking-widest">Client Audit</span></div>
-                                            <div className="p-8 rounded-[2.5rem] bg-muted/40 border border-border/20 flex flex-col gap-4">
-                                                <div className="flex flex-col">
-                                                    <span className="text-lg font-black italic">{selectedOrder.customerName || selectedOrder.shippingAddress?.fullName}</span>
-                                                    <span className="text-[10px] font-bold text-muted-foreground uppercase opacity-60">{selectedOrder.customerEmail}</span>
-                                                </div>
-                                                <div className="h-px bg-border/50" />
-                                                <div className="flex flex-col gap-1">
-                                                    <span className="text-[9px] font-black uppercase text-primary mb-1">Logistics Destination</span>
-                                                    <p className="text-xs font-medium text-foreground leading-relaxed">
-                                                        {selectedOrder.shippingAddress?.addressLine1}, {selectedOrder.shippingAddress?.city}<br />
-                                                        {selectedOrder.shippingAddress?.state}, {selectedOrder.shippingAddress?.postalCode}<br />
-                                                        {selectedOrder.shippingAddress?.country}<br />
-                                                        <span className="font-black mt-2 inline-block">TEL: {selectedOrder.shippingAddress?.phone}</span>
-                                                    </p>
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        <div className="flex flex-col gap-6">
-                                            <div className="flex items-center gap-3 text-primary"><DollarSign size={20} /> <span className="text-xs font-black uppercase tracking-widest">Audit Summary</span></div>
-                                            <div className="p-8 rounded-[2.5rem] bg-primary text-primary-foreground flex flex-col gap-6 shadow-xl shadow-primary/20">
-                                                <div className="flex justify-between items-center">
-                                                    <span className="text-[10px] font-black uppercase">Financial Settlement</span>
-                                                    <Badge variant="outline" className="border-primary-foreground/30 text-primary-foreground text-[8px]">{selectedOrder.paymentStatus}</Badge>
-                                                </div>
-                                                <div className="flex flex-col">
-                                                    <span className="text-5xl font-black italic tracking-tighter">${selectedOrder.totalAmount.toLocaleString()}</span>
-                                                    <span className="text-[8px] font-bold uppercase tracking-widest opacity-60 mt-2">VIA {selectedOrder.paymentMethod} PROTOCOL</span>
-                                                </div>
-                                                {selectedOrder.paymentStatus !== 'Refunded' && (
-                                                    <Button
-                                                        onClick={() => setConfirmAction({ id: selectedOrder.id, type: 'REFUND' })}
-                                                        className="w-full bg-white text-primary hover:bg-white/90 font-black italic uppercase tracking-widest text-[10px] h-12 rounded-xl mt-2 shadow-xl shadow-black/10 no-print"
-                                                    >
-                                                        ISSUE REFUND
-                                                    </Button>
-                                                )}
-                                            </div>
-                                        </div>
-                                        <div className="flex flex-col gap-6">
-                                            <div className="flex items-center gap-3 text-primary"><Truck size={20} /> <span className="text-xs font-black uppercase tracking-widest">Logistics Hub</span></div>
-                                            <Button 
-                                                onClick={() => {
-                                                    setTrackingForm({
-                                                        status: selectedOrder.status,
-                                                        message: '',
-                                                        notes: '',
-                                                        trackingNumber: (selectedOrder as any).trackingNumber || '',
-                                                        courier: (selectedOrder as any).courier || '',
-                                                        estimatedDelivery: (selectedOrder as any).estimatedDelivery ? (selectedOrder as any).estimatedDelivery.split('T')[0] : ''
-                                                    });
-                                                    setIsTrackingModalOpen(true);
-                                                }}
-                                                variant="outline" 
-                                                className="w-full h-14 rounded-[2.5rem] border-primary/20 hover:bg-primary/5 text-primary text-[10px] font-black uppercase tracking-widest gap-2 shadow-sm"
-                                            >
-                                                MANAGE TRACKING PROTOCOL
-                                            </Button>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div className="mt-12 pt-8 border-t border-border/30 hidden print:block">
-                                    <div className="flex justify-between items-end">
-                                        <div className="flex flex-col gap-1">
-                                            <span className="text-[8px] font-black uppercase tracking-widest text-muted-foreground">Generated by Hub Control v4.2</span>
-                                            <span className="text-[8px] font-black uppercase tracking-widest text-muted-foreground">Timestamp: {new Date().toLocaleString()}</span>
-                                        </div>
-                                        <div className="flex flex-col items-end gap-4">
-                                            <div className="w-32 h-[1px] bg-black/20" />
-                                            <span className="text-[8px] font-black uppercase tracking-widest text-muted-foreground">Authorized Signature</span>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </motion.div>
-                    </div>
-                )}
-            </AnimatePresence>
+            {/* Order Quick View Panel (Synchronized Terminal) */}
+            <OrderQuickView 
+                order={selectedOrder as any}
+                isOpen={isDetailsOpen}
+                onClose={() => setIsDetailsOpen(false)}
+                onUpdateStatus={updateOrderStatus}
+                onUpdatePaymentStatus={updatePaymentStatus}
+                onUpdateCancellation={updateCancellation}
+            />
 
             {/* Logistics & Tracking Management Modal */}
             <AnimatePresence>
@@ -706,7 +701,7 @@ export default function OrdersPage() {
                                     <Truck size={28} />
                                 </div>
                                 <div className="flex flex-col">
-                                    <h3 className="text-xl font-black uppercase italic tracking-tight">Logistics Protocol</h3>
+                                    <h3 className="text-xl font-black uppercase italic tracking-tight">Fulfillment Status</h3>
                                     <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Update Order #{selectedOrder.id.slice(0, 8)}</span>
                                 </div>
                             </div>
@@ -742,7 +737,7 @@ export default function OrdersPage() {
                                     <Input 
                                         value={trackingForm.trackingNumber}
                                         onChange={(e) => setTrackingForm({...trackingForm, trackingNumber: e.target.value})}
-                                        placeholder="ASSET TRACKING REF"
+                                        placeholder="TRACKING NUMBER"
                                         className="h-12 bg-muted border-none rounded-xl px-4 text-xs font-bold uppercase tracking-widest"
                                     />
                                 </div>
@@ -762,7 +757,7 @@ export default function OrdersPage() {
                                 <Input 
                                     value={trackingForm.message}
                                     onChange={(e) => setTrackingForm({...trackingForm, message: e.target.value})}
-                                    placeholder="Your hardware is being verified..."
+                                    placeholder="Your order is being processed..."
                                     className="h-12 bg-muted border-none rounded-xl px-4 text-xs"
                                 />
                             </div>
@@ -772,7 +767,7 @@ export default function OrdersPage() {
                                 <Input 
                                     value={trackingForm.notes}
                                     onChange={(e) => setTrackingForm({...trackingForm, notes: e.target.value})}
-                                    placeholder="Priority dispatch clearance..."
+                                    placeholder="Shipping preparation..."
                                     className="h-12 bg-muted border-none rounded-xl px-4 text-xs"
                                 />
                             </div>

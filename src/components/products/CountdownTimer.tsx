@@ -11,17 +11,24 @@ export const CountdownTimer = ({ endDate }: { endDate: string }) => {
         seconds: 0
     })
 
+    const [isUrgent, setIsUrgent] = useState(false)
+
     useEffect(() => {
         const calculateTimeLeft = () => {
             const difference = +new Date(endDate) - +new Date()
             
             if (difference > 0) {
+                // Only mark as urgent if less than or equal to 24 hours remain
+                const urgent = difference <= 24 * 60 * 60 * 1000
+                setIsUrgent(urgent)
+                
                 setTimeLeft({
                     hours: Math.floor((difference / (1000 * 60 * 60))),
                     minutes: Math.floor((difference / 1000 / 60) % 60),
                     seconds: Math.floor((difference / 1000) % 60)
                 })
             } else {
+                setIsUrgent(false)
                 setTimeLeft({ hours: 0, minutes: 0, seconds: 0 })
             }
         }
@@ -31,6 +38,8 @@ export const CountdownTimer = ({ endDate }: { endDate: string }) => {
 
         return () => clearInterval(timer)
     }, [endDate])
+
+    if (!isUrgent) return null
 
     const pad = (n: number) => n.toString().padStart(2, '0')
 

@@ -1,11 +1,15 @@
 "use client"
 
-import React, { useState, useEffect } from "react"
+import React, { useState, useEffect, useRef } from "react"
 import Link from "next/link"
+import NextImage from "next/image"
 import {
     Search, ShoppingCart, User, Heart, Menu, X, Smartphone,
-    Globe, Briefcase, Zap, ArrowLeftRight, Truck, LayoutDashboard,
-    Package, Settings, LogOut, ChevronDown
+    Zap, ArrowLeftRight, LayoutDashboard,
+    Package, Settings, LogOut, ChevronDown, Bell, HelpCircle,
+    Monitor, Laptop, Watch, Headphones, Gamepad2, HardDrive,
+    Tablet, Camera, Speaker, ChevronRight, Grid, Sparkles, TrendingUp, ShieldCheck,
+    Activity, Clock, MapPin, CreditCard
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
@@ -13,357 +17,439 @@ import { ThemeToggle } from "@/components/shared/ThemeToggle"
 import { useAuth } from "@/lib/auth-store"
 import { useCart } from "@/lib/cart-store"
 import { useWishlist } from "@/lib/wishlist-store"
-import { useComparison } from "@/lib/comparison-store"
 import { motion, AnimatePresence } from "framer-motion"
 import { useRouter, usePathname } from "next/navigation"
 
 export const Navbar = () => {
-    const { totalItems: cartItemsCount, loadCart, isLoaded: cartLoaded, syncOnLogin: syncCart } = useCart()
-    const { items: wishlistItems, syncOnLogin: syncWishlist, loadWishlist } = useWishlist()
-    const { items: comparisonItems } = useComparison()
-    const { user, logout, isInitialized: authInitialized } = useAuth()
+    const { totalItems: cartItemsCount } = useCart()
+    const { items: wishlistItems } = useWishlist()
+    const { user, logout } = useAuth()
     
-    const cartTotal = typeof cartItemsCount === 'function' ? cartItemsCount() : 0
-    const wishlistTotal = wishlistItems?.length || 0
-    const comparisonTotal = comparisonItems.length
+    const [cmsSettings, setCmsSettings] = useState<any>(null)
     const [isScrolled, setIsScrolled] = useState(false)
+    const [isVisible, setIsVisible] = useState(true)
+    const [lastScrollY, setLastScrollY] = useState(0)
+    const lastScrollRef = useRef(0)
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
     const [mounted, setMounted] = useState(false)
-    const [isSearchOpen, setIsSearchOpen] = useState(false)
     const [isProfileOpen, setIsProfileOpen] = useState(false)
+    const [expandedMobileCategory, setExpandedMobileCategory] = useState<string | null>(null)
+    const [searchQuery, setSearchQuery] = useState("")
+    const [activeDropdown, setActiveDropdown] = useState<string | null>(null)
+    
     const router = useRouter()
     const pathname = usePathname()
-    const dropdownRef = React.useRef<HTMLDivElement>(null)
+    const dropdownRef = useRef<HTMLDivElement>(null)
 
-    // Close profile dropdown on click outside
+    // Fetch Storefront Settings (CMS)
     useEffect(() => {
-        const handleClickOutside = (event: MouseEvent) => {
-            if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-                setIsProfileOpen(false)
+        const fetchCms = async () => {
+            try {
+                const res = await fetch("/api/cms/homepage")
+                if (res.ok) {
+                    const data = await res.json()
+                    setCmsSettings(data.settings)
+                }
+            } catch (err) {
+                console.error("Failed to load storefront settings")
             }
+        }
+        fetchCms()
+    }, [])
+
+    useEffect(() => {
+        setMounted(true)
+        const handleScroll = () => {
+            const currentScrollY = window.scrollY
+            setIsScrolled(currentScrollY > 20)
+            
+            const isMobile = window.innerWidth < 1024
+            if (!isMobile && currentScrollY > lastScrollRef.current && currentScrollY > 150) {
+                setIsVisible(false)
+            } else {
+                setIsVisible(true)
+            }
+            lastScrollRef.current = currentScrollY
+            setLastScrollY(currentScrollY)
+        }
+        window.addEventListener("scroll", handleScroll, { passive: true })
+        return () => window.removeEventListener("scroll", handleScroll)
+    }, [])
+
+    useEffect(() => {
+        const handleClickOutside = (e: MouseEvent) => {
+            if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) setIsProfileOpen(false)
         }
         document.addEventListener("mousedown", handleClickOutside)
         return () => document.removeEventListener("mousedown", handleClickOutside)
     }, [])
 
-    // Close profile dropdown on navigation
     useEffect(() => {
         setIsProfileOpen(false)
+        setActiveDropdown(null)
     }, [pathname])
 
-    useEffect(() => {
-        setMounted(true)
-        const handleScroll = () => {
-            setIsScrolled(window.scrollY > 20)
-        }
-        window.addEventListener("scroll", handleScroll)
-        return () => window.removeEventListener("scroll", handleScroll)
-    }, [])
+    const cartTotal = typeof cartItemsCount === "function" ? cartItemsCount() : 0
+    const wishlistTotal = wishlistItems?.length || 0
 
-    // Synchronize Cart on Auth Change or Mount
-    useEffect(() => {
-        if (mounted && user) {
-            // Priority: Sync local items to server first, then reload
-            const performSync = async () => {
-                await syncCart(user.id)
-                await syncWishlist(user.id)
-            }
-            performSync()
-        } else if (mounted && !user) {
-            // Guest mode: loadCart handles local persistence automatically if userId is missing
-            // but we don't have a specific load guest action, it's just state.
+    const handleSearch = (e: React.FormEvent) => {
+        e.preventDefault()
+        if (searchQuery.trim()) {
+            router.push(`/?search=${encodeURIComponent(searchQuery)}`)
+            setSearchQuery("")
+            setIsMobileMenuOpen(false)
         }
-    }, [user?.id, mounted])
-
-    const navLinks = [
-        { name: "Collection", href: "/products" },
-        { name: "Track", href: "/track-order" },
-        { name: "Trade-In", href: "/trade-in" },
-        { name: "Support", href: "/contact" },
-    ]
+    }
 
     return (
-        <nav
-            className={cn(
-                "sticky top-0 left-0 right-0 z-50 transition-all duration-500 w-full",
-                isScrolled 
-                    ? "bg-background/80 backdrop-blur-xl border-b border-border/50 py-3 shadow-sm" 
-                    : "bg-background border-b border-transparent py-5"
-            )}
-            suppressHydrationWarning
-        >
-            <div className="max-w-7xl mx-auto px-6 md:px-12 flex items-center justify-between gap-10">
-                {/* Logo Section */}
-                <Link href="/" className="flex items-center gap-3 group shrink-0 relative">
-                    <motion.div 
-                        whileHover={{ rotate: 10, scale: 1.1 }}
-                        className="bg-primary p-2 rounded-xl"
-                    >
-                        <Smartphone className="w-4 h-4 text-primary-foreground" />
-                    </motion.div>
-                    <div className="flex flex-col">
-                        <span className="font-black text-xl tracking-tighter text-foreground uppercase italic leading-none">
-                            Smart<span className="text-primary italic">Hub</span>
-                        </span>
-                        <span className="text-[7px] font-black tracking-[0.3em] uppercase text-muted-foreground leading-none mt-1 opacity-50">Advanced Electronics</span>
-                    </div>
-                </Link>
+        <>
+            <div 
+                className={cn(
+                    "w-full fixed top-0 z-[100] transition-all duration-700 ease-in-out",
+                    isVisible ? "translate-y-0" : "-translate-y-full"
+                )}
+                suppressHydrationWarning
+            >
 
-                {/* Main Nav Items - Desktop */}
-                <div className="hidden lg:flex items-center gap-10">
-                    {navLinks.map((link) => (
-                        <Link
-                            key={link.name}
-                            href={link.href}
-                            className="relative group py-2"
-                        >
-                            <span className={cn(
-                                "text-[10px] font-black uppercase tracking-[0.2em] transition-colors duration-300",
-                                pathname === link.href ? "text-primary" : "text-muted-foreground group-hover:text-foreground"
-                            )}>
-                                {link.name}
-                            </span>
-                            {/* Animated Underline */}
-                            <span className={cn(
-                                "absolute bottom-0 left-0 w-0 h-[2px] bg-primary transition-all duration-300 rounded-full",
-                                pathname === link.href ? "w-full" : "group-hover:w-full"
-                            )} />
-                        </Link>
-                    ))}
-                </div>
 
-                {/* Actions Section */}
-                <div className="flex items-center gap-3">
-                    {/* Search Bar - Sophisticated Toggle */}
-                    <div className="hidden md:flex items-center relative gap-2">
-                        <AnimatePresence>
-                            {isSearchOpen && (
-                                <motion.form
-                                    initial={{ width: 0, opacity: 0 }}
-                                    animate={{ width: 240, opacity: 1 }}
-                                    exit={{ width: 0, opacity: 0 }}
-                                    onSubmit={(e) => {
-                                        e.preventDefault();
-                                        const query = (e.currentTarget.elements.namedItem('search') as HTMLInputElement).value;
-                                        if (query) router.push(`/products?search=${encodeURIComponent(query)}`);
-                                    }}
-                                    className="relative"
-                                >
-                                    <input
-                                        autoFocus
-                                        name="search"
-                                        type="text"
-                                        placeholder="SEARCH CATALOG..."
-                                        className="w-full bg-accent/50 border border-border/50 rounded-full pl-4 pr-10 py-2.5 text-[9px] font-black uppercase tracking-widest outline-none focus:ring-2 focus:ring-primary/20 transition-all"
-                                    />
-                                    <button type="submit" className="absolute right-3 top-1/2 -translate-y-1/2">
-                                        <Search className="w-3.5 h-3.5 text-muted-foreground hover:text-primary transition-colors" />
-                                    </button>
-                                </motion.form>
-                            )}
-                        </AnimatePresence>
-                        <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => setIsSearchOpen(!isSearchOpen)}
-                            className={cn("rounded-full transition-all", isSearchOpen && "bg-accent")}
-                        >
-                            {isSearchOpen ? <X className="w-4 h-4" /> : <Search className="w-4 h-4" />}
-                        </Button>
-                    </div>
-
-                    <div className="flex items-center gap-1 bg-accent/30 p-1 rounded-full border border-border/10">
-                        {/* Comparison */}
-                        <Link href="/compare">
-                            <Button variant="ghost" size="icon" className="h-9 w-9 rounded-full relative group">
-                                <ArrowLeftRight className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
-                                {mounted && comparisonTotal > 0 && (
-                                    <span className="absolute top-1 right-1 bg-primary text-[8px] font-black text-primary-foreground min-w-[15px] h-[15px] flex items-center justify-center rounded-full border-2 border-background animate-in zoom-in">
-                                        {comparisonTotal}
-                                    </span>
-                                )}
-                            </Button>
-                        </Link>
+            {/* 2. NAVIGATION OVERLAY (TOP NAV) */}
+            <nav 
+                className={cn(
+                    "w-full transition-all duration-500 bg-background",
+                    isScrolled 
+                        ? "backdrop-blur-2xl border-b border-border/50 py-2 shadow-xl shadow-black/5" 
+                        : "py-3 md:py-6"
+                )}
+                suppressHydrationWarning
+            >
+                <div className="max-w-7xl mx-auto px-4 md:px-8 flex flex-col gap-4 md:gap-6" suppressHydrationWarning>
+                    
+                    {/* MAIN MENU */}
+                    <div className="flex items-center justify-between gap-4 md:gap-8" suppressHydrationWarning>
                         
-                        {/* Wishlist */}
-                        <Link href="/wishlist">
-                            <Button variant="ghost" size="icon" className="h-9 w-9 rounded-full relative group">
-                                <Heart className="w-4 h-4 text-muted-foreground group-hover:text-rose-500 transition-colors" />
-                                {mounted && wishlistTotal > 0 && (
-                                    <span className="absolute top-1 right-1 bg-rose-500 text-[8px] font-black text-white min-w-[15px] h-[15px] flex items-center justify-center rounded-full border-2 border-background animate-in zoom-in">
-                                        {wishlistTotal}
-                                    </span>
-                                )}
+                        {/* LEFT: BRANDING */}
+                        <div className="flex items-center gap-3 min-w-0" suppressHydrationWarning>
+                            <Button 
+                                variant="ghost" 
+                                size="icon" 
+                                className="lg:hidden h-11 w-11 rounded-xl bg-primary/5 border border-primary/20 text-primary hover:bg-primary hover:text-white transition-all shrink-0 flex items-center justify-center shadow-lg shadow-primary/5"
+                                onClick={() => setIsMobileMenuOpen(true)}
+                            >
+                                <Menu className="w-5 h-5" />
                             </Button>
-                        </Link>
-
-                        {/* Cart */}
-                        <Link href="/cart">
-                            <Button variant="ghost" size="icon" className="h-9 w-9 rounded-full relative group">
-                                <ShoppingCart className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
-                                {mounted && cartTotal > 0 && (
-                                    <span className="absolute top-1 right-1 bg-primary text-[8px] font-black text-primary-foreground min-w-[15px] h-[15px] flex items-center justify-center rounded-full border-2 border-background animate-in zoom-in shadow-lg shadow-primary/20">
-                                        {cartTotal}
-                                    </span>
+                            
+                            <Link href="/" className="flex items-center gap-2 group shrink-0">
+                                {cmsSettings?.logoUrl && (
+                                    <div className="transition-transform group-hover:rotate-6 group-hover:scale-110" suppressHydrationWarning={true}>
+                                        <div className="relative w-10 h-10">
+                                            <NextImage src={cmsSettings.logoUrl} alt="Logo" fill className="object-contain" />
+                                        </div>
+                                    </div>
                                 )}
-                            </Button>
-                        </Link>
-                    </div>
-
-                    <div className="flex items-center gap-2 ml-2">
-                        {mounted && user ? (
-                            <div className="relative" ref={dropdownRef}>
-                                <button
-                                    onClick={() => setIsProfileOpen(!isProfileOpen)}
-                                    className={cn(
-                                        "flex items-center gap-2 py-1.5 pl-1.5 pr-3 border border-border rounded-full transition-all hover:bg-primary/5 active:scale-95 group",
-                                        isProfileOpen && "border-primary/30 bg-primary/5"
-                                    )}
-                                >
-                                    <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground text-[11px] font-black uppercase ring-4 ring-primary/10 group-hover:ring-primary/20 transition-all">
-                                        {user.displayName?.charAt(0) || user.email.charAt(0)}
+                                {cmsSettings?.storeName && (
+                                    <div className="flex flex-col leading-[0.8] py-1" suppressHydrationWarning>
+                                        <span className="font-black text-lg tracking-tighter text-foreground px-0">
+                                            {cmsSettings.storeName.split(' ')[0]}
+                                        </span>
+                                        {cmsSettings.storeName.split(' ').length > 1 && (
+                                            <span className="font-black text-[10px] tracking-tight text-primary mt-0.5">
+                                                {cmsSettings.storeName.split(' ').slice(1).join(' ')}
+                                            </span>
+                                        )}
                                     </div>
-                                    <div className="hidden lg:flex flex-col text-left">
-                                        <span className="text-[9px] font-black uppercase tracking-widest leading-none max-w-[80px] truncate">{user.displayName || user.email.split('@')[0]}</span>
-                                        <span className="text-[7px] font-black text-primary uppercase tracking-[0.2em] italic leading-none mt-1">My Account</span>
-                                    </div>
-                                    <ChevronDown className={cn("w-3.5 h-3.5 text-muted-foreground transition-transform duration-300", isProfileOpen && "rotate-180")} />
-                                </button>
-
-                                <AnimatePresence>
-                                    {isProfileOpen && (
-                                        <motion.div
-                                            initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                                            animate={{ opacity: 1, y: 0, scale: 1 }}
-                                            exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                                            transition={{ duration: 0.2, ease: "easeOut" }}
-                                            className="absolute right-0 mt-3 w-56 bg-card/80 backdrop-blur-2xl border border-border rounded-[1.5rem] shadow-2xl shadow-primary/10 p-2 z-[60]"
-                                        >
-                                            <div className="px-4 py-3 border-b border-border/50 mb-1">
-                                                <p className="text-[10px] font-black uppercase tracking-widest text-foreground truncate">{user.displayName || "User"}</p>
-                                                <p className="text-[8px] font-medium text-muted-foreground truncate lowercase">{user.email}</p>
-                                            </div>
-
-                                            <Link href="/dashboard" className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-primary/10 text-muted-foreground hover:text-primary transition-all group/item">
-                                                <LayoutDashboard className="w-4 h-4" />
-                                                <span className="text-[9px] font-black uppercase tracking-widest">Dashboard</span>
-                                            </Link>
-                                            <Link href="/dashboard/orders" className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-primary/10 text-muted-foreground hover:text-primary transition-all group/item">
-                                                <Package className="w-4 h-4" />
-                                                <span className="text-[9px] font-black uppercase tracking-widest">My Orders</span>
-                                            </Link>
-                                            <Link href="/dashboard/settings" className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-primary/10 text-muted-foreground hover:text-primary transition-all group/item">
-                                                <Settings className="w-4 h-4" />
-                                                <span className="text-[9px] font-black uppercase tracking-widest">Settings</span>
-                                            </Link>
-                                            
-                                            <div className="h-px bg-border/50 my-1 mx-2" />
-                                            
-                                            <button 
-                                                onClick={logout}
-                                                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-rose-500/10 text-muted-foreground hover:text-rose-500 transition-all group/item"
-                                            >
-                                                <LogOut className="w-4 h-4" />
-                                                <span className="text-[9px] font-black uppercase tracking-widest">Sign Out</span>
-                                            </button>
-                                        </motion.div>
-                                    )}
-                                </AnimatePresence>
-                            </div>
-                        ) : mounted && !user && (
-                            <Link href="/login">
-                                <Button className="h-10 px-6 rounded-full text-[10px] font-black uppercase tracking-widest shadow-xl shadow-primary/20 active:scale-95 transition-transform">
-                                    <User className="w-3.5 h-3.5 mr-2" />
-                                    Login
-                                </Button>
+                                )}
                             </Link>
+                        </div>
+
+                        {/* CENTER: DISCOVERY (DESKTOP) */}
+                        {cmsSettings?.searchShow !== false && (
+                            <form 
+                                onSubmit={handleSearch}
+                                className="hidden lg:flex flex-1 max-w-xl group relative"
+                                suppressHydrationWarning
+                            >
+                                <div className="absolute left-5 top-1/2 -translate-y-1/2 text-muted-foreground group-focus-within:text-primary transition-colors" suppressHydrationWarning>
+                                    <Search className="w-4 h-4" />
+                                </div>
+                                <input
+                                    type="text"
+                                    placeholder={cmsSettings?.searchPlaceholder || "SEARCH OUR STORE..."}
+                                    className="w-full h-12 bg-muted/20 border-border/40 border rounded-xl pl-12 pr-28 text-[10px] font-black uppercase tracking-widest outline-none transition-all focus:ring-4 focus:ring-primary/5 focus:border-primary/20 placeholder:text-muted-foreground/60 italic shadow-sm"
+                                    value={searchQuery}
+                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                />
+                                <div className="absolute right-2 top-1/2 -translate-y-1/2 hidden group-focus-within:block animate-in fade-in zoom-in duration-300" suppressHydrationWarning>
+                                    <Button type="submit" size="sm" className="h-8 px-4 rounded-lg bg-primary text-[9px] font-black italic uppercase tracking-widest shadow-lg shadow-primary/20">Search</Button>
+                                </div>
+                            </form>
                         )}
 
-                        <div className="hidden lg:block">
-                            <ThemeToggle />
+                        {/* RIGHT: UTILITIES */}
+                        <div className="flex items-center gap-2 md:gap-4 shrink-0" suppressHydrationWarning>
+                            <div className="hidden md:flex items-center gap-1.5 bg-muted/20 p-1 rounded-xl border border-border/5" suppressHydrationWarning>
+                                <Link href="/wishlist">
+                                    <Button variant="ghost" size="icon" className="h-10 w-10 rounded-lg relative group hover:bg-white hover:shadow-lg dark:hover:bg-muted/80">
+                                        <Heart className="w-4.5 h-4.5 text-muted-foreground group-hover:text-rose-500 transition-colors" />
+                                        {mounted && wishlistTotal > 0 && (
+                                            <span className="absolute top-1 right-1 bg-rose-500 text-[7px] font-black text-white min-w-[15px] h-[15px] flex items-center justify-center rounded-full border-2 border-background shadow-lg scale-110">
+                                                {wishlistTotal}
+                                            </span>
+                                        )}
+                                    </Button>
+                                </Link>
+                                <ThemeToggle />
+                            </div>
+
+                            <Link href="/cart">
+                                <Button className="h-11 md:h-12 px-3 md:px-6 rounded-xl bg-foreground text-background font-black italic tracking-widest uppercase text-[9px] md:text-[10px] hover:bg-primary hover:text-white transition-all gap-2 shadow-xl shadow-black/5 relative group">
+                                    <ShoppingCart className="w-4 h-4 group-hover:-rotate-12 transition-transform" />
+                                    <span className="hidden sm:inline">Cart</span>
+                                    {mounted && cartTotal > 0 && (
+                                        <span className="absolute -top-2 -right-2 bg-primary text-[9px] font-black text-primary-foreground min-w-[20px] h-[20px] flex items-center justify-center rounded-full border-2 border-background shadow-2xl animate-in bounce-in">
+                                            {cartTotal}
+                                        </span>
+                                    )}
+                                </Button>
+                            </Link>
+
                         </div>
-                        
-                        <Button
-                            variant="ghost"
-                            size="icon"
-                            className="lg:hidden rounded-full h-10 w-10 ml-2"
-                            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-                        >
-                            <AnimatePresence mode="wait">
-                                {isMobileMenuOpen ? (
-                                    <motion.div key="close" initial={{ rotate: -90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={{ rotate: 90, opacity: 0 }}>
-                                        <X className="w-5 h-5 text-primary" />
-                                    </motion.div>
-                                ) : (
-                                    <motion.div key="menu" initial={{ rotate: 90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={{ rotate: -90, opacity: 0 }}>
-                                        <Menu className="w-5 h-5" />
-                                    </motion.div>
-                                )}
-                            </AnimatePresence>
-                        </Button>
+                    </div>
+
+                    {/* PROFESSIONAL HORIZONTAL NAVIGATION (MEGA MENU) */}
+                    <div className="hidden lg:block border-t border-border/10 mt-2" suppressHydrationWarning>
+                        <div className="flex items-center gap-1" suppressHydrationWarning>
+                            {(() => {
+                                const links = JSON.parse(cmsSettings?.navbarLinks || "[]")
+                                // Fallback categories if product list is empty
+                                const displayLinks = links.length > 0 ? links : [
+                                    { name: "Samsung", href: "/products?brands=Samsung" },
+                                    { name: "Apple", href: "/products?brands=Apple" },
+                                    { name: "Smartphones", href: "/products?categories=Smartphones" },
+                                    { name: "Mobile Accessories", href: "/products?categories=Accessories" },
+                                    { name: "Audio", href: "/products?categories=Audio" },
+                                    { name: "Gaming", href: "/products?categories=Gaming" },
+                                    { name: "Storage", href: "/products?categories=Storage" },
+                                    { name: "Tablets", href: "/products?categories=Tablets" },
+                                ]
+
+                                return displayLinks.map((cat: any) => {
+                                    const subLinks = cat.subLinks || []
+
+                                    return (
+                                        <div 
+                                            key={cat.name}
+                                            className="relative group/nav"
+                                            onMouseEnter={() => setActiveDropdown(cat.name)}
+                                            onMouseLeave={() => setActiveDropdown(null)}
+                                            suppressHydrationWarning
+                                        >
+                                            <Link
+                                                href={cat.href}
+                                                className={cn(
+                                                    "flex items-center gap-1.5 px-5 py-4 text-[11px] font-medium uppercase tracking-widest transition-all relative",
+                                                    activeDropdown === cat.name ? "text-primary" : "text-muted-foreground hover:text-primary transition-colors"
+                                                )}
+                                            >
+                                                {cat.name}
+                                                <div className={cn(
+                                                    "absolute bottom-0 left-0 h-0.5 bg-primary transition-all duration-300",
+                                                    activeDropdown === cat.name ? "w-full" : "w-0"
+                                                )} suppressHydrationWarning />
+                                            </Link>
+
+                                            {/* MEGA MENU DROPDOWN */}
+                                            <AnimatePresence>
+                                                {activeDropdown === cat.name && (
+                                                    <motion.div
+                                                        initial={{ opacity: 0, y: 5, scale: 0.98 }}
+                                                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                                                        exit={{ opacity: 0, y: 5, scale: 0.98 }}
+                                                        transition={{ duration: 0.2, ease: "easeOut" }}
+                                                        className="absolute top-full left-0 mt-0 pt-0 z-[500]"
+                                                    >
+                                                         <div className="bg-background border border-border/40 rounded-2xl shadow-[0_30px_60px_-15px_rgba(0,0,0,0.1)] overflow-hidden min-w-[220px] p-2 mt-2 relative z-[600]">
+                                                             <div className="flex flex-col gap-0.5">
+                                                                 {/* Dynamic Sub-Links for the category */}
+                                                                 {subLinks.map((sub: any) => (
+                                                                     <Link 
+                                                                         key={sub.name} 
+                                                                         href={sub.href} 
+                                                                         className="group/subitem flex items-center justify-between text-[9px] font-black uppercase tracking-widest text-foreground hover:text-primary px-4 py-2.5 rounded-xl hover:bg-primary/5 border border-transparent hover:border-primary/10 transition-all italic"
+                                                                     >
+                                                                         {sub.name}
+                                                                         <ChevronRight size={12} className="opacity-0 -translate-x-2 group-hover/subitem:opacity-100 group-hover/subitem:translate-x-0 transition-all text-primary" />
+                                                                     </Link>
+                                                                 ))}
+                                                                 {subLinks.length === 0 && (
+                                                                     <div className="text-[8px] font-black uppercase opacity-20 text-center py-4 italic tracking-widest">Standalone Catalog</div>
+                                                                 )}
+                                                             </div>
+                                                         </div>
+                                                    </motion.div>
+                                                )}
+                                            </AnimatePresence>
+                                        </div>
+                                    )
+                                })
+                            })()}
+                        </div>
                     </div>
                 </div>
-            </div>
+            </nav>
 
-            {/* Premium Mobile Menu */}
+            </div>
+            
+            {/* 3. MOBILE SIDE DRAWER (LEFT OVERLAY) */}
             <AnimatePresence>
                 {isMobileMenuOpen && (
-                    <motion.div
-                        initial={{ height: 0, opacity: 0 }}
-                        animate={{ height: 'auto', opacity: 1 }}
-                        exit={{ height: 0, opacity: 0 }}
-                        transition={{ type: "spring", damping: 25, stiffness: 200 }}
-                        className="lg:hidden absolute top-full left-0 right-0 bg-background/95 backdrop-blur-2xl border-b border-border overflow-hidden z-40"
-                    >
-                        <div className="p-8 flex flex-col gap-6">
-                            {navLinks.map((link, i) => (
-                                <motion.div
-                                    key={link.name}
-                                    initial={{ x: -20, opacity: 0 }}
-                                    animate={{ x: 0, opacity: 1 }}
-                                    transition={{ delay: i * 0.1 }}
-                                >
-                                    <Link
-                                        href={link.href}
-                                        className="text-2xl font-black uppercase tracking-tighter italic flex items-center justify-between group"
-                                        onClick={() => setIsMobileMenuOpen(false)}
-                                    >
-                                        <span className="group-hover:text-primary transition-colors">{link.name}</span>
-                                        <div className="w-10 h-10 rounded-full border border-border flex items-center justify-center group-hover:bg-primary transition-all">
-                                            <ArrowLeftRight className="w-4 h-4 group-hover:text-primary-foreground group-hover:rotate-180 transition-all duration-500" />
-                                        </div>
+                    <>
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            onClick={() => setIsMobileMenuOpen(false)}
+                            className="fixed inset-0 bg-black/95 backdrop-blur-xl z-[1000]"
+                        />
+                        <motion.div
+                            initial={{ x: "-100%" }}
+                            animate={{ x: 0 }}
+                            exit={{ x: "-100%" }}
+                            transition={{ type: "spring", damping: 30, stiffness: 300 }}
+                            className="fixed top-0 left-0 h-full w-[85%] max-w-[340px] bg-background border-r border-border z-[1010] overflow-y-auto no-scrollbar rounded-r-[2rem]"
+                        >
+                            <div className="p-8 flex flex-col h-full gap-10">
+                                <div className="flex items-center justify-between">
+                                    <Link href="/" className="flex items-center gap-3 group shrink-0" suppressHydrationWarning>
+                                        {cmsSettings?.logoUrl && (
+                                            <div className="transition-transform group-hover:rotate-3 group-hover:scale-110" suppressHydrationWarning={true}>
+                                                <div className="relative w-10 h-10">
+                                                    <NextImage src={cmsSettings.logoUrl} alt="Logo" fill className="object-contain" />
+                                                </div>
+                                            </div>
+                                        )}
+                                        {cmsSettings?.storeName && (
+                                            <div className="flex flex-col leading-[0.8] py-1">
+                                                <span className="font-black text-xl md:text-2xl tracking-tighter text-foreground px-0">
+                                                    {cmsSettings.storeName.split(' ')[0]}
+                                                </span>
+                                                {cmsSettings.storeName.split(' ').length > 1 && (
+                                                    <span className="font-black text-[11px] md:text-[13px] tracking-tight text-primary opacity-90 mt-0.5">
+                                                        {cmsSettings.storeName.split(' ').slice(1).join(' ')}
+                                                    </span>
+                                                )}
+                                            </div>
+                                        )}
                                     </Link>
-                                </motion.div>
-                            ))}
-                            
-                            <div className="pt-8 border-t border-border flex flex-col gap-4">
-                                {user ? (
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <Link href="/dashboard" className="w-full" onClick={() => setIsMobileMenuOpen(false)}>
-                                            <Button className="w-full h-14 rounded-2xl text-[10px] font-black uppercase tracking-widest italic" variant="outline">
-                                                <LayoutDashboard className="w-4 h-4 mr-2" />
-                                                Dashboard
-                                            </Button>
-                                        </Link>
-                                        <Button onClick={() => { logout(); setIsMobileMenuOpen(false); }} className="w-full h-14 rounded-2xl text-[10px] font-black uppercase tracking-widest italic" variant="destructive">
-                                            Sign Out
-                                        </Button>
-                                    </div>
-                                ) : (
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <Link href="/login" className="w-full" onClick={() => setIsMobileMenuOpen(false)}>
-                                            <Button className="w-full h-14 rounded-2xl text-[10px] font-black uppercase tracking-widest italic" variant="outline">Sign In</Button>
-                                        </Link>
-                                        <Link href="/register" className="w-full" onClick={() => setIsMobileMenuOpen(false)}>
-                                            <Button className="w-full h-14 rounded-2xl text-[10px] font-black uppercase tracking-widest italic">Join Now</Button>
-                                        </Link>
-                                    </div>
+                                    <button onClick={() => setIsMobileMenuOpen(false)} className="h-11 w-11 rounded-xl bg-muted border border-border flex items-center justify-center">
+                                        <X className="w-5 h-5" />
+                                    </button>
+                                </div>
+
+                                {/* MOBILE SEARCH */}
+                                {cmsSettings?.searchShow !== false && (
+                                    <form onSubmit={handleSearch} className="relative group">
+                                        <div className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground group-focus-within:text-primary transition-colors">
+                                            <Search className="w-4 h-4" />
+                                        </div>
+                                        <input
+                                            type="text"
+                                            placeholder="Search products..."
+                                            className="w-full h-12 bg-muted/20 border-border/40 border rounded-xl pl-12 pr-4 text-[10px] font-black uppercase tracking-widest outline-none transition-all focus:ring-4 focus:ring-primary/5 focus:border-primary/20 placeholder:text-muted-foreground/60 italic"
+                                            value={searchQuery}
+                                            onChange={(e) => setSearchQuery(e.target.value)}
+                                        />
+                                    </form>
                                 )}
+
+                                    <div className="flex flex-col gap-8">
+                                        <div className="flex flex-col gap-2" suppressHydrationWarning>
+                                            <span className="text-[9px] font-black uppercase text-primary tracking-[0.3em] mb-4 italic px-2">Shop Categories</span>
+                                            {(() => {
+                                                const links = JSON.parse(cmsSettings?.navbarLinks || "[]")
+                                                const displayLinks = links.length > 0 ? links : [
+                                                    { name: "Samsung", href: "/products?brands=Samsung" },
+                                                    { name: "Apple", href: "/products?brands=Apple" },
+                                                    { name: "Smartphones", href: "/products?categories=Smartphones" },
+                                                    { name: "Audio", href: "/products?categories=Audio" },
+                                                    { name: "Logistics", href: "/track-order" },
+                                                ]
+
+                                                return displayLinks.map((cat: any, i: number) => {
+                                                    const subLinks = cat.subLinks || []
+                                                    const isExpanded = expandedMobileCategory === cat.name
+                                                    const href = cat.href || "#"
+
+                                                    return (
+                                                        <motion.div key={cat.name} initial={{ x: -15, opacity: 0 }} animate={{ x: 0, opacity: 1 }} transition={{ delay: i * 0.04 }}>
+                                                            <div className="flex flex-col">
+                                                                <div className="flex items-center">
+                                                                    <Link
+                                                                        href={href}
+                                                                        className="flex-1 text-xl font-black uppercase tracking-tighter italic py-3.5 px-3 rounded-l-xl hover:bg-muted transition-all text-muted-foreground hover:text-foreground"
+                                                                        onClick={() => setIsMobileMenuOpen(false)}
+                                                                    >
+                                                                        {cat.name}
+                                                                    </Link>
+                                                                    <button 
+                                                                        onClick={() => setExpandedMobileCategory(isExpanded ? null : cat.name)}
+                                                                        className={cn(
+                                                                            "p-3.5 rounded-r-xl transition-all border-l border-border/10",
+                                                                            isExpanded ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                                                                        )}
+                                                                    >
+                                                                        <ChevronRight className={cn("w-5 h-5 transition-transform duration-300", isExpanded && "rotate-90")} />
+                                                                    </button>
+                                                                </div>
+                                                                
+                                                                <AnimatePresence>
+                                                                    {isExpanded && (
+                                                                        <motion.div
+                                                                            initial={{ height: 0, opacity: 0 }}
+                                                                            animate={{ height: "auto", opacity: 1 }}
+                                                                            exit={{ height: 0, opacity: 0 }}
+                                                                            className="overflow-hidden border-l-2 border-primary/20 ml-6 mt-1 flex flex-col gap-1"
+                                                                        >
+                                                                            {subLinks.map((sub: any) => (
+                                                                                <Link 
+                                                                                    key={sub.name}
+                                                                                    href={sub.href}
+                                                                                    onClick={() => setIsMobileMenuOpen(false)}
+                                                                                    className="py-3.5 px-6 text-[10px] font-black uppercase tracking-widest text-muted-foreground/80 hover:text-primary transition-colors italic border-l border-primary/20 bg-primary/5 rounded-r-xl mt-1"
+                                                                                >
+                                                                                    {sub.name}
+                                                                                </Link>
+                                                                            ))}
+                                                                            {subLinks.length === 0 && (
+                                                                                <div className="py-4 px-6 text-[8px] font-black uppercase opacity-20 italic">Standalone Catalog</div>
+                                                                            )}
+                                                                        </motion.div>
+                                                                    )}
+                                                                </AnimatePresence>
+                                                            </div>
+                                                        </motion.div>
+                                                    )
+                                                })
+                                            })()}
+                                        </div>
+                                    <div className="mt-auto flex flex-col gap-3">
+                                    </div>
+                                    <div className="flex items-center justify-center gap-6 py-6 border-t border-border mt-6">
+                                        <ThemeToggle />
+                                        <div className="w-[1px] h-5 bg-border" />
+                                        <Link 
+                                            href="/contact"
+                                            onClick={() => setIsMobileMenuOpen(false)}
+                                            className="text-muted-foreground hover:text-primary transition-colors text-[10px] font-black uppercase"
+                                        >
+                                            Support
+                                        </Link>
+                                    </div>
+                                </div>
                             </div>
-                        </div>
-                    </motion.div>
+                        </motion.div>
+                    </>
                 )}
             </AnimatePresence>
-        </nav>
+        </>
     )
 }

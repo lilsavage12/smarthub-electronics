@@ -13,6 +13,7 @@ export interface User {
 interface AuthState {
     user: User | null
     isInitialized: boolean
+    isRefreshing: boolean
     setAuth: (user: User | null) => void
     logout: () => Promise<void>
     initialize: () => Promise<void>
@@ -24,6 +25,7 @@ export const useAuth = create<AuthState>()(
         (set, get) => ({
             user: null,
             isInitialized: false,
+            isRefreshing: false,
             
             setAuth: (user) => set({ user }),
             
@@ -34,48 +36,47 @@ export const useAuth = create<AuthState>()(
             },
 
             refreshProfile: async () => {
-                const { data: { session } } = await supabase.auth.getSession()
-                if (session?.user) {
-                    // 1. Try User table (CUID/Email bridge) instead of failing 'profiles' table
-                    const { data: profile } = await supabase
-                        .from('User')
-                        .select('*')
-                        .eq('email', session.user.email)
-                        .maybeSingle()
+                // If we're already refreshing, don't trigger another one
+                if (get().isRefreshing) return
+                
+                set({ isRefreshing: true })
+                try {
+                    const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+                    
+                    if (sessionError) {
+                        console.error("[AUTH] Session error during refresh:", sessionError)
+                        // Don't log out yet, it might be a temporary network issue
+                        return
+                    }
 
-                    if (profile) {
+                    if (session?.user) {
+                        const { data: profile } = await supabase
+                            .from('User')
+                            .select('*')
+                            .eq('email', session.user.email)
+                            .maybeSingle()
+
                         const newUser = {
-                            id: session.user.id, // CRITICAL: Use Supabase UUID for session persistence
-                            email: profile.email,
-                            role: profile.role || 'USER',
-                            displayName: profile.displayName,
-                            profileId: profile.id // Legacy CUID reference
+                            id: session.user.id,
+                            email: session.user.email || profile?.email || '',
+                            role: profile?.role || 'USER',
+                            displayName: profile?.displayName || null,
+                            profileId: profile?.id
                         }
                         set({ user: newUser })
-                        
-                        // 2. MISSION CRITICAL: Cross-Device State Sync
-                        try {
-                            const { useCart } = await import('./cart-store')
-                            const { useWishlist } = await import('./wishlist-store')
-                            await Promise.all([
-                                useCart.getState().syncOnLogin(newUser.id),
-                                useWishlist.getState().syncOnLogin(newUser.id)
-                            ])
-                        } catch (syncError) {
-                            console.error("Cross-device sync failed:", syncError)
-                        }
-                        
                     } else {
-                        // Fallback: Use minimal auth user data
-                        set({
-                            user: {
-                                id: session.user.id,
-                                email: session.user.email || '',
-                                role: 'USER',
-                                displayName: session.user.user_metadata?.display_name || null
-                            }
-                        })
+                        // Only clear user if we are explicitly sure there's no session
+                        // and we are NOT in the middle of an initialization
+                        if (get().isInitialized) {
+                            console.warn("[AUTH] No session found, clearing user state")
+                            set({ user: null })
+                        }
                     }
+                } catch (err) {
+                    console.error("Auth refresh failed:", err)
+                    // Be conservative: don't clear user on caught exceptions to avoid accidental kickouts
+                } finally {
+                    set({ isRefreshing: false })
                 }
             },
 
@@ -83,17 +84,32 @@ export const useAuth = create<AuthState>()(
                 if (get().isInitialized) return
 
                 try {
-                    // Always try to refresh on init to ensure source of truth
+                    // Try to restore user from session
                     await get().refreshProfile()
 
                     // Listen for changes
                     supabase.auth.onAuthStateChange(async (event, session) => {
+                        console.log(`[AUTH_EVENT] ${event}`)
                         if (session?.user) {
+                            if (session.access_token) {
+                                document.cookie = `sb-access-token=${session.access_token}; path=/; max-age=${90 * 24 * 60 * 60}; SameSite=Lax; Secure`
+                            }
                             await get().refreshProfile()
-                        } else if (event === 'SIGNED_OUT') {
+                        } else if (event === 'SIGNED_OUT' || (event === 'TOKEN_REFRESHED' && !session)) {
+                            document.cookie = 'sb-access-token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;'
                             set({ user: null })
                         }
                     })
+
+                    // Periodic Session Safety Check (every 30 minutes)
+                    // Reduced frequency to minimize disruption while ensuring token stays alive
+                    setInterval(() => {
+                        console.log("[AUTH] Periodic session refresh check...")
+                        const currentUser = get().user
+                        if (currentUser) {
+                            get().refreshProfile()
+                        }
+                    }, 30 * 60 * 1000)
 
                     // Real-time profile updates
                     if (get().user) {

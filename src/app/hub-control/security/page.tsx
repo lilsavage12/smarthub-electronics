@@ -29,9 +29,9 @@ export default function SecurityCentrePage() {
     ])
 
     const regenerateAPIKey = () => {
-        const toastId = toast.loading("Rotating cryptographic master key...")
+        const toastId = toast.loading("Updating master security key...")
         setTimeout(() => {
-            toast.success("Security keys rotated and re-indexed across regions", { id: toastId })
+            toast.success("Security keys updated across all regions", { id: toastId })
         }, 2000)
     }
 
@@ -43,9 +43,9 @@ export default function SecurityCentrePage() {
     }
 
     const revokeSession = (id: string, isCurrent: boolean) => {
-        if (isCurrent) return toast.error("Cannot revoke current terminal session")
+        if (isCurrent) return toast.error("Cannot revoke current session")
         setActiveSessions(prev => prev.filter(s => s.id !== id))
-        toast.success("Terminal session revoked")
+        toast.success("Session revoked")
     }
 
     return (
@@ -53,8 +53,8 @@ export default function SecurityCentrePage() {
             {/* Page Header */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                 <div className="flex flex-col gap-1">
-                    <h1 className="text-3xl font-black tracking-tight text-foreground italic uppercase">Security Authority</h1>
-                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest opacity-60">Master control for administrative access, encryption, and audit protocols.</p>
+                    <h1 className="text-3xl font-black tracking-tight text-foreground italic uppercase">Security Controls</h1>
+                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest opacity-60">Master control for administrative access, encryption, and audit records.</p>
                 </div>
                 <div className="flex items-center gap-3">
                     <Button
@@ -62,7 +62,7 @@ export default function SecurityCentrePage() {
                         className="h-12 px-8 rounded-xl bg-red-600 hover:bg-red-700 text-white font-black italic uppercase tracking-widest text-[10px] gap-3 shadow-lg shadow-red-500/20 transition-all"
                     >
                         <RefreshCcw size={18} />
-                        ROTATE MASTER KEYS
+                        UPDATE ACCESS KEYS
                     </Button>
                 </div>
             </div>
@@ -80,7 +80,7 @@ export default function SecurityCentrePage() {
 
                 {[
                     { label: "Active Roles", value: "3 Types", icon: <User className="text-blue-500" />, sub: "Admin, Mgr, Aud", bg: "bg-blue-500/5" },
-                    { label: "Encrypted DB", value: "AES-256", icon: <Database className="text-amber-500" />, sub: "Hardware Indexing", bg: "bg-amber-500/5" },
+                    { label: "Encrypted DB", value: "AES-256", icon: <Database className="text-amber-500" />, sub: "Data Encryption", bg: "bg-amber-500/5" },
                     { label: "IP Whitelist", value: "ENABLED", icon: <Globe className="text-emerald-500" />, sub: "Restrictive Mode", bg: "bg-emerald-500/5" },
                 ].map((s, i) => (
                     <Card key={i} className="rounded-2xl border-border shadow-sm p-6 flex flex-col gap-4 group hover:shadow-md transition-all">
@@ -100,12 +100,12 @@ export default function SecurityCentrePage() {
                 {/* Active Sessions Matrix */}
                 <Card className="col-span-2 rounded-[2.5rem] border-border p-8 flex flex-col gap-8 shadow-sm bg-card relative overflow-hidden">
                     <div className="flex items-center justify-between">
-                        <div className="flex flex-col gap-1">
+                        <div className="flex flex-col gap-1" id="active-sessions">
                             <h3 className="text-lg font-black uppercase italic tracking-tight flex items-center gap-3">
                                 <Fingerprint size={20} className="text-primary" />
                                 Active Account Sessions
                             </h3>
-                            <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest opacity-60">Monitor and manage all current administrative authorizations</span>
+                            <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest opacity-60">Monitor and manage all current administrative sessions</span>
                         </div>
                         <Button onClick={revokeAllSessions} variant="ghost" className="text-[9px] font-black uppercase">Revoke All Sessions</Button>
                     </div>
@@ -120,7 +120,7 @@ export default function SecurityCentrePage() {
                                     <div className="flex flex-col gap-1">
                                         <div className="flex items-center gap-2">
                                             <span className="text-lg font-black text-foreground tracking-tight italic">{session.device}</span>
-                                            {session.status === 'Current' && <Badge className="bg-emerald-500/10 text-emerald-500 border-emerald-500/20 text-[6px] rounded-full uppercase">CURRENT NODE</Badge>}
+                                            {session.status === 'Current' && <Badge className="bg-emerald-500/10 text-emerald-500 border-emerald-500/20 text-[6px] rounded-full uppercase">CURRENT SESSION</Badge>}
                                         </div>
                                         <div className="flex items-center gap-4 text-[9px] font-bold text-muted-foreground uppercase tracking-widest">
                                             <span className="flex items-center gap-1.5"><Globe size={10} /> {session.ip}</span>
@@ -148,10 +148,10 @@ export default function SecurityCentrePage() {
                         <div className="flex flex-col gap-2">
                             <h3 className="text-sm font-black uppercase italic tracking-widest flex items-center gap-2">
                                 <Key size={16} className="text-primary" />
-                                Protocol Master
+                                Security System
                             </h3>
                             <p className="text-[10px] font-medium text-muted-foreground leading-relaxed italic opacity-80 mt-2">
-                                SmartHub utilizes a hardware-backed security vault that automatically detects and nullifies brute-force credential stuffing.
+                                SmartHub utilizes a secure infrastructure that automatically detects and prevents brute-force login attempts.
                             </p>
                         </div>
 
@@ -178,7 +178,7 @@ export default function SecurityCentrePage() {
                             className="mt-auto p-6 rounded-[2rem] bg-primary/5 border border-primary/10 flex flex-col gap-3 group cursor-pointer hover:bg-primary/10 transition-all"
                         >
                             <div className="flex items-center justify-between">
-                                <span className="text-[10px] font-black uppercase tracking-widest text-primary italic">Audit Integrity Protocol</span>
+                                <span className="text-[10px] font-black uppercase tracking-widest text-primary italic">Security Audit Log</span>
                                 <ChevronRight size={14} className="text-primary group-hover:translate-x-1 transition-transform" />
                             </div>
                             <p className="text-[8px] font-bold text-muted-foreground uppercase tracking-[0.1em] leading-relaxed">
@@ -203,9 +203,9 @@ export default function SecurityCentrePage() {
 
                 <div className="flex flex-col gap-4 border-l border-border/50 ml-4">
                     {[
-                        { time: '14:22:15', title: 'System Key Rotation Success', desc: 'New master keys synchronized across US and EU nodes', type: 'SUCCESS' },
-                        { time: '09:12:04', title: 'Unusual IP Detected', desc: 'Blocked attempt from unauthorized geolocation node (VPN Detected)', type: 'WARNING' },
-                        { time: 'Yesterday', title: 'Admin Permissions Modified', desc: 'A-42 user updated to MASTER ADMIN status', type: 'INFO' },
+                        { time: '14:22:15', title: 'Security Key Update Success', desc: 'New master keys updated across US and EU servers', type: 'SUCCESS' },
+                        { time: '09:12:04', title: 'Unusual IP Detected', desc: 'Blocked attempt from unauthorized location (VPN Detected)', type: 'WARNING' },
+                        { time: 'Yesterday', title: 'Admin Permissions Modified', desc: 'User privileges updated to Admin status', type: 'INFO' },
                     ].map((t, i) => (
                         <div key={i} className="flex gap-8 relative pb-8 group">
                             <div className="absolute left-[-5px] top-1.5 w-2.5 h-2.5 rounded-full bg-primary ring-4 ring-background z-10" />

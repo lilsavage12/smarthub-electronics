@@ -1,6 +1,5 @@
-
 import { NextResponse } from "next/server"
-import { supabase, supabaseAdmin } from "@/lib/supabase"
+import { supabaseAdmin } from "@/lib/supabase"
 import { verifyAdmin } from "@/lib/server-auth"
 
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -11,53 +10,63 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
         }
         
         if (!id || id === "undefined") {
-            return NextResponse.json({ error: "Invalid or missing ID" }, { status: 400 })
+            return NextResponse.json({ error: "Invalid promotion ID" }, { status: 400 })
         }
+        
         const body = await req.json()
-        const { products, id: bodyId, ...updateData } = body
+        const { productIds, id: bodyId, ...updateData } = body
 
-        // 1. Update Promotion using admin client (bypass RLS)
+        // Mapping to standard DB columns (title/value)
+        const validUpdate = {
+            title: updateData.title || updateData.name,
+            value: Number(updateData.value || updateData.discount || 10),
+            type: updateData.type || "PERCENTAGE",
+            category: updateData.category || "REGULAR",
+            startDate: updateData.startDate,
+            endDate: updateData.endDate === "NEVER" || !updateData.endDate ? null : updateData.endDate,
+            isActive: updateData.isActive !== undefined ? updateData.isActive : true,
+            description: updateData.description || null,
+            priority: Number(updateData.priority || 0),
+            saleStock: (updateData.saleStock !== undefined && updateData.saleStock !== null && updateData.saleStock !== "") ? Math.floor(Number(updateData.saleStock)) : null,
+            showOnHome: updateData.showOnHome !== undefined ? updateData.showOnHome : true,
+            updatedAt: new Date().toISOString()
+        }
+
         const { data, error } = await supabaseAdmin
             .from('Promotion')
-            .update({
-                ...updateData,
-                updatedAt: new Date().toISOString()
-            })
+            .update(validUpdate)
             .eq('id', id)
             .select()
             .single()
 
-        if (error) throw error
+        if (error) {
+            console.error("Supabase Promotion Update error:", error)
+            throw error
+        }
 
-        // 2. Update Product Links if provided using admin client
-        if (products !== undefined) {
-            // Delete old links
+        // Update Links
+        const targetIds = Array.isArray(productIds) ? productIds : (updateData.productId ? [updateData.productId] : [])
+        if (targetIds.length > 0) {
             await supabaseAdmin.from('PromotionProduct').delete().eq('promotionId', id)
-            
-            // Insert new links
-            if (products.length > 0) {
-                const links = products
-                    .filter((p: any) => p.id && p.id !== "undefined")
-                    .map((p: any) => ({
-                        promotionId: id,
-                        productId: p.id,
-                        saleStock: p.saleStock
-                    }))
-                
-                if (links.length > 0) {
-                    const { error: ppError } = await supabaseAdmin
-                        .from('PromotionProduct')
-                        .insert(links)
-                    
-                    if (ppError) throw ppError
-                }
+            const links = targetIds.map(pid => ({
+                promotionId: id,
+                productId: String(pid),
+                saleStock: (updateData.saleStock !== undefined && updateData.saleStock !== null && updateData.saleStock !== "") ? Math.floor(Number(updateData.saleStock)) : null
+            }))
+            const { error: linkError } = await supabaseAdmin.from('PromotionProduct').insert(links)
+            if (linkError) {
+                console.error("Supabase Promotion Update - Link error:", linkError)
+                throw linkError
             }
         }
 
         return NextResponse.json(data)
     } catch (error: any) {
-        console.error("Promotion Update error:", error)
-        return NextResponse.json({ error: error.message }, { status: 500 })
+        console.error("Supabase Promotion Update error:", error)
+        return NextResponse.json({ 
+            error: "Failed to update promotion", 
+            details: error.message || "Something went wrong"
+        }, { status: 500 })
     }
 }
 
@@ -71,17 +80,14 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
             return NextResponse.json({ error: "Invalid or missing ID" }, { status: 400 })
         }
 
-        // Delete links first using admin client
+        // Cloud Delete
         await supabaseAdmin.from('PromotionProduct').delete().eq('promotionId', id)
-        
-        const { error } = await supabaseAdmin
-            .from('Promotion')
-            .delete()
-            .eq('id', id)
-
+        const { error } = await supabaseAdmin.from('Promotion').delete().eq('id', id)
         if (error) throw error
-        return NextResponse.json({ success: true })
+        
+        return NextResponse.json({ success: true, origin: "cloud" })
     } catch (error: any) {
         return NextResponse.json({ error: error.message }, { status: 500 })
     }
 }
+

@@ -1,11 +1,13 @@
 
 "use client"
 
-import React, { useState, useEffect } from "react"
+import React, { useState, useEffect, useMemo } from "react"
 import { 
     Zap, Clock, Calendar, Plus, Trash2, 
     Edit2, Percent, DollarSign, CheckCircle2,
-    XCircle, Smartphone, Tag, ArrowRight
+    XCircle, Smartphone, Tag, ArrowRight,
+    Search, Filter, Info, AlertTriangle,Eye,
+    ChevronRight, Save, X, Layers, RefreshCw
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
@@ -13,602 +15,572 @@ import { motion, AnimatePresence } from "framer-motion"
 import { cn } from "@/lib/utils"
 import { toast } from "react-hot-toast"
 
-export const PromotionManager = () => {
+import { forwardRef, useImperativeHandle } from "react"
+
+export const PromotionManager = forwardRef(({ onUpdate, activeTab: externalTab }: { onUpdate?: () => void, activeTab?: 'active' | 'scheduled' | 'expired' }, ref) => {
     const [promotions, setPromotions] = useState<any[]>([])
     const [products, setProducts] = useState<any[]>([])
     const [isLoading, setIsLoading] = useState(true)
-    const [isModalOpen, setIsModalOpen] = useState(false)
+    const [isSaving, setIsSaving] = useState(false)
+    const [internalTab, setInternalTab] = useState<'active' | 'scheduled' | 'expired'>('active')
+    
+    // Sync externalTab to internal state or just use externalTab
+    const activeTab = externalTab || internalTab;
+    
+    // Modal & Selection
+    const [isFormOpen, setIsFormOpen] = useState(false)
+    const [editingId, setEditingId] = useState<string | null>(null)
     const [selectedProducts, setSelectedProducts] = useState<string[]>([])
-    const [productStocks, setProductStocks] = useState<Record<string, string>>({})
+    const [searchQuery, setSearchQuery] = useState("")
+
     const [formData, setFormData] = useState({
-        title: "",
-        type: "PERCENTAGE",
-        value: "",
-        category: "REGULAR",
-        startDate: "",
-        endDate: "",
-        bannerUrl: "",
+        name: "",
         description: "",
-        isExclusive: false,
+        type: "PERCENTAGE", // PERCENTAGE, FIXED
+        category: "REGULAR", // REGULAR, FLASH_SALE, EXCLUSIVE
+        discount: 0,
+        startDate: new Date().toISOString().split('T')[0],
+        endDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+        isActive: true,
+        priority: 0,
+        saleStock: "",
         showOnHome: true
     })
-    const [editingId, setEditingId] = useState<string | null>(null)
-    const [isUploading, setIsUploading] = useState(false)
 
-    const uploadFiles = async (files: FileList | File[]) => {
-        if (!files || files.length === 0) return
-
-        setIsUploading(true)
-        const toastId = toast.loading("Uploading banner...")
-
-        try {
-            const formData = new FormData()
-            Array.from(files).forEach(file => {
-                if (file.size > 5 * 1024 * 1024) throw new Error(`Image ${file.name} exceeds 5MB limit.`)
-                formData.append('file', file)
-            })
-
-            const res = await fetch("/api/upload", { method: "POST", body: formData })
-            const data = await res.json()
-            if (!data.success) throw new Error(data.error || "Upload failed")
-
-            // Promotion only supports one banner
-            setFormData(prev => ({ ...prev, bannerUrl: data.urls[0] }))
-            toast.success(`Banner uploaded successfully`, { id: toastId })
-        } catch (error: any) {
-            console.error("Banner upload failed:", error)
-            toast.error(`Error: ${error.message || "Upload failed"}`, { id: toastId })
-        } finally {
-            setIsUploading(false)
-        }
-    }
-
-    const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        if (e.target.files) {
-            await uploadFiles(e.target.files)
-            e.target.value = ""
-        }
-    }
-
-    const handlePaste = async (e: React.ClipboardEvent) => {
-        const items = e.clipboardData.items
-        const files: File[] = []
-        for (let i = 0; i < items.length; i++) {
-            if (items[i].type.indexOf("image") !== -1) {
-                const blob = items[i].getAsFile()
-                if (blob) {
-                    const file = new File([blob], `promo_banner_${Date.now()}.png`, { type: blob.type });
-                    files.push(file)
-                }
-            }
-        }
-        if (files.length > 0) {
-            e.preventDefault()
-            await uploadFiles(files)
-        }
-    }
+    useEffect(() => {
+        fetchPromotions()
+    }, [])
 
     const fetchPromotions = async () => {
         try {
-            const res = await fetch("/api/promotions")
-            if (res.ok) {
-                const data = await res.json()
-                setPromotions(data)
-            }
+            const [promoRes, prodRes] = await Promise.all([
+                fetch("/api/promotions"),
+                fetch("/api/products")
+            ])
+            if (promoRes.ok) setPromotions(await promoRes.json())
+            if (prodRes.ok) setProducts(await prodRes.json())
         } catch (error) {
             toast.error("Failed to load promotions")
-        }
-    }
-
-    const fetchProducts = async () => {
-        try {
-            const res = await fetch("/api/products")
-            if (res.ok) {
-                const data = await res.json()
-                setProducts(data)
-            }
-        } catch (error) {
-            console.error(error)
-        }
-    }
-
-    useEffect(() => {
-        const init = async () => {
-            setIsLoading(true)
-            await Promise.all([fetchPromotions(), fetchProducts()])
+        } finally {
             setIsLoading(false)
         }
-        init()
-    }, [])
+    }
 
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault()
-        if (selectedProducts.length === 0) {
-            toast.error("Please select at least one product")
-            return
-        }
+    const filteredPromotions = useMemo(() => {
+        const now = new Date().getTime()
+        return promotions.filter(p => {
+            const start = new Date(p.startDate).getTime()
+            const end = p.endDate ? new Date(p.endDate).getTime() : 1e15 // Large far-future constant for perpetuals
+            
+            const isActiveNow = p.isActive && start <= now && end >= now
+            const isScheduled = p.isActive && start > now
+            const isExpired = !p.isActive || end < now
+            
+            if (activeTab === 'active') return isActiveNow
+            if (activeTab === 'scheduled') return isScheduled && !isActiveNow
+            if (activeTab === 'expired') return isExpired && !isActiveNow && !isScheduled
+            return false
+        })
+    }, [promotions, activeTab])
 
-        try {
-            const isEditing = !!editingId
-            const method = isEditing ? "PATCH" : "POST"
-            const url = isEditing ? `/api/promotions/${editingId}` : "/api/promotions"
-
-            const res = await fetch(url, {
-                method,
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    ...formData,
-                    products: selectedProducts
-                        .filter(id => id && id !== "undefined")
-                        .map(id => ({
-                            id,
-                            saleStock: productStocks[id] ? parseInt(productStocks[id]) : null
-                        }))
-                })
-            })
-
-            if (res.ok) {
-                toast.success(isEditing ? "Promotion updated" : "Promotion created successfully")
-                setIsModalOpen(false)
-                setEditingId(null)
-                fetchPromotions()
-                setFormData({
-                    title: "",
-                    type: "PERCENTAGE",
-                    value: "",
-                    category: "REGULAR",
-                    startDate: "",
-                    endDate: "",
-                    bannerUrl: "",
-                    description: "",
-                    isExclusive: false,
-                    showOnHome: true
-                })
-                setSelectedProducts([])
-                setProductStocks({})
-            } else {
-                const err = await res.json()
-                toast.error(err.error || "Failed to process promotion")
+    const conflictWarnings = useMemo(() => {
+        if (selectedProducts.length === 0) return []
+        const conflicts: string[] = []
+        selectedProducts.forEach(pid => {
+            const hasActive = promotions.filter(p => p.isActive && (!p.endDate || new Date(p.endDate) > new Date())).some(p => p.productId === pid)
+            if (hasActive) {
+                const prod = products.find(pr => pr.id === pid)
+                if (prod) conflicts.push(prod.name)
             }
-        } catch (error) {
-            toast.error("Network error")
+        })
+        return conflicts
+    }, [selectedProducts, promotions, products])
+
+    const handleOpenForm = (promo: any = null) => {
+        if (promo) {
+            setEditingId(promo.id)
+            setFormData({
+                name: promo.name || promo.title,
+                description: promo.description || "",
+                type: promo.type,
+                category: promo.category,
+                discount: promo.discount,
+                startDate: new Date(promo.startDate).toISOString().split('T')[0],
+                endDate: promo.endDate ? new Date(promo.endDate).toISOString().split('T')[0] : "NEVER",
+                isActive: promo.isActive,
+                priority: promo.priority,
+                saleStock: promo.saleStock?.toString() || "",
+                showOnHome: promo.showOnHome !== undefined ? promo.showOnHome : true
+            })
+            const productIds = Array.isArray(promo.products) ? promo.products.map((p: any) => p.productId) : [promo.productId]
+            setSelectedProducts(productIds.filter(Boolean))
+        } else {
+            setEditingId(null)
+            setFormData({
+                name: "New Campaign",
+                description: "",
+                type: "PERCENTAGE",
+                category: "REGULAR",
+                discount: 10,
+                startDate: new Date().toISOString().split('T')[0],
+                endDate: "NEVER",
+                isActive: true,
+                priority: 0,
+                saleStock: "",
+                showOnHome: true
+            })
+            setSelectedProducts([])
+        }
+        setIsFormOpen(true)
+    }
+
+    const savePromotion = async () => {
+        if (selectedProducts.length === 0) return toast.error("Select target products.")
+        if (formData.discount <= 0) return toast.error("Discount value required.")
+        
+        setIsSaving(true)
+        const tid = toast.loading("Saving promotion...")
+        
+        try {
+            if (editingId) {
+                // Unified Update: Send all selected products
+                const payload = { 
+                    ...formData, 
+                    productIds: selectedProducts,
+                    endDate: formData.endDate === "NEVER" ? null : formData.endDate
+                }
+                const res = await fetch(`/api/promotions/${editingId}`, {
+                    method: "PATCH",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(payload)
+                })
+                if (res.ok) {
+                    const data = await res.json()
+                    // Sync logic handled here
+                }
+                if (!res.ok) {
+                    const err = await res.json()
+                    throw new Error(err.error || err.details || "Update failure")
+                }
+            } else {
+                // UNIFIED CREATION: Send one payload for all selected products
+                const payload = { 
+                    ...formData, 
+                    productIds: selectedProducts,
+                    endDate: formData.endDate === "NEVER" ? null : formData.endDate
+                }
+                const res = await fetch("/api/promotions", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(payload)
+                })
+                if (!res.ok) {
+                    const err = await res.json()
+                    throw new Error(err.error || err.details || "Creation failure")
+                }
+            }
+
+            toast.success("Promotion saved successfully.", { id: tid })
+            fetchPromotions()
+            if (onUpdate) onUpdate()
+            setIsFormOpen(false)
+        } catch (error: any) {
+            toast.error(error.message || "Connection error.", { id: tid })
+        } finally {
+            setIsSaving(false)
         }
     }
 
-    const handleDelete = async (id: string) => {
-        if (!id || id === "undefined") {
-            toast.error("Invalid promotion ID")
-            return
-        }
+    const deletePromo = async (id: string) => {
         if (!confirm("Are you sure you want to delete this promotion?")) return
-
+        const tid = toast.loading("Deleting promotion...")
         try {
             const res = await fetch(`/api/promotions/${id}`, { method: "DELETE" })
             if (res.ok) {
-                toast.success("Promotion deleted")
+                toast.success("Promotion deleted.", { id: tid })
                 fetchPromotions()
+                if (onUpdate) onUpdate()
             }
         } catch (error) {
-            toast.error("Delete failed")
+            toast.error("Delete failure.", { id: tid })
         }
     }
 
-    const handleToggleActive = async (id: string, current: boolean) => {
-        if (!id || id === "undefined" || id === "[object Object]") {
-            toast.error("Invalid promotion ID")
-            return
-        }
-        try {
-            const res = await fetch(`/api/promotions/${id}`, {
-                method: "PATCH",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ isActive: !current })
-            })
-            if (res.ok) {
-                toast.success(current ? "Promotion paused" : "Promotion activated")
-                fetchPromotions()
-            }
-        } catch (error) {
-            toast.error("Operation failed")
-        }
-    }
+    useImperativeHandle(ref, () => ({
+        openForm: () => handleOpenForm()
+    }))
 
-    const handleEdit = (promo: any) => {
-        if (!promo.id || promo.id === "undefined" || typeof promo.id !== 'string') {
-            console.error("Promo ID missing or invalid:", promo)
-            toast.error("Promotion missing a valid unique identifier")
-            return
-        }
-
-        try {
-            const safeDate = (dateStr: any) => {
-                if (!dateStr) return ""
-                try {
-                    const d = new Date(dateStr)
-                    if (isNaN(d.getTime())) return ""
-                    return d.toISOString().slice(0, 16)
-                } catch { return "" }
-            }
-
-            setFormData({
-                title: promo.title || "",
-                type: promo.type || "PERCENTAGE",
-                value: promo.value ? promo.value.toString() : "",
-                category: promo.category || "REGULAR",
-                startDate: safeDate(promo.startDate),
-                endDate: safeDate(promo.endDate),
-                bannerUrl: promo.bannerUrl || "",
-                description: promo.description || "",
-                isExclusive: !!promo.isExclusive,
-                showOnHome: promo.showOnHome !== undefined ? !!promo.showOnHome : true
-            })
-
-            const productIds = (promo.products?.map((p: any) => p.productId || p.id) || []).filter(Boolean)
-            setSelectedProducts(productIds)
-
-            const stocks: Record<string, string> = {}
-            promo.products?.forEach((p: any) => {
-                const pid = p.productId || p.id
-                if (pid && p.saleStock !== null && p.saleStock !== undefined) {
-                    stocks[pid] = p.saleStock.toString()
-                }
-            })
-            setProductStocks(stocks)
-
-            setEditingId(promo.id)
-            setIsModalOpen(true)
-        } catch (error) {
-            console.error("Error setting up edit form:", error)
-            toast.error("Failed to prepare edit form")
-        }
-    }
-
-    const openCreateModal = () => {
-        setEditingId(null)
-        setFormData({
-            title: "",
-            type: "PERCENTAGE",
-            value: "",
-            category: "REGULAR",
-            startDate: "",
-            endDate: "",
-            bannerUrl: "",
-            description: "",
-            isExclusive: false,
-            showOnHome: true
-        })
-        setSelectedProducts([])
-        setProductStocks({})
-        setIsModalOpen(true)
-    }
+    if (isLoading) return <div className="py-20 flex justify-center"><Zap className="animate-pulse text-primary h-8 w-8" /></div>
 
     return (
-        <div className="flex flex-col gap-6">
-            <div className="flex items-center justify-between">
-                <h2 className="text-sm font-black italic uppercase tracking-widest text-muted-foreground">Automated Promotions</h2>
-                <Button 
-                    onClick={openCreateModal}
-                    className="h-8 px-4 rounded-lg bg-primary text-primary-foreground font-black italic uppercase tracking-widest text-[9px] gap-2"
-                >
-                    <Plus size={14} />
-                    CREATE PROMOTION
-                </Button>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {promotions.map((promo) => (
-                    <Card key={promo.id} className="rounded-2xl border-border bg-card overflow-hidden group hover:border-primary/50 transition-all">
-                        <div className={cn(
-                            "p-1 text-[8px] font-black uppercase text-center text-white",
-                            promo.category === 'FLASH_SALE' ? 'bg-rose-600' : 
-                            promo.category === 'DAILY_DEAL' ? 'bg-amber-500' : 
-                            promo.category === 'SEASONAL' ? 'bg-purple-600' :
-                            promo.category === 'EXCLUSIVE' ? 'bg-emerald-600' :
-                            'bg-blue-600'
-                        )}>
-                            {promo.category.replace('_', ' ')}
-                            {promo.isExclusive && " | EXCLUSIVE"}
-                        </div>
-                        <CardContent className="p-5 flex flex-col gap-3">
-                            <div className="flex justify-between items-start">
-                                <div className="flex flex-col gap-0.5">
-                                    <h3 className="text-sm font-black uppercase tracking-tight italic">{promo.title}</h3>
-                                    {promo.showOnHome && <span className="text-[7px] font-bold text-primary uppercase tracking-widest">Displaying on Home</span>}
-                                </div>
-                                <div className="text-xl font-black text-primary italic">
-                                    {promo.type === 'PERCENTAGE' ? `-${promo.value}%` : `-$${promo.value}`}
-                                </div>
+        <div className="flex flex-col gap-8 animate-in fade-in duration-700">
+            
+            {/* A. DASHBOARD NAVIGATION */}
+            {/* B. PROMOTIONS GRID */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <AnimatePresence mode="popLayout">
+                    {filteredPromotions.map((promo) => (
+                        <motion.div 
+                            key={promo.id}
+                            layout
+                            initial={{ opacity: 0, scale: 0.9 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.9 }}
+                            className="group relative bg-card border border-border/50 rounded-[2rem] p-8 hover:border-primary/50 transition-all duration-500 shadow-sm hover:shadow-2xl overflow-hidden"
+                        >
+                            <div className="absolute top-0 right-0 p-8 opacity-5">
+                                <Zap size={64} className="text-primary" />
                             </div>
                             
-                            {promo.bannerUrl && (
-                                <div className="w-full aspect-[21/9] rounded-lg overflow-hidden relative grayscale hover:grayscale-0 transition-all border border-border">
-                                    <img src={promo.bannerUrl} alt="" className="object-cover w-full h-full" />
+                            <div className="flex flex-col gap-6 relative z-10">
+                                <div className="flex items-center justify-between">
+                                    <div className={cn("px-3 py-1 rounded-full text-[8px] font-black uppercase tracking-widest italic border", 
+                                        promo.category === 'FLASH_SALE' ? "bg-rose-500 text-white border-rose-600" : "bg-primary/10 text-primary border-primary/20")}>
+                                        {promo.category.replace('_', ' ')}
+                                    </div>
+                                    <div className="flex gap-2">
+                                        <button onClick={() => handleOpenForm(promo)} className="p-2 text-muted-foreground hover:text-primary hover:bg-primary/5 rounded-xl transition-all"><Edit2 size={14} /></button>
+                                        <button onClick={() => deletePromo(promo.id)} className="p-2 text-muted-foreground hover:text-rose-500 hover:bg-rose-500/5 rounded-xl transition-all"><Trash2 size={14} /></button>
+                                    </div>
                                 </div>
-                            )}
 
-                            <div className="flex flex-col gap-1 text-[9px] font-bold text-muted-foreground uppercase tracking-widest">
-                                <div className="flex items-center gap-2">
-                                    <Clock size={12} className="text-primary" />
-                                    <span>{new Date(promo.startDate).toLocaleDateString()} - {new Date(promo.endDate).toLocaleDateString()}</span>
+                                <div className="flex flex-col gap-1">
+                                    <h3 className="text-sm font-black italic tracking-tighter group-hover:text-primary transition-colors">{promo.name}</h3>
+                                    <span className="text-[10px] font-bold text-muted-foreground uppercase opacity-60 tracking-widest truncate">
+                                        {(promo.products?.length || 0) > 1 
+                                            ? `${promo.products.length} Products Included` 
+                                            : (promo.products?.[0]?.name || promo.product?.name || "All Products")}
+                                    </span>
                                 </div>
-                                <div className="flex items-center gap-2">
-                                    <Smartphone size={12} className="text-primary" />
-                                    <span>{promo.products?.length || 0} Products Targeted</span>
-                                </div>
-                            </div>
 
-                            <div className="flex items-center justify-between mt-2 pt-3 border-t border-border">
-                                <button 
-                                    onClick={() => handleToggleActive(promo.id, promo.isActive)}
-                                    className={cn(
-                                        "px-2 py-1 rounded-md text-[8px] font-black uppercase tracking-widest transition-all",
-                                        promo.isActive ? "bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20" : "bg-muted text-muted-foreground hover:bg-muted-foreground/10"
+                                <div className="flex items-center gap-6">
+                                    <div className="flex flex-col">
+                                        <span className="text-2xl font-black italic tracking-tighter text-primary">{promo.type === 'PERCENTAGE' ? `${promo.discount}%` : `KSh ${Math.round(promo.discount).toLocaleString()}`}</span>
+                                        <span className="text-[8px] font-black uppercase text-muted-foreground tracking-[0.2em] italic">DISCOUNT</span>
+                                    </div>
+                                    <div className="w-[1px] h-8 bg-border" />
+                                    <div className="flex flex-col">
+                                        <span className="text-[10px] font-black italic text-foreground uppercase">{promo.endDate ? new Date(promo.endDate).toLocaleDateString() : "PERPETUAL"}</span>
+                                        <span className="text-[8px] font-black uppercase text-muted-foreground tracking-[0.2em] italic">EXPIRATION</span>
+                                    </div>
+                                    {promo.saleStock && (
+                                        <>
+                                            <div className="w-[1px] h-8 bg-border" />
+                                            <div className="flex flex-col">
+                                                <span className="text-[10px] font-black italic text-rose-500 uppercase">{(promo.soldInPromo || 0)} / {promo.saleStock}</span>
+                                                <span className="text-[8px] font-black uppercase text-muted-foreground tracking-[0.2em] italic">UNITS SOLD</span>
+                                            </div>
+                                        </>
                                     )}
-                                >
-                                    {promo.isActive ? "Live" : "Ended / Paused"}
-                                </button>
-                                <div className="flex items-center gap-2">
-                                    <Button 
-                                        onClick={(e) => {
-                                            e.stopPropagation()
-                                            handleEdit(promo)
-                                        }}
-                                        size="icon" 
-                                        variant="ghost" 
-                                        className="h-7 w-7 text-blue-500 hover:bg-blue-50"
-                                    >
-                                        <Edit2 size={12} />
-                                    </Button>
-                                    <Button 
-                                        onClick={() => handleDelete(promo.id)}
-                                        size="icon" 
-                                        variant="ghost" 
-                                        className="h-7 w-7 text-red-500"
-                                    >
-                                        <Trash2 size={12} />
-                                    </Button>
+                                </div>
+
+                                <div className="flex items-center justify-between pt-4 border-t border-border/50 mt-2">
+                                    <div className="flex flex-col">
+                                        <span className="text-[9px] font-bold text-muted-foreground uppercase">Priority Level</span>
+                                        <div className="flex gap-1 mt-1">
+                                            {[...Array(3)].map((_, i) => (
+                                                <div key={i} className={cn("w-3 h-1 rounded-full", i < promo.priority ? "bg-primary" : "bg-muted")} />
+                                            ))}
+                                        </div>
+                                    </div>
+                                    <ArrowRight className="text-muted-foreground/20 group-hover:text-primary transition-colors" size={16} />
                                 </div>
                             </div>
-                        </CardContent>
-                    </Card>
-                ))}
-
-                {promotions.length === 0 && (
-                    <div className="col-span-full py-12 flex flex-col items-center justify-center gap-4 opacity-50 bg-muted/30 rounded-3xl border border-dashed border-border">
-                        <Tag size={48} className="text-muted-foreground" />
-                        <p className="text-[10px] font-black uppercase tracking-widest">No active promotions found</p>
-                    </div>
-                )}
+                        </motion.div>
+                    ))}
+                </AnimatePresence>
             </div>
 
-            {/* Modal */}
+            {filteredPromotions.length === 0 && (
+                <div className="py-40 flex flex-col items-center justify-center border-2 border-dashed border-border rounded-[4rem] opacity-30 text-center">
+                    <Layers size={48} className="text-muted-foreground" />
+                    <span className="mt-8 text-[10px] font-black uppercase tracking-[0.3em] italic">No active promotions</span>
+                </div>
+            )}
+
+            {/* C. PROMOTION CONFIGURATION DRAWER */}
             <AnimatePresence>
-                {isModalOpen && (
-                    <motion.div 
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        className="fixed inset-0 z-[100] flex items-center justify-center bg-background/80 backdrop-blur-sm p-6"
-                    >
+                {isFormOpen && (
+                    <div className="fixed inset-0 z-[100] flex justify-end bg-slate-900/40 backdrop-blur-sm overflow-hidden p-0">
                         <motion.div 
-                            initial={{ scale: 0.95, y: 20 }}
-                            animate={{ scale: 1, y: 0 }}
-                            exit={{ scale: 0.95, y: 20 }}
-                            className="w-full max-w-3xl bg-card border border-border rounded-[2rem] p-8 shadow-2xl relative max-h-[90vh] overflow-y-auto"
+                            initial={{ x: "100%", opacity: 0.5 }}
+                            animate={{ x: 0, opacity: 1 }}
+                            exit={{ x: "100%", opacity: 0.5 }}
+                            transition={{ type: "spring", damping: 30, stiffness: 200 }}
+                            className="w-full lg:max-w-3xl h-full bg-card border-l border-border shadow-[-20px_0_50px_rgba(0,0,0,0.4)] flex flex-col overflow-hidden"
                         >
-                            <button onClick={() => setIsModalOpen(false)} className="absolute top-6 right-6 text-muted-foreground hover:text-foreground">
-                                <XCircle size={24} />
-                            </button>
-
-                            <h2 className="text-2xl font-black italic uppercase tracking-tighter mb-8 text-foreground">
-                                {editingId ? 'UPDATE' : 'NEW'} <span className="text-primary italic">PHASE</span> PROMOTION
-                            </h2>
-
-                            <form onSubmit={handleSubmit} className="flex flex-col gap-6">
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                    <div className="flex flex-col gap-2">
-                                        <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest ml-1">CAMPAIGN TITLE</label>
-                                        <input 
-                                            required
-                                            className="h-12 bg-muted/50 border border-border rounded-xl px-4 text-xs font-bold focus:border-primary outline-none transition-all"
-                                            placeholder="e.g. End of Year Sale"
-                                            value={formData.title}
-                                            onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                                        />
+                            
+                            {/* PERSISTENT HEADER DETAILS */}
+                            <div className="p-8 md:p-10 border-b border-border bg-card/60 backdrop-blur-xl flex items-center justify-between shrink-0 sticky top-0 z-50">
+                                <div className="flex items-center gap-4">
+                                    <div className="w-12 h-12 rounded-2xl bg-primary text-white flex items-center justify-center shadow-2xl shadow-primary/20 animate-in zoom-in">
+                                        <Zap size={24} />
                                     </div>
-                                    <div className="flex flex-col gap-2">
-                                        <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest ml-1">PROMO CATEGORY</label>
-                                        <select 
-                                            className="h-12 bg-muted/50 border border-border rounded-xl px-4 text-xs font-bold focus:border-primary outline-none"
-                                            value={formData.category}
-                                            onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                                        >
-                                            <option value="REGULAR">REGULAR DISCOUNT</option>
-                                            <option value="FLASH_SALE">FLASH SALE (PRIORITY 10)</option>
-                                            <option value="SEASONAL">SEASONAL CAMPAIGN (PRIORITY 5)</option>
-                                            <option value="DAILY_DEAL">DAILY DEAL (PRIORITY 3)</option>
-                                            <option value="EXCLUSIVE">WEBSITE EXCLUSIVE (PRIORITY 1)</option>
-                                        </select>
+                                    <div className="flex flex-col">
+                                        <h2 className="text-xl font-black italic uppercase tracking-tighter text-foreground">Promotion <span className="text-primary">Editor</span></h2>
+                                        <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.3em] opacity-40">Configure Campaign</span>
                                     </div>
-                                    <div className="flex flex-col gap-2 md:col-span-2">
-                                        <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest ml-1">BANNER MEDIA (PASTE OR UPLOAD)</label>
-                                        <div 
-                                            onPaste={handlePaste}
-                                            className="relative group h-32 rounded-2xl bg-muted/40 border-2 border-dashed border-border flex flex-col items-center justify-center gap-2 overflow-hidden hover:border-primary/50 transition-all cursor-pointer"
-                                            onClick={() => document.getElementById('banner-upload')?.click()}
-                                        >
-                                            {formData.bannerUrl ? (
-                                                <>
-                                                    <img src={formData.bannerUrl} alt="Preview" className="w-full h-full object-cover" />
-                                                    <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-all flex items-center justify-center">
-                                                        <span className="text-[10px] font-black text-white uppercase tracking-widest">Replace Banner</span>
-                                                    </div>
-                                                </>
-                                            ) : (
-                                                <>
-                                                    <Plus className="text-muted-foreground group-hover:text-primary transition-colors" size={24} />
-                                                    <span className="text-[8px] font-black uppercase text-muted-foreground tracking-widest">Click to upload or Paste Image</span>
-                                                </>
-                                            )}
-                                            {isUploading && (
-                                                <div className="absolute inset-0 bg-background/80 flex items-center justify-center z-10">
-                                                    <Zap className="text-primary animate-pulse" size={24} />
-                                                </div>
-                                            )}
+                                </div>
+                                <div className="flex items-center gap-3">
+                                    <Button 
+                                        onClick={savePromotion} 
+                                        disabled={isSaving}
+                                        className="h-12 px-8 rounded-xl bg-primary text-white font-black italic uppercase tracking-widest text-[9px] gap-3 shadow-2xl shadow-primary/20 hover:scale-[1.02] transition-all"
+                                    >
+                                        {isSaving ? <RefreshCw className="animate-spin" size={16} /> : <Save size={16} />}
+                                        {isSaving ? "SAVING..." : "SAVE PROMOTION"}
+                                    </Button>
+                                    <button 
+                                        onClick={() => setIsFormOpen(false)} 
+                                        className="h-12 w-12 bg-muted/20 border border-border/50 rounded-xl flex items-center justify-center hover:bg-rose-500/10 hover:text-rose-500 transition-all shadow-sm"
+                                    >
+                                        <X size={24} />
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* SCROLLABLE CONFIGURATION DETAILS */}
+                            <div className="flex-1 p-8 md:p-14 flex flex-col gap-14 overflow-y-auto custom-scrollbar">
+
+
+                                {/* SECTION A: BASIC INFO */}
+                                <div className="flex flex-col gap-8">
+                                    <div className="flex items-center gap-4">
+                                        <div className="w-10 h-10 rounded-xl bg-primary text-white flex items-center justify-center shadow-lg shadow-primary/20 font-black italic">A</div>
+                                        <div className="flex flex-col">
+                                            <span className="text-[11px] font-black uppercase tracking-widest text-foreground">Campaign Details</span>
+                                            <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest opacity-50 font-inter">Identify the promotion name</span>
+                                        </div>
+                                    </div>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                        <div className="flex flex-col gap-3">
+                                            <label className="text-[9px] font-black uppercase text-muted-foreground tracking-widest ml-2 italic">Campaign Name</label>
                                             <input 
-                                                id="banner-upload"
-                                                type="file"
-                                                className="hidden"
-                                                accept="image/*"
-                                                onChange={handleImageUpload}
+                                                placeholder="e.g. Summer Peak 2026..."
+                                                className="h-16 bg-muted/40 border border-border rounded-2xl px-6 text-xs font-black uppercase tracking-widest placeholder:text-muted-foreground/30 focus:border-primary transition-all outline-none italic"
+                                                value={formData.name}
+                                                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                                            />
+                                        </div>
+                                        <div className="flex flex-col gap-3">
+                                            <label className="text-[9px] font-black uppercase text-muted-foreground tracking-widest ml-2 italic">Detailed Description</label>
+                                            <input 
+                                                placeholder="Optional context..."
+                                                className="h-16 bg-muted/40 border border-border rounded-2xl px-6 text-xs font-black uppercase tracking-widest placeholder:text-muted-foreground/30 focus:border-primary transition-all outline-none"
+                                                value={formData.description}
+                                                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                                             />
                                         </div>
                                     </div>
-                                    <div className="flex flex-col gap-2">
-                                        <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest ml-1">DESCRIPTION</label>
-                                        <input 
-                                            className="h-12 bg-muted/50 border border-border rounded-xl px-4 text-xs font-bold focus:border-primary outline-none transition-all"
-                                            placeholder="Campaign brief..."
-                                            value={formData.description}
-                                            onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                                        />
+                                </div>
+
+                                 {/* SECTION B: CONFIGURATION */}
+                                 <div className="flex flex-col gap-8">
+                                     <div className="flex items-center gap-4">
+                                         <div className="w-10 h-10 rounded-xl bg-primary text-white flex items-center justify-center shadow-lg shadow-primary/20 font-black italic">B</div>
+                                         <div className="flex flex-col">
+                                             <span className="text-[11px] font-black uppercase tracking-widest text-foreground">Discount Logic</span>
+                                             <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest opacity-50 font-inter">Configure discount structures</span>
+                                         </div>
+                                     </div>
+                                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+                                          <div className="flex flex-col gap-3">
+                                             <label className="text-[9px] font-black uppercase text-muted-foreground tracking-widest pl-2 italic">Logic type</label>
+                                             <select 
+                                                 className="h-16 bg-muted/40 border border-border rounded-2xl px-6 text-[10px] font-black uppercase tracking-widest outline-none focus:border-primary transition-all cursor-pointer"
+                                                 value={formData.type}
+                                                 onChange={(e) => setFormData({ ...formData, type: e.target.value })}
+                                             >
+                                                 <option value="PERCENTAGE">PERCENTAGE (%)</option>
+                                                 <option value="FIXED">FIXED AMOUNT (KSh)</option>
+                                             </select>
+                                         </div>
+                                         <div className="flex flex-col gap-3">
+                                             <label className="text-[9px] font-black uppercase text-muted-foreground tracking-widest pl-2 italic">Benefit Value</label>
+                                             <input 
+                                                 type="number"
+                                                 className="h-16 bg-muted/40 border border-border rounded-2xl px-6 text-sm font-black italic text-primary focus:border-primary outline-none transition-all"
+                                                 value={formData.discount}
+                                                 onChange={(e) => setFormData({ ...formData, discount: parseInt(e.target.value) || 0 })}
+                                             />
+                                         </div>
+                                         <div className="flex flex-col gap-3">
+                                             <label className="text-[9px] font-black uppercase text-muted-foreground tracking-widest pl-2 italic">Promotion Category</label>
+                                             <select 
+                                                 className="h-16 bg-muted/40 border border-border rounded-2xl px-6 text-[10px] font-black uppercase tracking-widest outline-none focus:border-primary transition-all cursor-pointer"
+                                                 value={formData.category}
+                                                 onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                                             >
+                                                 <option value="REGULAR">REGULAR DEAL</option>
+                                                 <option value="FLASH_SALE">FLASH SALE</option>
+                                                 <option value="DAILY_DEAL">DAILY DEAL</option>
+                                                 <option value="EXCLUSIVE">EXCLUSIVE</option>
+                                             </select>
+                                         </div>
+                                         <div className="flex flex-col gap-3">
+                                             <label className="text-[9px] font-black uppercase text-muted-foreground tracking-widest pl-2 italic">Stock Limit (Units)</label>
+                                             <input 
+                                                 type="number"
+                                                 placeholder="UNLIMITED"
+                                                 className="h-16 bg-muted/40 border border-border rounded-2xl px-6 text-sm font-black italic text-foreground focus:border-primary placeholder:text-muted-foreground/20 outline-none transition-all"
+                                                 value={formData.saleStock}
+                                                 onChange={(e) => setFormData({ ...formData, saleStock: e.target.value })}
+                                             />
+                                         </div>
+                                     </div>
+                                 </div>
+
+                                 {/* Visibility */}
+                                 <div className="p-6 bg-muted/10 rounded-2xl border border-border/50">
+                                     <div className="flex items-center justify-between">
+                                         <div className="flex flex-col gap-1">
+                                             <span className="text-[10px] font-black uppercase italic text-foreground leading-none">Display on Home</span>
+                                             <span className="text-[8px] font-bold text-muted-foreground uppercase tracking-widest leading-none opacity-60">Show this campaign on the site front</span>
+                                         </div>
+                                         <Button 
+                                             type="button"
+                                             variant={formData.showOnHome ? "default" : "outline"}
+                                             className={cn("h-8 px-4 rounded-xl text-[9px] font-black uppercase italic", formData.showOnHome ? "bg-primary" : "opacity-40")}
+                                             onClick={() => setFormData(prev => ({ ...prev, showOnHome: !prev.showOnHome }))}
+                                         >
+                                             {formData.showOnHome ? "ACTIVE" : "HIDDEN"}
+                                         </Button>
+                                     </div>
+                                 </div>
+
+                                {/* SECTION C: SELECTION */}
+                                <div className="flex flex-col gap-8">
+                                    <div className="flex items-center gap-4">
+                                        <div className="w-10 h-10 rounded-xl bg-primary text-white flex items-center justify-center shadow-lg shadow-primary/20 font-black italic">C</div>
+                                        <div className="flex flex-col">
+                                            <span className="text-[11px] font-black uppercase tracking-widest text-foreground">Target Products</span>
+                                            <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest opacity-50 font-inter">Select products for promotion</span>
+                                        </div>
                                     </div>
-                                    <div className="flex flex-col gap-2">
-                                        <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest ml-1">VALUE TYPE</label>
-                                        <select 
-                                            className="h-12 bg-muted/50 border border-border rounded-xl px-4 text-xs font-bold focus:border-primary outline-none"
-                                            value={formData.type}
-                                            onChange={(e) => setFormData({ ...formData, type: e.target.value })}
-                                        >
-                                            <option value="PERCENTAGE">PERCENTAGE (%)</option>
-                                            <option value="FIXED">FIXED AMOUNT ($)</option>
-                                        </select>
-                                    </div>
-                                    <div className="flex flex-col gap-2">
-                                        <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest ml-1">DISCOUNT VALUE</label>
-                                        <input 
-                                            required
-                                            type="number"
-                                            className="h-12 bg-muted/50 border border-border rounded-xl px-4 text-xs font-bold focus:border-primary outline-none"
-                                            placeholder="e.g. 20"
-                                            value={formData.value}
-                                            onChange={(e) => setFormData({ ...formData, value: e.target.value })}
-                                        />
-                                    </div>
-                                    <div className="flex flex-col gap-2">
-                                        <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest ml-1">START TIMELINE</label>
-                                        <input 
-                                            required
-                                            type="datetime-local"
-                                            className="h-12 bg-muted/50 border border-border rounded-xl px-4 text-xs font-bold focus:border-primary outline-none"
-                                            value={formData.startDate}
-                                            onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
-                                        />
-                                    </div>
-                                    <div className="flex flex-col gap-2">
-                                        <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest ml-1">END TIMELINE</label>
-                                        <input 
-                                            required
-                                            type="datetime-local"
-                                            className="h-12 bg-muted/50 border border-border rounded-xl px-4 text-xs font-bold focus:border-primary outline-none"
-                                            value={formData.endDate}
-                                            onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
-                                        />
-                                    </div>
-                                    
-                                    <div className="flex items-center gap-6 mt-2 ml-1">
-                                        <label className="flex items-center gap-3 cursor-pointer group">
+                                    <div className="flex flex-col gap-6">
+                                        <div className="relative group">
+                                            <div className="absolute inset-x-0 -bottom-2 h-1 bg-primary/20 blur-xl opacity-0 group-focus-within:opacity-100 transition-opacity" />
+                                            <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-muted-foreground/40 group-focus-within:text-primary transition-colors" size={20} />
                                             <input 
-                                                type="checkbox"
-                                                checked={formData.isExclusive}
-                                                onChange={(e) => setFormData({ ...formData, isExclusive: e.target.checked })}
-                                                className="w-5 h-5 rounded-lg accent-primary"
+                                                className="w-full h-16 bg-muted/40 border border-border rounded-[1.5rem] pl-16 pr-8 text-[11px] font-black uppercase outline-none focus:border-primary transition-all shadow-inner"
+                                                placeholder="SEARCH PRODUCTS..."
+                                                value={searchQuery}
+                                                onChange={(e) => setSearchQuery(e.target.value)}
                                             />
-                                            <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground group-hover:text-foreground">Exclusive</span>
-                                        </label>
-                                        <label className="flex items-center gap-3 cursor-pointer group">
-                                            <input 
-                                                type="checkbox"
-                                                checked={formData.showOnHome}
-                                                onChange={(e) => setFormData({ ...formData, showOnHome: e.target.checked })}
-                                                className="w-5 h-5 rounded-lg accent-primary"
-                                            />
-                                            <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground group-hover:text-foreground">Show On Home</span>
-                                        </label>
+                                        </div>
+                                        <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 max-h-[350px] overflow-y-auto p-4 bg-muted/10 rounded-[2rem] border border-border custom-scrollbar">
+                                            {products.filter(p => !searchQuery || p.name.toLowerCase().includes(searchQuery.toLowerCase())).map(p => (
+                                                <button 
+                                                    key={p.id}
+                                                    onClick={() => selectedProducts.includes(p.id) ? setSelectedProducts(prev => prev.filter(i => i !== p.id)) : setSelectedProducts(prev => [...prev, p.id])}
+                                                    className={cn("p-5 border rounded-[1.25rem] transition-all text-left flex flex-col gap-2 group/item", 
+                                                        selectedProducts.includes(p.id) ? "bg-primary text-white border-primary shadow-xl shadow-primary/20" : "bg-card border-border hover:border-primary/40 hover:bg-muted/50")}
+                                                >
+                                                    <span className={cn("text-[10px] font-black uppercase truncate", selectedProducts.includes(p.id) ? "text-white" : "text-foreground group-hover/item:text-primary")}>{p.name}</span>
+                                                    <div className="flex items-center justify-between mt-1">
+                                                        <span className={cn("text-[8px] font-black uppercase tracking-widest", selectedProducts.includes(p.id) ? "text-white/80" : "text-muted-foreground opacity-60")}>KSh {Math.round(p.price).toLocaleString()}</span>
+                                                        <div className={cn("w-2 h-2 rounded-full", selectedProducts.includes(p.id) ? "bg-white animate-pulse" : "bg-muted")} />
+                                                    </div>
+                                                </button>
+                                            ))}
+                                        </div>
+                                        {conflictWarnings.length > 0 && (
+                                            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="p-6 bg-rose-500/10 border border-rose-500/20 rounded-2xl flex gap-4 items-start shadow-xl shadow-rose-500/5">
+                                                <AlertTriangle size={20} className="text-rose-500 shrink-0 mt-1" />
+                                                <div className="flex flex-col">
+                                                    <span className="text-[10px] font-black uppercase text-rose-500 tracking-widest">Promotion Conflict Detected</span>
+                                                    <p className="text-[9px] font-bold text-rose-500/70 uppercase leading-relaxed mt-1 tracking-wider italic">The following products already have active promotions: <span className="text-rose-500">{conflictWarnings.join(", ")}</span>.</p>
+                                                </div>
+                                            </motion.div>
+                                        )}
                                     </div>
                                 </div>
 
-                                <div className="flex flex-col gap-3 pt-4 border-t border-border">
-                                    <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest ml-1">SELECT TARGET HARDWARE</label>
-                                    <div className="grid grid-cols-2 gap-2 max-h-[200px] overflow-y-auto p-4 bg-muted/30 rounded-2xl border border-border no-scrollbar">
-                                        {products.map(product => (
-                                            <div 
-                                                key={product.id}
-                                                className={cn(
-                                                    "p-3 rounded-xl border-2 transition-all flex flex-col gap-3 group relative overflow-hidden",
-                                                    selectedProducts.includes(product.id) 
-                                                        ? "border-primary bg-primary/5" 
-                                                        : "border-transparent bg-background hover:border-border"
-                                                )}
-                                            >
-                                                <div 
-                                                    className="flex items-center justify-between cursor-pointer"
-                                                    onClick={() => {
-                                                        if (selectedProducts.includes(product.id)) {
-                                                            setSelectedProducts(selectedProducts.filter(id => id !== product.id))
-                                                            const newStocks = { ...productStocks }
-                                                            delete newStocks[product.id]
-                                                            setProductStocks(newStocks)
-                                                        } else {
-                                                            setSelectedProducts([...selectedProducts, product.id])
-                                                        }
-                                                    }}
-                                                >
-                                                    <div className="flex flex-col gap-0.5">
-                                                        <span className="text-[10px] font-black uppercase truncate max-w-[120px]">{product.name}</span>
-                                                        <span className="text-[8px] font-bold text-muted-foreground">${product.price}</span>
-                                                    </div>
-                                                    <div className={cn(
-                                                        "w-4 h-4 rounded-full border-2 flex items-center justify-center transition-all",
-                                                        selectedProducts.includes(product.id) ? "border-primary bg-primary" : "border-muted-foreground/30"
-                                                    )}>
-                                                        {selectedProducts.includes(product.id) && <CheckCircle2 className="w-3 h-3 text-white" />}
-                                                    </div>
-                                                </div>
-
-                                                {selectedProducts.includes(product.id) && (
-                                                    <div className="flex flex-col gap-1.5 animate-in slide-in-from-top-1 duration-300">
-                                                        <label className="text-[7px] font-black uppercase tracking-widest text-primary/60 ml-0.5">Sale Stock (Optional)</label>
-                                                        <input 
-                                                            type="number"
-                                                            placeholder="Unlimited"
-                                                            className="h-8 bg-white/50 border border-primary/20 rounded-lg px-2 text-[9px] font-bold focus:border-primary outline-none"
-                                                            value={productStocks[product.id] || ""}
-                                                            onClick={(e) => e.stopPropagation()}
-                                                            onChange={(e) => setProductStocks({ ...productStocks, [product.id]: e.target.value })}
-                                                        />
-                                                    </div>
-                                                )}
-                                            </div>
-                                        ))}
+                                {/* SECTION D: SCHEDULING */}
+                                <div className="flex flex-col gap-8">
+                                    <div className="flex items-center gap-4">
+                                        <div className="w-10 h-10 rounded-xl bg-primary text-white flex items-center justify-center shadow-lg shadow-primary/20 font-black italic">D</div>
+                                        <div className="flex flex-col">
+                                            <span className="text-[11px] font-black uppercase tracking-widest text-foreground">Campaign Duration</span>
+                                            <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest opacity-50 font-inter">Set promotion active dates</span>
+                                        </div>
                                     </div>
-                                    <p className="text-[9px] font-bold text-muted-foreground uppercase text-center mt-1">
-                                        {selectedProducts.length} Hardware Units Selected for Synchronization
-                                    </p>
+                                    <div className="grid grid-cols-2 gap-8">
+                                         <div className="flex flex-col gap-3">
+                                            <label className="text-[9px] font-black uppercase text-muted-foreground tracking-widest pl-2 italic">Start Date</label>
+                                            <input 
+                                                type="date"
+                                                className="h-16 bg-muted/40 border border-border rounded-2xl px-6 text-xs font-black uppercase tracking-widest focus:border-primary transition-all outline-none"
+                                                value={formData.startDate}
+                                                onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
+                                            />
+                                        </div>
+                                         <div className="flex flex-col gap-3">
+                                            <div className="flex items-center justify-between px-1">
+                                                <label className="text-[9px] font-black uppercase text-muted-foreground tracking-widest italic opacity-60">End Date</label>
+                                                <button 
+                                                    type="button"
+                                                    onClick={() => setFormData({ ...formData, endDate: formData.endDate === "NEVER" ? new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0] : "NEVER" })}
+                                                    className={cn("text-[8px] font-black uppercase tracking-widest px-2 py-1 rounded border transition-all", formData.endDate === "NEVER" ? "bg-primary text-white border-primary" : "text-muted-foreground border-border")}
+                                                >
+                                                    {formData.endDate === "NEVER" ? "Always Active" : "Set Never Expire"}
+                                                </button>
+                                            </div>
+                                            <input 
+                                                type="date"
+                                                disabled={formData.endDate === "NEVER"}
+                                                className="h-16 bg-muted/40 border border-border rounded-2xl px-6 text-xs font-black uppercase tracking-widest focus:border-primary transition-all outline-none disabled:opacity-20"
+                                                value={formData.endDate === "NEVER" ? "" : formData.endDate}
+                                                onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* SECTION E: STATUS */}
+                                <div className="flex items-center justify-between p-10 bg-muted/20 border border-border rounded-[2.5rem] mt-6 shadow-inner">
+                                    <div className="flex flex-col gap-1">
+                                        <div className="flex items-center gap-2">
+                                            <div className={cn("w-2 h-2 rounded-full", formData.isActive ? "bg-emerald-500 animate-pulse" : "bg-muted")} />
+                                            <span className="text-lg font-black italic uppercase tracking-tighter">Live Status</span>
+                                        </div>
+                                        <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mt-1 opacity-60">Toggle promotion visibility on the storefront.</p>
+                                    </div>
+                                    <button 
+                                        onClick={() => setFormData({ ...formData, isActive: !formData.isActive })}
+                                        className={cn("h-14 px-10 rounded-[1.25rem] text-[11px] font-black uppercase tracking-[0.2em] transition-all shadow-lg italic", 
+                                            formData.isActive ? "bg-emerald-500 text-white shadow-emerald-500/20" : "bg-slate-200 text-slate-500 border border-border/50")}
+                                    >
+                                        {formData.isActive ? "Active" : "Inactive"}
+                                    </button>
                                 </div>
 
                                 <Button 
-                                    type="submit"
-                                    className="h-16 w-full mt-4 bg-primary text-white font-black italic tracking-widest uppercase text-sm rounded-2xl shadow-2xl shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all"
+                                    onClick={savePromotion} 
+                                    disabled={isSaving}
+                                    className="h-24 w-full rounded-[2.5rem] bg-foreground text-background font-black italic tracking-[.4em] uppercase text-sm shadow-2xl mt-8 mb-10 hover:bg-primary hover:text-white transition-all ring-8 ring-background group"
                                 >
-                                    COMMIT PROMOTION REGISTRY
-                                    <ArrowRight className="ml-2 w-5 h-5" />
+                                    {isSaving ? (
+                                        <div className="flex items-center gap-4">
+                                            <RefreshCw className="animate-spin" size={24} />
+                                            <span>SAVING...</span>
+                                        </div>
+                                    ) : (
+                                        <div className="flex items-center gap-4">
+                                            <Save size={24} className="group-hover:scale-125 transition-transform" />
+                                            <span>SAVE PROMOTION</span>
+                                        </div>
+                                    )}
                                 </Button>
-                            </form>
+                            </div>
+
                         </motion.div>
-                    </motion.div>
+                    </div>
                 )}
             </AnimatePresence>
         </div>
     )
-}
+})
+
+PromotionManager.displayName = "PromotionManager"
+

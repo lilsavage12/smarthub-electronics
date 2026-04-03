@@ -91,7 +91,7 @@ export default function ReportsPage() {
     const allReports = [
         ...generatedReports,
         { id: "REP-9201", name: "Monthly Financial Audit", date: "2026-03-01", type: "Financial", size: `${(totalRevenue / 1000).toFixed(1)}K rev`, status: "Archived", format: "PDF" },
-        { id: "REP-9202", name: "Hardware Inventory Delta", date: "2026-03-01", type: "Inventory", size: `${products.length} SKUs`, status: "Archived", format: "XLSX" },
+        { id: "REP-9202", name: "Hardware Inventory Variance", date: "2026-03-01", type: "Inventory", size: `${products.length} SKUs`, status: "Archived", format: "XLSX" },
         { id: "REP-9203", name: "Customer Affinity Report", date: "2026-02-15", type: "CRM", size: `${customers.length} users`, status: "Archived", format: "PDF" },
         { id: "REP-9204", name: "Order Fulfillment Analysis", date: "2026-02-10", type: "Sales", size: `${orders.length} orders`, status: "Archived", format: "PDF" },
     ]
@@ -108,8 +108,8 @@ export default function ReportsPage() {
             {/* Header */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                 <div className="flex flex-col gap-1">
-                    <h1 className="text-3xl font-black tracking-tight text-foreground italic uppercase">Intelligence Archive & Reports</h1>
-                    <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest leading-none">Live-data exports & structured business intelligence logs.</p>
+                    <h1 className="text-3xl font-black tracking-tight text-foreground italic uppercase leading-none">Reports & <span className="text-primary">Analytics</span></h1>
+                    <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest leading-none mt-2">Generate business insights and access historical data reports.</p>
                 </div>
                 <div className="flex items-center gap-3">
                     <Button
@@ -118,7 +118,7 @@ export default function ReportsPage() {
                         className="h-12 px-8 rounded-xl bg-primary text-primary-foreground font-black italic uppercase tracking-widest text-[10px] gap-3 shadow-lg shadow-primary/20 transition-all hover:opacity-90 active:scale-95"
                     >
                         {isGenerating ? <RefreshCw size={18} className="animate-spin" /> : <Plus size={20} />}
-                        {isGenerating ? "PROCESSING..." : "GENERATE INTEL"}
+                        {isGenerating ? "PROCESSING..." : "GENERATE REPORT"}
                     </Button>
                 </div>
             </div>
@@ -146,7 +146,7 @@ export default function ReportsPage() {
                 {/* Generation Control */}
                 <Card className="rounded-[2.5rem] border-border shadow-sm overflow-hidden bg-card">
                     <CardHeader className="p-8 border-b border-border bg-muted/30">
-                        <CardTitle className="text-lg font-black italic uppercase tracking-tighter">Request Generation</CardTitle>
+                        <CardTitle className="text-lg font-black italic uppercase tracking-tighter">Generate Report</CardTitle>
                     </CardHeader>
                     <CardContent className="p-8 flex flex-col gap-8">
                         <div className="flex flex-col gap-4">
@@ -165,7 +165,7 @@ export default function ReportsPage() {
                                 </select>
                             </div>
                             <div className="flex flex-col gap-1.5">
-                                <label className="text-[9px] font-black uppercase tracking-widest text-muted-foreground ml-4 opacity-60">Temporal Period</label>
+                                <label className="text-[9px] font-black uppercase tracking-widest text-muted-foreground ml-4 opacity-60">Report Period</label>
                                 <select className="h-12 w-full bg-muted border border-border/50 rounded-2xl px-4 outline-none text-xs font-bold uppercase tracking-widest focus:border-primary/20 transition-all text-foreground">
                                     <option>Last 7 Days</option>
                                     <option>Last 30 Days</option>
@@ -174,7 +174,7 @@ export default function ReportsPage() {
                                 </select>
                             </div>
                             <div className="flex flex-col gap-1.5">
-                                <label className="text-[9px] font-black uppercase tracking-widest text-muted-foreground ml-4 opacity-60">Export Protocol</label>
+                                <label className="text-[9px] font-black uppercase tracking-widest text-muted-foreground ml-4 opacity-60">Export Format</label>
                                 <div className="grid grid-cols-2 gap-2">
                                     {["PDF", "XLSX"].map(fmt => (
                                         <button
@@ -216,7 +216,7 @@ export default function ReportsPage() {
                             disabled={isGenerating}
                             className="h-14 w-full rounded-2xl bg-primary text-white font-black italic tracking-widest uppercase shadow-xl shadow-primary/20 hover:opacity-90 active:scale-95 transition-all text-[10px]"
                         >
-                            {isGenerating ? "INITIALIZING..." : "INITIALIZE EXPORT"}
+                            {isGenerating ? "INITIALIZING..." : "GENERATE EXPORT"}
                         </Button>
                     </CardContent>
                 </Card>
@@ -225,8 +225,8 @@ export default function ReportsPage() {
                 <Card className="xl:col-span-3 rounded-[2.5rem] border-border shadow-sm overflow-hidden bg-card">
                     <CardHeader className="p-8 border-b border-border flex flex-row items-center justify-between">
                         <div className="flex flex-col">
-                            <CardTitle className="text-xl font-black italic tracking-tight uppercase">Intelligence Archive</CardTitle>
-                            <span className="text-[10px] text-muted-foreground font-black uppercase tracking-widest italic mt-0.5">Historical data exports & audit trails — powered by live database</span>
+                            <CardTitle className="text-xl font-black italic tracking-tight uppercase">Report Archive</CardTitle>
+                            <span className="text-[10px] text-muted-foreground font-black uppercase tracking-widest italic mt-0.5">Historical data exports & audit records — powered by live database</span>
                         </div>
                         <div className="flex items-center gap-2">
                             <div className="flex items-center gap-1.5 px-3 py-1.5 bg-primary/10 rounded-xl">
@@ -240,11 +240,11 @@ export default function ReportsPage() {
                             <table className="w-full text-left">
                                 <thead className="bg-muted/50">
                                     <tr className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
-                                        <th className="px-8 py-5">Intel Name & ID</th>
+                                        <th className="px-8 py-5">Report Name & ID</th>
                                         <th className="px-8 py-5">Category</th>
                                         <th className="px-8 py-5 text-right">Data Payload</th>
                                         <th className="px-8 py-5">Status</th>
-                                        <th className="px-8 py-5 text-right">Ops</th>
+                                        <th className="px-8 py-4 text-right">Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-border/30">
@@ -308,13 +308,11 @@ export default function ReportsPage() {
                             <div className="p-3 bg-muted rounded-2xl group-hover:bg-white/10 w-fit transition-colors">
                                 {React.cloneElement(box.icon as React.ReactElement<any>, { size: 24 })}
                             </div>
-                            <div className="flex flex-col gap-1">
-                                <h4 className="text-sm font-black uppercase text-foreground group-hover:text-white transition-colors">{box.label}</h4>
-                                <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest leading-none group-hover:text-white/70 transition-colors">
-                                    {isLoading ? "Loading..." : box.val}
-                                </span>
-                            </div>
-                            <div className="flex items-center gap-2 text-primary group-hover:text-white opacity-0 group-hover:opacity-100 transition-all">
+                                <div className="flex flex-col gap-1">
+                                    <h3 className="text-sm font-black italic uppercase tracking-tighter">Data Export</h3>
+                                    <p className="text-[9px] font-black text-muted-foreground uppercase tracking-widest opacity-60">Export comprehensive activity reports for business analysis.</p>
+                                </div>
+                                <div className="flex items-center gap-2 text-primary group-hover:text-white opacity-0 group-hover:opacity-100 transition-all">
                                 <span className="text-[10px] font-black uppercase italic">Access Database</span>
                                 <ArrowRight size={14} />
                             </div>

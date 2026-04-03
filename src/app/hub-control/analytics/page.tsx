@@ -59,10 +59,10 @@ export default function AnalyticsPage() {
         value: Math.floor((orders.filter(o => o.items?.some((item: any) => item.name.startsWith(cat))).length / orders.length) * 100) || 0,
         color: `hsl(var(--primary) / ${1 - i * 0.2})`
     })) : [
-        { name: "Alpha", value: 55, color: "hsl(var(--primary))" },
-        { name: "Beta", value: 25, color: "hsl(var(--primary) / 0.7)" },
-        { name: "Gamma", value: 12, color: "hsl(var(--primary) / 0.4)" },
-        { name: "Delta", value: 8, color: "hsl(var(--primary) / 0.2)" },
+        { name: "Mobile", value: 55, color: "hsl(var(--primary))" },
+        { name: "Laptops", value: 25, color: "hsl(var(--primary) / 0.7)" },
+        { name: "Audio", value: 12, color: "hsl(var(--primary) / 0.4)" },
+        { name: "Accessories", value: 8, color: "hsl(var(--primary) / 0.2)" },
     ]
 
     const totalRevenue = orders.reduce((acc, o) => acc + (o.totalAmount || 0), 0)
@@ -73,12 +73,12 @@ export default function AnalyticsPage() {
             {/* Header */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                 <div className="flex flex-col gap-1">
-                    <h1 className="text-3xl font-black tracking-tight text-foreground italic uppercase">Intelligence & Analytics</h1>
-                    <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest leading-none">Processing hardware demand signals & behavioral silos.</p>
+                    <h1 className="text-3xl font-black tracking-tight text-foreground italic uppercase">Customer Analytics</h1>
+                    <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest leading-none">Processing market trends and customer behavior.</p>
                 </div>
                 <div className="flex items-center gap-3">
                     <Button
-                        onClick={() => toast("Time-series granularity unlocked. Adjusting silos...", { icon: "📅" })}
+                        onClick={() => toast("Time-series granularity updated. Adjusting view...", { icon: "📅" })}
                         variant="outline"
                         className="h-12 px-6 rounded-2xl border-border font-black italic uppercase tracking-widest text-[10px] gap-2"
                     >
@@ -87,13 +87,13 @@ export default function AnalyticsPage() {
                     </Button>
                     <Button
                         onClick={() => {
-                            const tid = toast.loading("Compiling raw behavioral telemetry...")
-                            setTimeout(() => toast.success("Data dump ready for secure download", { id: tid }), 2000)
+                            const tid = toast.loading("Compiling raw customer data...")
+                            setTimeout(() => toast.success("Data export ready for secure download", { id: tid }), 2000)
                         }}
                         className="h-12 px-6 rounded-2xl bg-primary text-primary-foreground font-black italic uppercase tracking-widest text-[10px] gap-2 shadow-xl shadow-primary/10 transition-all hover:opacity-90"
                     >
                         <Download size={20} />
-                        FULL DATA DUMP
+                        EXPORT DATA
                     </Button>
                 </div>
             </div>
@@ -101,10 +101,10 @@ export default function AnalyticsPage() {
             {/* Core Metrics */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                 {[
-                    { label: "Visits (Protocol)", value: "12,452", icon: <Eye size={20} className="text-primary" />, sub: "5.2% unique daily" },
-                    { label: "Conversion Delta", value: "3.24%", icon: <Target size={20} className="text-primary" />, sub: "+0.2% vs last week" },
+                    { label: "Site Visits", value: "12,452", icon: <Eye size={20} className="text-primary" />, sub: "5.2% unique daily" },
+                    { label: "Conversion Rate", value: "3.24%", icon: <Target size={20} className="text-primary" />, sub: "+0.2% vs last week" },
                     { label: "Engagement", value: "84%", icon: <Activity size={20} className="text-primary" />, sub: "Session depth high" },
-                    { label: "Revenue Momentum", value: `+${Math.floor(Math.random() * 20 + 10)}%`, icon: <TrendingUp size={20} className="text-primary" />, sub: "Alpha trajectory" }
+                    { label: "Revenue Momentum", value: `+${Math.floor(Math.random() * 20 + 10)}%`, icon: <TrendingUp size={20} className="text-primary" />, sub: "Target trajectory" }
                 ].map((stat, i) => (
                     <Card key={i} className="rounded-2xl border-border shadow-sm p-6 bg-card flex flex-col gap-4 group hover:shadow-xl transition-all cursor-pointer relative overflow-hidden">
                         <div className="absolute inset-0 bg-primary/5 opacity-0 group-hover:opacity-100 transition-opacity" />
@@ -127,8 +127,8 @@ export default function AnalyticsPage() {
                 <Card className="xl:col-span-2 rounded-[2.5rem] border-border shadow-sm overflow-hidden bg-card transition-colors">
                     <CardHeader className="p-8 border-b border-border flex flex-row items-center justify-between">
                         <div className="flex flex-col">
-                            <CardTitle className="text-xl font-black italic tracking-tight uppercase">Revenue Trajectory</CardTitle>
-                            <span className="text-[10px] text-muted-foreground font-black uppercase tracking-widest italic leading-none">Protocol sales vs Fulfillment logs</span>
+                            <CardTitle className="text-xl font-black italic tracking-tight uppercase">Revenue Performance</CardTitle>
+                            <span className="text-[10px] text-muted-foreground font-black uppercase tracking-widest italic leading-none">Sales performance vs fulfillment goals</span>
                         </div>
                         <div className="flex items-center gap-2">
                             <div className="flex items-center gap-2 bg-muted p-1 rounded-xl">
@@ -180,8 +180,8 @@ export default function AnalyticsPage() {
                 <Card className="rounded-[2.5rem] border-border shadow-sm overflow-hidden bg-card transition-colors">
                     <CardHeader className="p-8 border-b border-border">
                         <div className="flex flex-col">
-                            <CardTitle className="text-xl font-black italic tracking-tight uppercase">Silo Share</CardTitle>
-                            <span className="text-[10px] text-muted-foreground font-black uppercase tracking-widest italic leading-none">Market capture by hardware brand</span>
+                            <CardTitle className="text-xl font-black italic tracking-tight uppercase">Market Share</CardTitle>
+                            <span className="text-[10px] text-muted-foreground font-black uppercase tracking-widest italic leading-none">Market capture by brand category</span>
                         </div>
                     </CardHeader>
                     <CardContent className="p-8 flex flex-col items-center">
@@ -222,9 +222,9 @@ export default function AnalyticsPage() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-12">
                 {[
-                    { label: "Avg. Basket Size", value: `$${avgBasket.toLocaleString(undefined, { maximumFractionDigits: 0 })}`, icon: <ShoppingCart size={18} />, sub: "+4.2% HIGHER THAN PREVIOUS CYCLE", color: "text-primary" },
-                    { label: "Session Depth", value: "4m 24s", icon: <MousePointer2 size={18} />, sub: "HIGHER ENGAGEMENT RECORDED", color: "text-primary" },
-                    { label: "Cart Protocol Leak", value: "12.4%", icon: <Zap size={18} />, sub: "DROP-OFF AT PAYMENT STAGE", color: "text-destructive" }
+                    { label: "Avg. Order Value", value: `$${avgBasket.toLocaleString(undefined, { maximumFractionDigits: 0 })}`, icon: <ShoppingCart size={18} />, sub: "+4.2% HIGHER THAN PREVIOUS PERIOD", color: "text-primary" },
+                    { label: "Session Duration", value: "4m 24s", icon: <MousePointer2 size={18} />, sub: "HIGHER ENGAGEMENT RECORDED", color: "text-primary" },
+                    { label: "Checkout Drop-off", value: "12.4%", icon: <Zap size={18} />, sub: "DROP-OFF AT PAYMENT STAGE", color: "text-destructive" }
                 ].map((stat, i) => (
                     <Card key={i} className="rounded-[2.5rem] border-border shadow-sm overflow-hidden bg-card p-8 group transition-all hover:bg-primary hover:text-primary-foreground relative">
                         <div className="flex flex-col gap-6 relative z-10">

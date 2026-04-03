@@ -35,6 +35,17 @@ const config: Config = {
           DEFAULT: "hsl(var(--destructive))",
           foreground: "hsl(var(--destructive-foreground))",
         },
+        success: {
+          DEFAULT: "hsl(var(--success))",
+          foreground: "hsl(var(--success-foreground))",
+        },
+        warning: {
+          DEFAULT: "hsl(var(--warning))",
+          foreground: "hsl(var(--warning-foreground))",
+        },
+        price: {
+          DEFAULT: "hsl(var(--price))",
+        },
         muted: {
           DEFAULT: "hsl(var(--muted))",
           foreground: "hsl(var(--muted-foreground))",
@@ -73,6 +84,24 @@ const config: Config = {
           "blue": "#3B82F6",
           "gold": "#D4AF37",
         }
+      },
+      fontSize: {
+        'xs-fluid': 'var(--fs-xs)',
+        'sm-fluid': 'var(--fs-sm)',
+        'base-fluid': 'var(--fs-base)',
+        'lg-fluid': 'var(--fs-lg)',
+        'xl-fluid': 'var(--fs-xl)',
+        '2xl-fluid': 'var(--fs-2xl)',
+        '3xl-fluid': 'var(--fs-3xl)',
+        '4xl-fluid': 'var(--fs-4xl)',
+        '5xl-fluid': 'var(--fs-5xl)',
+      },
+      spacing: {
+        'xs-fluid': 'var(--space-xs)',
+        'sm-fluid': 'var(--space-sm)',
+        'md-fluid': 'var(--space-md)',
+        'lg-fluid': 'var(--space-lg)',
+        'xl-fluid': 'var(--space-xl)',
       },
       borderRadius: {
         lg: "var(--radius)",

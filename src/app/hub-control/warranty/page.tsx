@@ -13,29 +13,29 @@ import { motion, AnimatePresence } from "framer-motion"
 import { cn } from "@/lib/utils"
 import { toast } from "react-hot-toast"
 
-const WARRANTY_LOGS = [
-    { id: "RMA-0421", date: "2026-03-02", model: "iPhone 16 Pro Max", variant: "Titanium / 256GB", customer: "John Carter", status: "In Inspection", statusColor: "text-blue-500 bg-blue-50", type: "Defective Hardware", warranty: "Active (18M left)" },
-    { id: "RMA-0422", date: "2026-03-01", model: "Samsung S24 Ultra", variant: "Silver / 512GB", customer: "Alice Morgan", status: "Replacement Authorized", statusColor: "text-emerald-500 bg-emerald-50", type: "Display Defect", warranty: "Active (22M left)" },
-    { id: "RMA-0423", date: "2026-03-01", model: "Lumina ZX", variant: "Aurora", customer: "Marcus Chen", status: "Refund Pending", statusColor: "text-amber-500 bg-amber-50", type: "Battery Failure", warranty: "Active (12M left)" },
-    { id: "RMA-0424", date: "2026-02-28", model: "iPhone 15 Pro", variant: "Blue", customer: "David Wilson", status: "RMA Denied", statusColor: "text-red-500 bg-red-50", type: "Water Damage", warranty: "Voided" },
+const RETURN_LOGS = [
+    { id: "RET-0421", date: "2026-03-02", model: "iPhone 16 Pro Max", variant: "Titanium / 256GB", customer: "John Carter", status: "In Inspection", statusColor: "text-blue-500 bg-blue-50", type: "Defective Hardware", warranty: "Active (18M left)" },
+    { id: "RET-0422", date: "2026-03-01", model: "Samsung S24 Ultra", variant: "Silver / 512GB", customer: "Alice Morgan", status: "Replacement Authorized", statusColor: "text-emerald-500 bg-emerald-50", type: "Display Defect", warranty: "Active (22M left)" },
+    { id: "RET-0423", date: "2026-03-01", model: "iPhone 16 Pro", variant: "Black", customer: "Marcus Chen", status: "Refund Pending", statusColor: "text-amber-500 bg-amber-50", type: "Battery Failure", warranty: "Active (12M left)" },
+    { id: "RET-0424", date: "2026-02-28", model: "iPhone 15 Pro", variant: "Blue", customer: "David Wilson", status: "Return Denied", statusColor: "text-red-500 bg-red-50", type: "Water Damage", warranty: "Voided" },
 ]
 
 export default function WarrantyPage() {
     const [searchQuery, setSearchQuery] = useState("")
-    const [statusFilter, setStatusFilter] = useState("All RMA")
+    const [statusFilter, setStatusFilter] = useState("All Returns")
 
     return (
         <div className="flex flex-col gap-10">
             {/* Header */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                 <div className="flex flex-col gap-1">
-                    <h1 className="text-3xl font-black tracking-tight text-foreground italic uppercase">Returns & Warranty Protocol</h1>
-                    <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mt-2">Managing hardware RMA, warranty voids, and replacement logistics.</p>
+                    <h1 className="text-3xl font-black tracking-tight text-foreground italic uppercase">Warranty & Returns</h1>
+                    <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mt-2">Managing product returns, warranty status, and replacement logistics.</p>
                 </div>
                 <div className="flex items-center gap-3">
                     <Button className="h-12 px-6 rounded-xl bg-primary text-primary-foreground font-black italic uppercase tracking-widest text-[10px] gap-2 shadow-xl shadow-primary/20 hover:opacity-90 transition-all">
                         <Plus size={20} />
-                        START NEW RMA
+                        INITIATE RETURN
                     </Button>
                 </div>
             </div>
@@ -44,7 +44,7 @@ export default function WarrantyPage() {
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                 {[
                     { label: "Active Warranties", value: "842 Units", icon: <ShieldCheck size={20} className="text-emerald-500" />, sub: "98.4% Health Score" },
-                    { label: "Pending RMA", value: "6 Cases", icon: <AlertTriangle size={20} className="text-amber-500" />, sub: "48h response target" },
+                    { label: "Pending Returns", value: "6 Cases", icon: <AlertTriangle size={20} className="text-amber-500" />, sub: "48h response target" },
                     { label: "Replacement Rate", value: "1.2%", icon: <RefreshCw size={20} className="text-blue-500" />, sub: "Hardware stability high" },
                     { label: "Warranty Payouts", value: "$1,245", icon: <DollarSign size={20} className="text-red-500" />, sub: "Current month cost" }
                 ].map((stat, i) => (
@@ -70,14 +70,14 @@ export default function WarrantyPage() {
                     <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
                     <input
                         type="text"
-                        placeholder="Search RMA ID, Customer, or Smartphone..."
+                        placeholder="Search Return ID, Customer, or Product..."
                         className="w-full h-12 bg-muted rounded-2xl pl-12 pr-4 outline-none border border-transparent focus:border-primary/20 focus:bg-card transition-all text-[10px] font-black uppercase tracking-widest text-foreground placeholder:text-muted-foreground/50"
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                     />
                 </div>
                 <div className="flex items-center gap-2 overflow-x-auto no-scrollbar w-full lg:w-auto pb-1 lg:pb-0">
-                    {["All RMA", "Inspecting", "Authorized", "Refunded", "Denied"].map(ts => (
+                    {["All Returns", "Inspecting", "Authorized", "Refunded", "Denied"].map(ts => (
                         <button
                             key={ts}
                             onClick={() => setStatusFilter(ts)}
@@ -100,8 +100,8 @@ export default function WarrantyPage() {
                 <Card className="lg:col-span-2 rounded-[2.5rem] border-border shadow-sm overflow-hidden bg-card transition-colors h-full">
                     <CardHeader className="p-8 border-b border-border">
                         <div className="flex flex-col gap-1">
-                            <CardTitle className="text-xl font-black italic tracking-tight uppercase">RMA Logistics Hub</CardTitle>
-                            <span className="text-[10px] text-muted-foreground font-black uppercase tracking-widest italic">Active return merchandise authorization flow</span>
+                            <CardTitle className="text-xl font-black italic tracking-tight uppercase">Returns & Service Hub</CardTitle>
+                            <span className="text-[10px] text-muted-foreground font-black uppercase tracking-widest italic">Product return and service flow management</span>
                         </div>
                     </CardHeader>
                     <CardContent className="p-0">
@@ -110,14 +110,14 @@ export default function WarrantyPage() {
                                 <thead className="bg-muted">
                                     <tr className="text-[10px] font-black uppercase tracking-widest text-muted-foreground opacity-60">
                                         <th className="px-8 py-5">Case ID & Date</th>
-                                        <th className="px-8 py-5">Hardware Logic</th>
-                                        <th className="px-8 py-5">Issue Identity</th>
-                                        <th className="px-8 py-5">Status Protocol</th>
-                                        <th className="px-8 py-5 text-right">Ops</th>
+                                        <th className="px-8 py-5">Product Details</th>
+                                        <th className="px-8 py-5">Issue Type</th>
+                                        <th className="px-8 py-5">Status</th>
+                                        <th className="px-8 py-5 text-right">Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-border">
-                                    {WARRANTY_LOGS.map((rma, i) => (
+                                    {RETURN_LOGS.map((rma, i) => (
                                         <tr key={i} className="hover:bg-slate-50/30 transition-colors group">
                                             <td className="px-8 py-6">
                                                 <div className="flex flex-col gap-1">
@@ -156,7 +156,7 @@ export default function WarrantyPage() {
                         </div>
                         <div className="p-8 border-t border-border flex justify-center bg-muted/20">
                             <Button variant="link" className="text-[10px] font-black italic text-primary uppercase tracking-widest gap-2">
-                                VIEW HISTORICAL RMA DATABASE
+                                VIEW HISTORICAL SERVICE RECORDS
                                 <ArrowRight size={14} />
                             </Button>
                         </div>
@@ -169,13 +169,13 @@ export default function WarrantyPage() {
                         <CardHeader className="p-8 border-b border-border bg-primary text-primary-foreground">
                             <div className="flex flex-col gap-1">
                                 <CardTitle className="text-lg font-black italic uppercase tracking-tighter">Warranty Verification</CardTitle>
-                                <span className="text-[10px] font-black tracking-widest uppercase opacity-60">SH-VERIFY-V1 PROTOCOL</span>
+                                <span className="text-[10px] font-black tracking-widest uppercase opacity-60">VERIFICATION SYSTEM</span>
                             </div>
                         </CardHeader>
                         <CardContent className="p-8 flex flex-col gap-6">
                             <div className="flex flex-col gap-6">
                                 <div className="flex flex-col gap-2">
-                                    <label className="text-[9px] font-black uppercase tracking-widest text-muted-foreground ml-4">IMEI / Serial Hub</label>
+                                    <label className="text-[9px] font-black uppercase tracking-widest text-muted-foreground ml-4">IMEI / Serial Number</label>
                                     <div className="relative">
                                         <Smartphone className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground" size={16} />
                                         <input
@@ -186,7 +186,7 @@ export default function WarrantyPage() {
                                     </div>
                                 </div>
                                 <Button className="h-14 w-full rounded-2xl bg-primary text-primary-foreground font-black italic tracking-widest uppercase shadow-xl shadow-primary/20 hover:opacity-90 transition-all">
-                                    RUN AUTHENTICATION
+                                    VERIFY WARRANTY
                                 </Button>
                             </div>
 
@@ -195,8 +195,8 @@ export default function WarrantyPage() {
                                     <Clock size={40} className="text-primary stroke-[1.5px] animate-pulse" />
                                 </div>
                                 <div className="flex flex-col gap-2">
-                                    <h4 className="text-sm font-black italic uppercase tracking-tight text-foreground leading-none">Awaiting Identity Input</h4>
-                                    <p className="text-[9px] font-black text-muted-foreground leading-relaxed uppercase opacity-60 tracking-widest italic">Enter hardware digital signature to retrieve warranty status and history.</p>
+                                    <h4 className="text-sm font-black italic uppercase tracking-tight text-foreground leading-none">Awaiting Device Input</h4>
+                                    <p className="text-[9px] font-black text-muted-foreground leading-relaxed uppercase opacity-60 tracking-widest italic">Enter device identifier to retrieve warranty status and history.</p>
                                 </div>
                             </div>
                         </CardContent>
@@ -204,15 +204,15 @@ export default function WarrantyPage() {
 
                     <Card className="rounded-[2.5rem] border-border shadow-sm overflow-hidden bg-card transition-colors h-full">
                         <CardHeader className="p-8 border-b border-border">
-                            <CardTitle className="text-lg font-black italic uppercase tracking-tight">Defect Log Density</CardTitle>
+                            <CardTitle className="text-lg font-black italic uppercase tracking-tight">Defect Rate Analysis</CardTitle>
                         </CardHeader>
                         <CardContent className="p-8 flex flex-col gap-8">
                             <div className="flex flex-col gap-6">
                                 {[
                                     { part: "Display / Panel", rate: 55, color: "bg-blue-500" },
-                                    { part: "Battery Logic", rate: 25, color: "bg-emerald-500" },
+                                    { part: "Battery System", rate: 25, color: "bg-emerald-500" },
                                     { part: "Network Modem", rate: 12, color: "bg-amber-500" },
-                                    { part: "Optics Control", rate: 8, color: "bg-red-500" },
+                                    { part: "Camera System", rate: 8, color: "bg-red-500" },
                                 ].map((part, i) => (
                                     <div key={i} className="flex flex-col gap-2">
                                         <div className="flex items-center justify-between">

@@ -11,15 +11,12 @@ export interface WishlistItem {
 
 interface WishlistStore {
     items: any[] // Full product objects
-    isLoaded: boolean
-    isSyncing: boolean
-    
     // Actions
-    toggleWishlist: (productId: string, userId?: string) => Promise<void>
+    toggleWishlist: (productOrId: any, userId?: string) => Promise<void>
+    isLoaded: boolean
     isInWishlist: (productId: string) => boolean
-    syncOnLogin: (userId: string) => Promise<void>
-    loadWishlist: (userId: string) => Promise<void>
     removeItem: (productId: string, userId?: string) => Promise<void>
+    loadWishlist: (userId: string) => Promise<void>
 }
 
 export const useWishlist = create<WishlistStore>()(
@@ -27,85 +24,42 @@ export const useWishlist = create<WishlistStore>()(
         (set, get) => ({
             items: [],
             isLoaded: false,
-            isSyncing: false,
+
+            loadWishlist: async (userId: string) => {
+                if (!userId) return
+                try {
+                    const res = await fetch(`/api/wishlist?userId=${userId}`)
+                    if (res.ok) {
+                        const data = await res.json()
+                        set({ items: data, isLoaded: true })
+                    }
+                } catch (err) {
+                    console.error("Wishlist sync failed", err)
+                    set({ isLoaded: true })
+                }
+            },
             
-            toggleWishlist: async (productId, userId) => {
+            toggleWishlist: async (productOrId: any, userId?: string) => {
+                const productId = typeof productOrId === 'string' ? productOrId : (productOrId.id || productOrId.productId).toString()
                 const current = get().items
-                const exists = current.some(i => (i.productId || i.id) === productId)
+                const exists = current.some(i => (i.productId || i.id).toString() === productId)
                 
-                // 1. Optimistic Update (IDs only if we don't have full data yet)
+                // 1. Optimistic Update (Store full object if provided)
                 if (exists) {
-                    set({ items: current.filter(i => (i.productId || i.id) !== productId) })
+                    set({ items: current.filter(i => (i.productId || i.id).toString() !== productId) })
                 } else {
-                    // For optimistic add, we might not have all details, but we add the ID
-                    set({ items: [...current, { id: productId, productId }] })
+                    const newItem = typeof productOrId === 'object' ? productOrId : { id: productId, productId }
+                    set({ items: [...current, newItem] })
                 }
 
-                // 2. Database Sync
-                if (userId) {
-                    try {
-                        const method = exists ? 'DELETE' : 'POST'
-                        const res = await fetch('/api/wishlist', {
-                            method,
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ userId, productId })
-                        })
-                        
-                        if (res.ok) {
-                            // Refresh to get full product objects
-                            get().loadWishlist(userId)
-                        }
-                    } catch (error) {
-                        set({ items: current })
-                        toast.error("Wishlist sync failed")
-                    }
-                }
             },
 
             removeItem: async (productId, userId) => {
                 await get().toggleWishlist(productId, userId)
             },
             
-            isInWishlist: (productId) => get().items.some(i => (i.productId || i.id) === productId),
+            isInWishlist: (productId) => get().items.some(i => (i.productId || i.id).toString() === productId.toString()),
             
-            loadWishlist: async (userId) => {
-                if (!userId) return
-                try {
-                    const res = await fetch(`/api/wishlist?userId=${userId}`)
-                    if (res.ok) {
-                        const data = await res.json()
-                        set({ items: data.items, isLoaded: true })
-                    }
-                } catch (error) {
-                    console.error("Wishlist fetch failed:", error)
-                }
-            },
-
-            syncOnLogin: async (userId) => {
-                if (!userId || get().isSyncing) return
-                
-                set({ isSyncing: true })
-                const localItems = get().items
-                // Send full objects so the server can extract productId correctly
-                const localPayload = localItems.map(i => ({ id: i.id, productId: i.productId || i.id }))
-
-                try {
-                    const res = await fetch('/api/wishlist/sync', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ userId, items: localPayload })
-                    })
-                    
-                    if (res.ok) {
-                        const data = await res.json()
-                        set({ items: data.items, isLoaded: true })
-                    }
-                } catch (error) {
-                    console.error("Wishlist sync failed:", error)
-                } finally {
-                    set({ isSyncing: false })
-                }
-            }
         }),
         {
             name: 'smarthub-wishlist-sync-v2',

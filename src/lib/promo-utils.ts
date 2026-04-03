@@ -28,9 +28,15 @@ export function getEffectivePromotion(productPromotions: Promotion[]) {
     // Filter active promotions
     const activePromos = productPromotions.filter(p => {
         const start = new Date(p.startDate)
-        const end = new Date(p.endDate)
+        const end = p.endDate ? new Date(p.endDate) : null
         const hasStock = p.saleStock === null || p.saleStock === undefined || (p.soldInPromo || 0) < p.saleStock
-        return p.isActive && now >= start && now <= end && hasStock
+        const isActive = p.isActive && now >= start && (!end || now <= end) && hasStock
+        
+        if (p.isActive) {
+            console.log(`[PROMO DIAGNOSTIC] Title: ${p.title} | Now: ${now.toISOString()} | Start: ${start.toISOString()} | End: ${end?.toISOString() || 'NULL'} | Active: ${isActive}`);
+        }
+        
+        return isActive
     })
 
     if (activePromos.length === 0) return null
@@ -60,8 +66,40 @@ export function calculateDiscountedPrice(originalPrice: number, promo: Promotion
     }
 
     return {
-        discountedPrice: Math.max(0, discountedPrice),
-        savings,
-        percentOff
+        discountedPrice: Math.round(Math.max(0, discountedPrice)),
+        savings: Math.round(savings),
+        percentOff: Math.round(percentOff)
     }
+}
+
+/**
+ * Calculates the average unit price for a given quantity target, 
+ * factoring in limited promotional stock (Mixed Pricing Model).
+ */
+export function calculateMixedPrice(originalPrice: number, quantity: number, promo: any | null) {
+    if (!promo || quantity <= 0) return originalPrice
+
+    const saleStock = promo.saleStock
+    const soldInPromo = promo.soldInPromo || 0
+    const remainingInPromo = (saleStock !== null && saleStock !== undefined) 
+        ? Math.max(0, saleStock - soldInPromo) 
+        : Infinity
+    
+    // Units that get the discount
+    const discountedQty = Math.min(quantity, remainingInPromo)
+    // Units at full price
+    const fullPriceQty = Math.max(0, quantity - discountedQty)
+    
+    // Calculate single unit discount
+    const { discountedPrice } = calculateDiscountedPrice(originalPrice, promo)
+    
+    // Return average price for the cart line item
+    const totalLinePrice = (discountedQty * discountedPrice) + (fullPriceQty * originalPrice)
+    return Number((totalLinePrice / quantity).toFixed(2))
+}
+
+export function calculateFinalPrice(originalPrice: number, promos: any[]) {
+    const promo = getEffectivePromotion(promos)
+    const { discountedPrice } = calculateDiscountedPrice(originalPrice, promo)
+    return discountedPrice
 }

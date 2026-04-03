@@ -29,7 +29,7 @@ export async function POST(req: Request) {
             .maybeSingle()
 
         if (!profile) {
-            const SESSION_MODIFIER = 30 * 24 * 60 * 60 // 30 days
+            const SESSION_MODIFIER = 90 * 24 * 60 * 60 // 90 days
             
             const userData = {
                 id: authData.user.id,
@@ -41,7 +41,7 @@ export async function POST(req: Request) {
                 success: true,
                 user: userData
             })
-            // Set cookie for middleware
+            // Set cookie for proxy
             response.cookies.set('sb-access-token', authData.session.access_token, {
                 path: '/',
                 maxAge: SESSION_MODIFIER,
@@ -52,7 +52,7 @@ export async function POST(req: Request) {
             return response
         }
 
-        const SESSION_MODIFIER = 30 * 24 * 60 * 60 // 30 days
+        const SESSION_MODIFIER = 90 * 24 * 60 * 60 // 90 days
         
         const response = NextResponse.json({
             success: true,
@@ -65,7 +65,7 @@ export async function POST(req: Request) {
             }
         })
 
-        // Set cookie for middleware
+        // Set cookie for proxy
         response.cookies.set('sb-access-token', authData.session.access_token, {
             path: '/',
             maxAge: SESSION_MODIFIER,

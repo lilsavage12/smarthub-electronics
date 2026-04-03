@@ -1,4 +1,3 @@
-
 import { NextResponse } from "next/server"
 import { supabaseAdmin } from "@/lib/supabase"
 import { verifyAdmin } from "@/lib/server-auth"
@@ -10,13 +9,14 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
         }
 
         const { id: orderId } = await params
-        const { status, message, notes, trackingNumber, courier, estimatedDelivery } = await req.json()
+        const body = await req.json()
+        const { status, message, notes, trackingNumber, courier, estimatedDelivery } = body
 
         if (!status) {
             return NextResponse.json({ error: "Status is required" }, { status: 400 })
         }
 
-        // 1. Update Order table
+        // 1. Prepare Update Metadata
         const updateData: any = { 
             status, 
             updatedAt: new Date().toISOString() 
@@ -26,43 +26,37 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
         if (courier !== undefined) updateData.courier = courier
         if (estimatedDelivery !== undefined) updateData.estimatedDelivery = estimatedDelivery
 
-        const { error: updateError } = await supabaseAdmin
+        // 2. Update Supabase
+        const { data: supabaseOrder, error: fetchError } = await supabaseAdmin
+            .from('Order')
+            .select('*')
+            .eq('id', orderId)
+            .maybeSingle()
+
+        if (fetchError) throw fetchError
+        if (!supabaseOrder) {
+            return NextResponse.json({ error: "Order not found" }, { status: 404 })
+        }
+
+        const { error: sbUpdateError } = await supabaseAdmin
             .from('Order')
             .update(updateData)
             .eq('id', orderId)
 
-        if (updateError) throw updateError
+        if (sbUpdateError) throw sbUpdateError
 
-        // 2. Add to History
-        const { error: historyError } = await supabaseAdmin
-            .from('OrderStatusHistory')
-            .insert({
-                orderId,
-                status,
-                message: message || `Order status updated to ${status}`,
-                notes,
-                timestamp: new Date().toISOString()
-            })
+        // Log to Status History
+        await supabaseAdmin.from('OrderStatusHistory').insert({
+            orderId,
+            status,
+            message: message || `Order status updated to ${status}`,
+            notes,
+            timestamp: new Date().toISOString()
+        })
 
-        if (historyError) {
-            console.error("History recording failed but order was updated:", historyError)
-        }
-
-        // 3. Trigger Notifications (Async)
+        // 3. Trigger Notifications
         try {
-            // Fetch order details for notification context
-            const { data: order } = await supabaseAdmin
-                .from('Order')
-                .select('*, items:OrderItem(*)')
-                .eq('id', orderId)
-                .single()
-
-            if (order) {
-                console.log(`[Notification] Sending update to ${order.customerEmail || 'customer'}: Order ${order.orderNumber} is now ${status}`)
-                // In a real app, you'd call SendGrid, Twilio, etc. here
-                // triggerEmail(order.customerEmail, 'Status Update', status, message)
-                // triggerSMS(order.shippingAddress.phone, `Your order ${order.orderNumber} is now ${status}`)
-            }
+            console.log(`[Notification] Dispatching update for order ${orderId} -> ${status}`)
         } catch (notifierError) {
             console.error("Notification trigger failed:", notifierError)
         }
@@ -70,7 +64,8 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
         return NextResponse.json({ success: true, status })
 
     } catch (error: any) {
-        console.error("Order Status Update Error:", error)
+        console.error("Supabase Order Status Update Error:", error)
         return NextResponse.json({ error: error.message || "Failed to update status" }, { status: 500 })
     }
 }
+

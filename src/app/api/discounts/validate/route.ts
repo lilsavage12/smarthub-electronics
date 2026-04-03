@@ -14,15 +14,15 @@ export async function POST(req: Request) {
 
         if (error) throw error
         if (!discount) {
-            return NextResponse.json({ error: "Invalid promo protocol" }, { status: 404 })
+            return NextResponse.json({ error: "Invalid promo code" }, { status: 404 })
         }
 
         if (discount.status !== "Active") {
-            return NextResponse.json({ error: "Discount protocol inactive" }, { status: 400 })
+            return NextResponse.json({ error: "This discount code is not active" }, { status: 400 })
         }
 
         if (discount.maxUses && discount.usedCount >= discount.maxUses) {
-            return NextResponse.json({ error: "Usage threshold exceeded" }, { status: 400 })
+            return NextResponse.json({ error: "This code has reached its usage limit" }, { status: 400 })
         }
 
         let percent = 0
@@ -37,6 +37,7 @@ export async function POST(req: Request) {
 
         return NextResponse.json({
             code: discount.code,
+            name: discount.campaign,
             type: discount.type,
             value: discount.value,
             percent: percent

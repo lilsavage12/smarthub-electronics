@@ -19,8 +19,6 @@ export default function AdminLogin() {
     const [rememberMe, setRememberMe] = useState(false)
     const router = useRouter()
     const { setAuth, user, isInitialized } = useAuth()
-    const { syncOnLogin: syncCart } = useCart()
-    const { syncOnLogin: syncWishlist } = useWishlist()
 
     React.useEffect(() => {
         if (user) {
@@ -58,13 +56,10 @@ export default function AdminLogin() {
 
                 // Store user info in localStorage for simple session management
                 localStorage.setItem("sh_admin_user", JSON.stringify(data.user))
-                // Sync Cart and Wishlist
-                await syncCart(data.user.id)
-                await syncWishlist(data.user.id)
 
                 setAuth(data.user)
 
-                toast.success("Identity Verified. Hub Access Granted.", {
+                toast.success("Login Successful. Redirecting...", {
                     style: {
                         background: '#0F0F12',
                         color: '#fff',
@@ -99,7 +94,7 @@ export default function AdminLogin() {
 
     const handleRecovery = () => {
         if (!email) {
-            toast.error("IDENTIFICATION REQUIRED FOR RECOVERY", {
+            toast.error("EMAIL REQUIRED FOR RECOVERY", {
                 style: { background: '#1A0000', color: '#FF5555', fontSize: '10px', fontWeight: 'bold' }
             })
             return
@@ -107,9 +102,9 @@ export default function AdminLogin() {
         toast.promise(
             new Promise(resolve => setTimeout(resolve, 2000)),
             {
-                loading: 'BYPASSING ENCRYPTION LAYERS...',
-                success: `PROTOCOL SENT TO ${email}`,
-                error: 'SECURE LINK FAILURE',
+                loading: 'Sending recovery link...',
+                success: `Recovery link sent to ${email}`,
+                error: 'Failed to send recovery link',
             },
             {
                 style: {
@@ -126,11 +121,12 @@ export default function AdminLogin() {
     }
 
     return (
-        <div className="min-h-screen bg-background flex items-center justify-center p-6 relative overflow-hidden">
+        <div suppressHydrationWarning className="min-h-screen bg-background flex items-center justify-center p-6 relative overflow-hidden">
             {/* Background Effects */}
             <div className="absolute top-[-5%] left-[-5%] w-[30%] h-[30%] bg-primary/10 rounded-full blur-[100px] opacity-20" />
 
             <motion.div
+                suppressHydrationWarning
                 initial={{ opacity: 0, y: 15 }}
                 animate={{ opacity: 1, y: 0 }}
                 className="w-full max-w-sm z-10"
@@ -208,7 +204,7 @@ export default function AdminLogin() {
                                 className="h-14 rounded-xl text-[10px] font-black italic tracking-[0.2em] shadow-xl group relative overflow-hidden"
                             >
                                 <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:animate-shimmer" />
-                                {isAuthenticating ? "AUTHENTICATING..." : "GRANT ACCESS"}
+                                {isAuthenticating ? "AUTHENTICATING..." : "SIGN IN"}
                                 {!isAuthenticating && <ArrowRight className="ml-2 w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />}
                             </Button>
 

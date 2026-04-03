@@ -16,6 +16,8 @@ interface jsPDFWithPlugin extends jsPDF {
     setLineDash: (dashArray: number[], dashPhase: number) => jsPDF
 }
 
+
+
 interface DocumentTemplate {
     primaryColor?: string
     headerBgColor?: string
@@ -35,29 +37,34 @@ export async function GET(
     { params }: { params: Promise<{ id: string }> }
 ) {
     try {
-        console.log("Receipt API: Starting...")
         const { id: orderId } = await params
+        console.log(`[RECEIPT] Starting document generation for order: ${orderId}`)
         const user = await getAuthUser(req)
         const isAdmin = await verifyAdmin(req)
 
         if (!user && !isAdmin) {
-             return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+             return NextResponse.json({ error: "Unauthorized access" }, { status: 401 })
         }
 
-        const { data: order, error: orderError } = await supabaseAdmin
+        // 1. Fetch Order Metadata
+        console.log("[SYNC] Querying database...")
+        const { data: order, error: sbErr } = await supabaseAdmin
             .from('Order')
             .select('*, items:OrderItem(*)')
             .eq('id', orderId)
-            .single()
+            .maybeSingle()
+        
+        if (sbErr) throw sbErr
 
-        if (orderError || !order) {
+        if (!order) {
+            console.error(`[SYNC] FAILURE: Order ${orderId} missing from database.`)
             return NextResponse.json({ error: "Order not found" }, { status: 404 })
         }
 
-        // Ownership Check (Identity Bridge)
-        const isOwner = order.userId === user?.id || (user?.email && order.customerEmail === user.email);
+        // 2. Authorization Verification
+        const isOwner = order.userId === user?.id || (user?.email && order.customerEmail === user?.email);
         if (!isAdmin && !isOwner) {
-            return NextResponse.json({ error: "Access Denied" }, { status: 403 })
+            return NextResponse.json({ error: "Access Denied: You do not have permission to view this order record" }, { status: 403 })
         }
 
         // Fetch Template (Safe Fallback)
@@ -66,16 +73,14 @@ export async function GET(
             const { data } = await supabaseAdmin.from('DocumentTemplate').select('*').eq('templateType', 'receipt').maybeSingle()
             template = data;
         } catch (e) {
-            console.log("Receipt API: DocumentTemplate lookup failed, using defaults")
+            console.warn("[TEMPLATE] Using default slip configuration.")
         }
 
         const s: DocumentTemplate = template || {
             primaryColor: '#3B82F6',
             headerBgColor: '#0F0F12',
             storeName: 'SmartHub Electronics',
-            storeAddress: '123 Tech Avenue, Silicon Valley',
-            storeContact: '+1 (555) 123-4567',
-            websiteUrl: 'www.smarthub.com',
+            storeAddress: 'Precision High-Tech Solutions',
             fontFamily: 'helvetica',
             sectionVisibility: {
                 storeHeader: true, orderId: true, paymentConfirmation: true,
@@ -85,23 +90,27 @@ export async function GET(
         }
 
         const vis = s.sectionVisibility || {}
-        const itemHeight = order.items.length * 15
-        const slipHeight = Math.max(180, 100 + itemHeight)
+        const items = order.items || []
+        const itemHeight = items.length * 15
+        const slipHeight = Math.max(160, 80 + itemHeight)
         
-        console.log("Receipt API: Initializing jsPDF...")
+        console.log("[ASSEMBLY] Initializing PDF engine...")
         const doc = new jsPDF({
             unit: 'mm',
             format: [80, slipHeight] 
         }) as jsPDFWithPlugin
 
-        const hexToRgb = (hex: string) => {
-            const r = parseInt(hex.slice(1, 3), 16)
-            const g = parseInt(hex.slice(3, 5), 16)
-            const b = parseInt(hex.slice(5, 7), 16)
-            return [r, g, b]
+        const safeHexToRgb = (hex: string, fallback: number[]) => {
+            try {
+                if (!hex || hex.length < 7) return fallback
+                const r = parseInt(hex.slice(1, 3), 16)
+                const g = parseInt(hex.slice(3, 5), 16)
+                const b = parseInt(hex.slice(5, 7), 16)
+                return isNaN(r) || isNaN(g) || isNaN(b) ? fallback : [r, g, b]
+            } catch { return fallback }
         }
 
-        const headerBgRgb = hexToRgb(s.headerBgColor || '#0F0F12')
+        const headerBgRgb = safeHexToRgb(s.headerBgColor || '#0F0F12', [15, 15, 18])
         const center = 40
         let y = 12
 
@@ -111,12 +120,12 @@ export async function GET(
             doc.rect(0, 0, 80, 28, 'F')
             doc.setTextColor(255, 255, 255)
             doc.setFontSize(14)
-            doc.setFont(s.fontFamily || "helvetica", "bold")
+            doc.setFont("helvetica", "bold")
             doc.text((s.storeName || "SMARTHUB").toUpperCase(), center, y, { align: "center" })
             y += 5
             doc.setFontSize(7)
-            doc.setFont(s.fontFamily || "helvetica", "normal")
-            doc.text((s.storeAddress || "Official POS Terminal").toUpperCase(), center, y, { align: "center" })
+            doc.setFont("helvetica", "normal")
+            doc.text((s.storeAddress || "Official Store Terminal").toUpperCase(), center, y, { align: "center" })
             y += 18
         } else {
             y += 5
@@ -125,13 +134,13 @@ export async function GET(
         // Details
         doc.setFontSize(6)
         doc.setTextColor(100, 100, 100)
-        doc.text(`TRACE ID: ${order.id.toUpperCase()}`, 5, y)
+        doc.text(`RECORD ID: ${(order.id || "N/A").toUpperCase()}`, 5, y)
         y += 3.5
-        doc.text(`ORDER NO: ${order.orderNumber}`, 5, y)
+        doc.text(`ORDER NO: ${order.orderNumber || "ORD-000"}`, 5, y)
         y += 3.5
-        doc.text(`STAMP: ${new Date(order.createdAt).toLocaleString()}`, 5, y)
+        doc.text(`DATE: ${order.createdAt ? new Date(order.createdAt).toLocaleString() : "N/A"}`, 5, y)
         y += 3.5
-        doc.text(`HOLDER: ${order.customerName.toUpperCase()}`, 5, y)
+        doc.text(`CUSTOMER: ${(order.customerName || "CUSTOMER").toUpperCase()}`, 5, y)
         y += 8
 
         doc.setDrawColor(220, 220, 220)
@@ -140,21 +149,21 @@ export async function GET(
 
         // Items
         if (vis.productList !== false) {
-            doc.setFont(s.fontFamily || "helvetica", "bold")
+            doc.setFont("helvetica", "bold")
             doc.setFontSize(8)
             doc.setTextColor(30, 30, 30)
-            doc.text("PURCHASED ASSETS", 5, y)
-            doc.text("VALUE", 75, y, { align: "right" })
+            doc.text("PURCHASED ITEMS", 5, y)
+            doc.text("AMOUNT", 75, y, { align: "right" })
             y += 4
             doc.line(5, y, 75, y)
             y += 6
 
-            doc.setFont(s.fontFamily || "helvetica", "normal")
+            doc.setFont("helvetica", "normal")
             doc.setFontSize(7)
-            order.items.forEach((item: any) => {
-                const lines = doc.splitTextToSize(`${item.quantity}x ${item.name}`, 50)
+            items.forEach((item: any) => {
+                const lines = doc.splitTextToSize(`${item.quantity || 1}x ${item.name || 'Item'}`, 50)
                 doc.text(lines, 5, y)
-                doc.text(`$${(item.price * item.quantity).toLocaleString()}`, 75, y, { align: "right" })
+                doc.text(`$${((item.price || 0) * (item.quantity || 1)).toLocaleString()}`, 75, y, { align: "right" })
                 y += (lines.length * 4) + 2
             })
             y += 4
@@ -167,27 +176,32 @@ export async function GET(
         // Footer Totals
         if (vis.amountPaid !== false) {
             doc.setFontSize(10)
-            doc.setFont(s.fontFamily || "helvetica", "bold")
-            doc.text("TOTAL SETTLEMENT", 5, y)
-            doc.text(`$${order.totalAmount.toLocaleString()}`, 75, y, { align: "right" })
+            doc.setFont("helvetica", "bold")
+            doc.text("TOTAL AMOUNT", 5, y)
+            doc.text(`$${(order.totalAmount || 0).toLocaleString()}`, 75, y, { align: "right" })
             y += 8
         }
 
         doc.setFontSize(7)
-        doc.text(`GW METHOD: ${order.paymentMethod}`, 5, y)
+        doc.text(`PAYMENT METHOD: ${order.paymentMethod || 'SECURE'}`, 5, y)
         y += 3.5
-        doc.text(`PROTOCOL STATUS: ${order.paymentStatus}`, 5, y)
+        doc.text(`PAYMENT STATUS: ${order.paymentStatus || 'VERIFIED'}`, 5, y)
 
         const pdfBuffer = doc.output('arraybuffer')
-        console.log("Receipt API: Success")
+        console.log("[ASSEMBLY] Success. Generating PDF stream...")
         return new Response(pdfBuffer, {
             headers: {
                 "Content-Type": "application/pdf",
-                "Content-Disposition": `attachment; filename=Receipt-${order.orderNumber}.pdf`
+                "Content-Disposition": `inline; filename=Receipt-${order.orderNumber || order.id.slice(0, 8)}.pdf`
             }
         })
     } catch (error: any) {
-        console.error("FATAL RECEIPT ERROR:", error.message, error.stack)
-        return NextResponse.json({ error: "Failed to generate receipt", details: error.message }, { status: 500 })
+        console.error("[CRITICAL] Receipt generation failure:", error.message, error.stack)
+        return NextResponse.json({ 
+            error: "Failed to generate receipt document", 
+            details: error.message,
+            diagnosticTrace: error.stack?.split('\n')[0]
+        }, { status: 500 })
     }
 }
+

@@ -2,8 +2,6 @@
 
 import { useEffect } from "react"
 import { useAuth } from "@/lib/auth-store"
-import { useCart } from "@/lib/cart-store"
-import { useWishlist } from "@/lib/wishlist-store"
 
 /**
  * SessionSyncProvider
@@ -12,21 +10,11 @@ import { useWishlist } from "@/lib/wishlist-store"
  * at the store and page levels to ensure a clean source-of-truth.
  */
 export const SessionSyncProvider = ({ children }: { children: React.ReactNode }) => {
-    const { user, initialize } = useAuth()
-    const { syncOnLogin: syncCart } = useCart()
-    const { syncOnLogin: syncWishlist } = useWishlist()
-
+    const { initialize } = useAuth()
     useEffect(() => {
         // Initialize Supabase Auth and Profile real-time listeners
         initialize()
     }, [initialize])
-
-    useEffect(() => {
-        if (user) {
-            syncCart(user.id)
-            syncWishlist(user.id)
-        }
-    }, [user, syncCart, syncWishlist])
 
     return <>{children}</>
 }

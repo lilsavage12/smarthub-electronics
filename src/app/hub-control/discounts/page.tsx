@@ -6,34 +6,46 @@ import {
     Search, Filter, MoreHorizontal, Edit2,
     Trash2, Zap, Clock, CheckCircle2, XCircle,
     RefreshCw, Smartphone, User, Info, DollarSign,
-    ArrowRight, Gift, Layers, ShieldCheck
+    ArrowRight, Gift, Layers, ShieldCheck, Settings,
+    X, Save
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 import { motion, AnimatePresence } from "framer-motion"
 import { cn } from "@/lib/utils"
 import { toast } from "react-hot-toast"
-import { PromotionManager } from "@/components/admin/PromotionManager"
-import { HomepageManager } from "@/components/admin/HomepageManager"
+import { useRef } from "react"
 
 export default function DiscountsPage() {
     const [discounts, setDiscounts] = useState<any[]>([])
     const [loadingParams, setLoadingParams] = useState(true)
-    const [newDiscount, setNewDiscount] = useState<{ id?: string, code: string, type: string, value: string, maxUses: string }>({ code: "", type: "Percentage", value: "", maxUses: "" })
-
-    const [upcomingOffer, setUpcomingOffer] = useState({ title: "Holiday Sale", subtitle: "Ends Soon", discountCode: "", startsIn: "12 days", targetReach: "4.2K Units", progress: 65 })
-    const [editPromo, setEditPromo] = useState({ title: "", subtitle: "", discountCode: "", startsIn: "", targetReach: "", progress: 65 })
+    const [newDiscount, setNewDiscount] = useState<{ id?: string, code: string, campaign: string, type: string, value: string, maxUses: string, minPurchase?: string, startDate?: string, endDate?: string, isActive?: boolean }>({ 
+        code: "", 
+        campaign: "",
+        type: "Percentage", 
+        value: "", 
+        maxUses: "", 
+        minPurchase: "", 
+        startDate: new Date().toISOString().split('T')[0], 
+        endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+        isActive: true 
+    })
 
     const [isNewCodeOpen, setIsNewCodeOpen] = useState(false)
     const [isEditCodeOpen, setIsEditCodeOpen] = useState(false)
-    const [isEditPromoOpen, setIsEditPromoOpen] = useState(false)
-
-    const [isPromoActive, setIsPromoActive] = useState(false)
-    const [loadingPromo, setLoadingPromo] = useState(false)
-    const [activeTab, setActiveTab] = useState<'codes' | 'automated' | 'layout'>('codes')
 
     const handleNewCode = () => {
-        setNewDiscount({ code: "", type: "Percentage", value: "", maxUses: "" })
+        setNewDiscount({ 
+            code: "", 
+            campaign: "",
+            type: "Percentage", 
+            value: "", 
+            maxUses: "", 
+            minPurchase: "", 
+            startDate: new Date().toISOString().split('T')[0], 
+            endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+            isActive: true 
+        })
         setIsNewCodeOpen(true)
     }
 
@@ -42,44 +54,26 @@ export default function DiscountsPage() {
         setIsEditCodeOpen(false)
     }
 
-    const fetchDiscounts = async () => {
+    const fetchAllData = async () => {
         try {
-            const res = await fetch("/api/discounts")
-            if (res.ok) {
-                const data = await res.json()
+            const discRes = await fetch("/api/discounts")
+            if (discRes.ok) {
+                const data = await discRes.json()
                 setDiscounts(data)
+            } else {
+                const err = await discRes.json()
+                toast.error(`Discounts: ${err.details || "Load Error"}`)
             }
         } catch (error) {
-            toast.error("Failed to load active discounts")
+            console.error("Data fetch error:", error)
+            toast.error("Failed to load discounts")
         } finally {
             setLoadingParams(false)
         }
     }
 
-    const fetchBanner = async () => {
-        try {
-            const res = await fetch("/api/banner")
-            if (res.ok) {
-                const data = await res.json()
-                if (data && data.title) {
-                    setUpcomingOffer({
-                        title: data.title,
-                        subtitle: data.subtitle,
-                        discountCode: data.discountCode || "",
-                        startsIn: data.startsIn || "",
-                        targetReach: data.targetReach || "",
-                        progress: data.progress || 0
-                    })
-                }
-            }
-        } catch (error) {
-            console.error(error)
-        }
-    }
-
     useEffect(() => {
-        fetchDiscounts()
-        fetchBanner()
+        fetchAllData()
     }, [])
 
     const deleteDiscount = async (id: string, code: string) => {
@@ -91,7 +85,7 @@ export default function DiscountsPage() {
             const res = await fetch(`/api/discounts/${id}`, { method: 'DELETE' })
             if (res.ok) {
                 toast.success(`Deleted ${code}`)
-                fetchDiscounts()
+                fetchAllData()
             }
         } catch (error) {
             toast.error("Delete failed")
@@ -100,7 +94,7 @@ export default function DiscountsPage() {
 
     const toggleDiscount = async (id: string, currentStatus: string, code: string) => {
         if (!id || id === "undefined") return
-        const newStatus = currentStatus === "Active" ? "Paused" : "Active"
+        const newStatus = currentStatus === "Active" ? "Inactive" : "Active"
         try {
             const res = await fetch(`/api/discounts/${id}`, {
                 method: 'PATCH',
@@ -109,7 +103,7 @@ export default function DiscountsPage() {
             })
             if (res.ok) {
                 toast.success(`${code} is now ${newStatus}`)
-                fetchDiscounts()
+                fetchAllData()
             }
         } catch (error) {
             toast.error("Status toggle failed")
@@ -120,9 +114,14 @@ export default function DiscountsPage() {
         setNewDiscount({
             id: disc.id,
             code: disc.code,
+            campaign: disc.campaign || "",
             type: disc.type,
-            value: disc.value === "$0" ? "" : disc.value,
-            maxUses: disc.maxUses ? disc.maxUses.toString() : ""
+            value: disc.value === "KSh 0" ? "" : disc.value,
+            maxUses: disc.maxUses ? disc.maxUses.toString() : "",
+            minPurchase: disc.minPurchase ? disc.minPurchase.toString() : "",
+            startDate: disc.startDate ? new Date(disc.startDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+            endDate: disc.endDate ? new Date(disc.endDate).toISOString().split('T')[0] : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+            isActive: disc.status === "Active"
         })
         setIsEditCodeOpen(true)
     }
@@ -144,14 +143,15 @@ export default function DiscountsPage() {
 
             const payload = {
                 code: newDiscount.code,
+                campaign: newDiscount.campaign,
                 type: newDiscount.type,
-                value: newDiscount.type === "Free Shipping" ? "$0" : newDiscount.value,
+                value: newDiscount.type === "Free Shipping" ? "KSh 0" : newDiscount.value,
+                startDate: new Date(newDiscount.startDate || Date.now()).toISOString(),
+                endDate: newDiscount.endDate === "NEVER" ? null : new Date(newDiscount.endDate || (Date.now() + 30 * 24 * 60 * 60 * 1000)).toISOString(),
+                minPurchase: newDiscount.minPurchase ? parseFloat(newDiscount.minPurchase) : 0,
+                status: newDiscount.isActive ? "Active" : "Inactive",
+                maxUses: newDiscount.maxUses ? parseInt(newDiscount.maxUses) : null
             } as any
-            if (!isEditCodeOpen) {
-                payload.maxUses = newDiscount.maxUses || null
-            } else if (newDiscount.maxUses !== undefined) {
-                payload.maxUses = newDiscount.maxUses ? parseInt(newDiscount.maxUses) : null
-            }
 
 
             const res = await fetch(url, {
@@ -161,9 +161,9 @@ export default function DiscountsPage() {
             })
 
             if (res.ok) {
-                toast.success(isEditCodeOpen ? "Discount updated successfully." : "Discount created & broadcasted.")
-                setNewDiscount({ code: "", type: "Percentage", value: "", maxUses: "" })
-                fetchDiscounts()
+                toast.success(isEditCodeOpen ? "Discount updated successfully." : "Discount created successfully.")
+                setNewDiscount({ code: "", campaign: "", type: "Percentage", value: "", maxUses: "" })
+                fetchAllData()
                 closeNewCode()
             } else {
                 const err = await res.json()
@@ -174,411 +174,258 @@ export default function DiscountsPage() {
         }
     }
 
-    const handleSaveBanner = async () => {
-        try {
-            const res = await fetch("/api/banner", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(editPromo)
-            })
-            if (res.ok) {
-                setUpcomingOffer(editPromo)
-                toast.success("Banner updated on Home Page.")
-                setIsEditPromoOpen(false)
-            } else {
-                toast.error("Failed to update banner")
-            }
-        } catch (error) {
-            toast.error("Network error")
-        }
-    }
-
-    const handleStartPromo = () => {
-        setLoadingPromo(true)
-        const tid = toast.loading("Broadcasting holiday sale protocol to all nodes...")
-        setTimeout(() => {
-            toast.success("Holiday Sale activated successfully", { id: tid })
-            setLoadingPromo(false)
-            setIsPromoActive(true)
-        }, 2000)
-    }
-
     return (
-        <div className="flex flex-col gap-6 max-w-6xl mx-auto mb-20">
-            {/* Header */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div className="flex flex-col gap-0.5">
-                    <h1 className="text-xl font-black tracking-tight text-foreground uppercase italic leading-none">Discounts</h1>
-                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mt-1">Manage promo codes and special offers.</p>
+        <div className="flex flex-col gap-6 max-w-6xl mx-auto mb-20 animate-in fade-in duration-700">
+            <div className="flex flex-col md:flex-row md:items-end justify-between gap-8 mb-8">
+                <div className="flex flex-col gap-1">
+                    <h1 className="text-4xl font-black tracking-tighter text-foreground uppercase italic leading-none">Discount <span className="text-primary">Manager</span></h1>
+                    <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-[0.2em] mt-1">Manage your store's promotional codes and discount rules.</p>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-4">
                     <Button
                         onClick={handleNewCode}
-                        className="h-9 px-5 rounded-lg bg-primary text-primary-foreground font-black italic uppercase tracking-widest text-[9px] gap-2 shadow-lg shadow-primary/10 hover:opacity-90 transition-all active:scale-95"
+                        className="h-14 px-8 rounded-2xl bg-primary text-white font-black italic uppercase tracking-widest text-[9px] gap-3 shadow-[0_20px_40px_rgba(var(--primary-rgb),0.2)] hover:scale-105 transition-all active:scale-95 border border-primary/20"
                     >
-                        <Plus size={16} />
-                        NEW CODE
+                        <Plus size={18} /> CREATE DISCOUNT
                     </Button>
                 </div>
             </div>
 
-            <div className="flex items-center gap-4 border-b border-border pb-1">
-                <button 
-                    onClick={() => setActiveTab('codes')}
-                    className={cn(
-                        "pb-4 px-4 text-[10px] font-black uppercase tracking-widest transition-all relative",
-                        activeTab === 'codes' ? "text-primary" : "text-muted-foreground hover:text-foreground"
-                    )}
-                >
-                    Promo Codes
-                    {activeTab === 'codes' && <motion.div layoutId="tab" className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />}
-                </button>
-                <button 
-                    onClick={() => setActiveTab('automated')}
-                    className={cn(
-                        "pb-4 px-4 text-[10px] font-black uppercase tracking-widest transition-all relative",
-                        activeTab === 'automated' ? "text-primary" : "text-muted-foreground hover:text-foreground"
-                    )}
-                >
-                    Automated Promotions
-                    {activeTab === 'automated' && <motion.div layoutId="tab" className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />}
-                </button>
-                <button 
-                    onClick={() => setActiveTab('layout')}
-                    className={cn(
-                        "pb-4 px-4 text-[10px] font-black uppercase tracking-widest transition-all relative",
-                        activeTab === 'layout' ? "text-primary" : "text-muted-foreground hover:text-foreground"
-                    )}
-                >
-                    Homepage Layout
-                    {activeTab === 'layout' && <motion.div layoutId="tab" className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />}
-                </button>
-            </div>
-
-            {activeTab === 'codes' ? (
-                <div className="flex flex-col gap-6 animate-in fade-in slide-in-from-bottom-2 duration-500">
-                    <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 mb-8">
-                        {/* ... existing code ... */}
-                {/* Discount Management Hub */}
-                <Card className="xl:col-span-2 rounded-2xl border-border shadow-sm overflow-hidden bg-card">
-                    <CardHeader className="p-5 border-b border-border">
-                        <CardTitle className="text-sm font-black italic tracking-tighter uppercase text-foreground">Promo Codes</CardTitle>
-                    </CardHeader>
-                    <CardContent className="p-0">
-                        <div className="overflow-x-auto">
-                            <table className="w-full text-left font-inter">
-                                <thead className="bg-muted">
-                                    <tr className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">
-                                        <th className="px-6 py-4">Code</th>
-                                        <th className="px-6 py-4">Type & Value</th>
-                                        <th className="px-6 py-4">Usage</th>
-                                        <th className="px-6 py-4">Status</th>
-                                        <th className="px-6 py-4 text-right">Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-border">
-                                    {discounts.map((disc, i) => (
-                                        <tr key={i} className="hover:bg-muted/50 transition-all duration-500 group cursor-pointer border-b border-border last:border-0 h-16">
-                                            <td className="px-6 py-4">
-                                                <div className="flex flex-col gap-0.5">
-                                                    <span className="text-[10px] font-black italic tracking-[0.1em] text-foreground uppercase group-hover:text-primary transition-colors">{disc.id}</span>
-                                                    <span className="text-[9px] font-bold text-muted-foreground uppercase leading-none">{disc.code}</span>
-                                                </div>
-                                            </td>
-                                            <td className="px-6 py-4">
-                                                <div className="flex flex-col gap-0.5">
-                                                    <span className="text-xs font-black italic text-foreground tracking-tight">{disc.value}</span>
-                                                    <span className="text-[8px] font-bold text-muted-foreground uppercase tracking-widest opacity-60 italic">{disc.type}</span>
-                                                </div>
-                                            </td>
-                                            <td className="px-6 py-4">
-                                                <div className="flex flex-col">
-                                                    <span className="text-xs font-black text-foreground">{disc.usedCount} {disc.maxUses ? `/ ${disc.maxUses}` : ""}</span>
-                                                    <span className="text-[8px] font-bold text-muted-foreground uppercase tracking-widest leading-none mt-0.5">USES</span>
-                                                </div>
-                                            </td>
-                                            <td className="px-6 py-4">
-                                                <div className={cn("inline-flex items-center gap-1 px-2 py-1 rounded-md text-[8px] font-black uppercase tracking-widest leading-none", disc.status === 'Active' ? 'bg-emerald-500/10 border border-emerald-500/20 text-emerald-500' : 'bg-amber-500/10 border border-amber-500/20 text-amber-500')}>
-                                                    {disc.status}
-                                                </div>
-                                            </td>
-                                            <td className="px-6 py-4 text-right">
-                                                <div className="flex items-center justify-end gap-1">
-                                                    <Button
-                                                        onClick={(e) => {
-                                                            e.stopPropagation()
-                                                            toggleDiscount(disc.id, disc.status, disc.code)
-                                                        }}
-                                                        size="icon" variant="ghost" className="h-8 w-8 text-amber-500 hover:text-amber-600 rounded-md"
-                                                    >
-                                                        <Clock size={14} />
-                                                    </Button>
-                                                    <Button
-                                                        onClick={(e) => {
-                                                            e.stopPropagation()
-                                                            handleEditCode(disc)
-                                                        }}
-                                                        size="icon" variant="ghost" className="h-8 w-8 text-blue-500 hover:text-blue-600 rounded-md"
-                                                    >
-                                                        <Edit2 size={14} />
-                                                    </Button>
-                                                    <Button
-                                                        onClick={(e) => {
-                                                            e.stopPropagation()
-                                                            deleteDiscount(disc.id, disc.code)
-                                                        }}
-                                                        size="icon" variant="ghost" className="h-8 w-8 text-red-500 hover:text-red-600 rounded-md"
-                                                    >
-                                                        <Trash2 size={14} />
-                                                    </Button>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
-                    </CardContent>
-                </Card>
-
-                {/* Campaign Insights */}
-                <div className="flex flex-col gap-6">
-                    <Card className="rounded-2xl border-border shadow-sm overflow-hidden bg-card transition-colors">
-                        <CardHeader className="p-5 border-b border-border bg-slate-900 dark:bg-slate-950 text-white flex flex-row items-center justify-between">
-                            <CardTitle className="text-xs font-black italic uppercase tracking-tighter">Home Page Banner</CardTitle>
-                            <Button size="icon" variant="ghost" className="h-6 w-6 text-white/60 hover:text-white" onClick={() => {
-                                setEditPromo(upcomingOffer)
-                                setIsEditPromoOpen(true)
-                            }}>
-                                <Edit2 size={12} />
-                            </Button>
+            <div className="flex flex-col gap-6">
+                <div className="mb-8">
+                    <Card className="rounded-2xl border-border shadow-sm overflow-hidden bg-card">
+                        <CardHeader className="p-5 border-b border-border">
+                            <CardTitle className="text-sm font-black italic tracking-tighter uppercase text-foreground">Promo Codes</CardTitle>
                         </CardHeader>
-                        <CardContent className="p-5 flex flex-col gap-4">
-                            <div className="flex items-center gap-3">
-                                <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center">
-                                    <Gift size={24} className="text-primary" />
-                                </div>
-                                <div className="flex flex-col">
-                                    <h4 className="text-[11px] font-black uppercase text-foreground">{upcomingOffer.title}</h4>
-                                    <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest">{upcomingOffer.subtitle}</p>
-                                </div>
+                        <CardContent className="p-0">
+                            <div className="overflow-x-auto">
+                                <table className="w-full text-left font-inter">
+                                    <thead className="bg-muted">
+                                        <tr className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">
+                                            <th className="px-6 py-4">Code</th>
+                                            <th className="px-6 py-4">Type & Value</th>
+                                            <th className="px-6 py-4">Usage</th>
+                                            <th className="px-6 py-4">Status</th>
+                                            <th className="px-6 py-4 text-right">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-border">
+                                        {discounts.map((disc, i) => (
+                                            <tr key={i} className="hover:bg-muted/50 transition-all duration-500 group border-b border-border last:border-0 h-16">
+                                                <td className="px-6 py-4">
+                                                    <div className="flex flex-col gap-0.5">
+                                                         <span className="text-[10px] font-black italic tracking-[0.1em] text-foreground uppercase group-hover:text-primary transition-colors">{disc.code}</span>
+                                                        <span className="text-[8px] font-bold text-muted-foreground uppercase leading-none opacity-80">{disc.campaign || "No Display Name"}</span>
+                                                    </div>
+                                                </td>
+                                                <td className="px-6 py-4">
+                                                    <div className="flex flex-col gap-0.5">
+                                                         <span className="text-xs font-black italic text-foreground tracking-tight">{disc.value}</span>
+                                                        <span className="text-[8px] font-bold text-muted-foreground uppercase tracking-widest opacity-80 italic">{disc.type}</span>
+                                                    </div>
+                                                </td>
+                                                <td className="px-6 py-4">
+                                                    <div className="flex flex-col">
+                                                        <span className="text-xs font-black text-foreground">{disc.usedCount} {disc.maxUses ? `/ ${disc.maxUses}` : ""}</span>
+                                                        <span className="text-[8px] font-bold text-muted-foreground uppercase tracking-widest leading-none mt-0.5">USES</span>
+                                                    </div>
+                                                </td>
+                                                <td className="px-6 py-4">
+                                                     <div className={cn("inline-flex items-center gap-1 px-2 py-1 rounded-md text-[8px] font-black uppercase tracking-widest leading-none", disc.status === 'Active' ? 'bg-success/10 border border-success/20 text-success' : 'bg-warning/10 border border-warning/20 text-warning')}>
+                                                        {disc.status}
+                                                    </div>
+                                                </td>
+                                                <td className="px-6 py-4 text-right">
+                                                    <div className="flex items-center justify-end gap-1">
+                                                         <Button
+                                                            onClick={() => toggleDiscount(disc.id, disc.status, disc.code)}
+                                                            size="icon" variant="ghost" className="h-8 w-8 text-warning hover:text-warning/80 rounded-md"
+                                                        >
+                                                            <Clock size={14} />
+                                                        </Button>
+                                                         <Button
+                                                            onClick={() => handleEditCode(disc)}
+                                                            size="icon" variant="ghost" className="h-8 w-8 text-primary hover:text-primary/80 rounded-md"
+                                                        >
+                                                            <Edit2 size={14} />
+                                                        </Button>
+                                                         <Button
+                                                            onClick={() => deleteDiscount(disc.id, disc.code)}
+                                                            size="icon" variant="ghost" className="h-8 w-8 text-destructive hover:text-destructive/80 rounded-md"
+                                                        >
+                                                            <Trash2 size={14} />
+                                                        </Button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
                             </div>
-                            <div className="p-4 bg-muted border border-border rounded-xl flex flex-col gap-3">
-                                <div className="flex justify-between items-center text-[9px] font-black uppercase tracking-widest">
-                                    <span className="text-muted-foreground opacity-60">Estimated Reach</span>
-                                    <span className="text-foreground">{upcomingOffer.targetReach}</span>
-                                </div>
-                                <div className="flex justify-between items-center text-[9px] font-black uppercase tracking-widest">
-                                    <span className="text-muted-foreground opacity-60">Discount Code</span>
-                                    <span className="text-primary italic">{upcomingOffer.discountCode || "N/A"}</span>
-                                </div>
-                                <div className="flex flex-col gap-1.5 mt-2">
-                                    <div className="flex justify-between items-center text-[9px] font-black uppercase tracking-widest">
-                                        <span className="text-muted-foreground opacity-60">Funding Progress</span>
-                                        <span className="text-primary">{upcomingOffer.progress}%</span>
-                                    </div>
-                                    <div className="h-1.5 w-full bg-border rounded-full overflow-hidden">
-                                        <motion.div
-                                            initial={{ width: 0 }}
-                                            animate={{ width: `${upcomingOffer.progress}%` }}
-                                            className="h-full bg-primary rounded-full"
-                                        />
-                                    </div>
-                                </div>
-                            </div>
-
-                            <Button onClick={handleStartPromo} disabled={isPromoActive || loadingPromo} className={cn("w-full h-12 rounded-xl font-black italic tracking-widest uppercase text-[10px]", isPromoActive ? "bg-emerald-500 hover:bg-emerald-600 text-white" : "")}>
-                                {loadingPromo ? "Initiating..." : isPromoActive ? "Sale Currently Active" : "Force Start Phase"}
-                            </Button>
                         </CardContent>
                     </Card>
                 </div>
-            </div>
 
-            {/* Modal: New / Edit Discount Code */}
-            <AnimatePresence>
-                {(isNewCodeOpen || isEditCodeOpen) && (
-                    <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm p-6"
-                    >
-                        <motion.div
-                            initial={{ scale: 0.95, y: 20 }}
-                            animate={{ scale: 1, y: 0 }}
-                            exit={{ scale: 0.95, y: 20 }}
-                            className="w-full max-w-md bg-card border border-border rounded-2xl p-6 shadow-2xl relative"
-                        >
-                            <button onClick={closeNewCode} className="absolute top-4 right-4 text-muted-foreground hover:text-foreground">
-                                <XCircle size={20} />
-                            </button>
-                            <h2 className="text-xl font-black italic uppercase tracking-tight mb-6">{isEditCodeOpen ? "Edit Promo Code" : "Initialize New Code"}</h2>
-
-                            <div className="flex flex-col gap-4">
-                                <div className="flex flex-col gap-2">
-                                    <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">PROMO CODE</label>
-                                    <input
-                                        type="text"
-                                        placeholder="e.g. SUMMER26"
-                                        className="h-10 border border-border bg-muted/50 rounded-lg px-3 text-sm font-bold uppercase"
-                                        value={newDiscount.code}
-                                        onChange={(e) => setNewDiscount({ ...newDiscount, code: e.target.value.toUpperCase() })}
-                                    />
-                                </div>
-
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div className="flex flex-col gap-2">
-                                        <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">DISCOUNT TYPE</label>
-                                        <select
-                                            className="h-10 border border-border bg-muted/50 rounded-lg px-3 text-sm font-bold"
-                                            value={newDiscount.type}
-                                            onChange={(e) => setNewDiscount({ ...newDiscount, type: e.target.value })}
+                <AnimatePresence>
+                    {(isNewCodeOpen || isEditCodeOpen) && (
+                        <div className="fixed inset-0 z-[100] flex justify-end bg-slate-900/40 backdrop-blur-sm overflow-hidden p-0">
+                            <motion.div
+                                initial={{ x: "100%", opacity: 0.5 }}
+                                animate={{ x: 0, opacity: 1 }}
+                                exit={{ x: "100%", opacity: 0.5 }}
+                                transition={{ type: "spring", damping: 30, stiffness: 200 }}
+                                className="w-full lg:max-w-xl h-full bg-card border-l border-border shadow-[-20px_0_50px_rgba(0,0,0,0.4)] flex flex-col overflow-hidden"
+                            >
+                                <div className="p-8 md:p-10 border-b border-border flex items-center justify-between shrink-0 bg-card/60 backdrop-blur-xl z-20 sticky top-0">
+                                    <div className="flex items-center gap-4">
+                                        <div className="w-12 h-12 rounded-2xl bg-primary text-white flex items-center justify-center shadow-2xl shadow-primary/20 animate-in zoom-in">
+                                            <Tag size={24} />
+                                        </div>
+                                        <div className="flex flex-col">
+                                             <h2 className="text-xl font-black italic uppercase tracking-tighter text-foreground">Discount <span className="text-primary">Editor</span></h2>
+                                            <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.3em]">Configure criteria and rewards</span>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center gap-3">
+                                        <Button 
+                                            onClick={handleSubmitCode} 
+                                            className="h-12 px-8 rounded-xl bg-primary text-white font-black italic uppercase tracking-widest text-[9px] gap-3 shadow-2xl shadow-primary/20 hover:scale-[1.02] transition-all"
                                         >
-                                            <option>Percentage</option>
-                                            <option>Fixed Amount</option>
-                                            <option>Free Shipping</option>
-                                        </select>
-                                    </div>
-                                    <div className="flex flex-col gap-2">
-                                        <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">VALUE</label>
-                                        <input
-                                            type="text"
-                                            placeholder={newDiscount.type === "Percentage" ? "e.g. 15%" : "$100"}
-                                            className="h-10 border border-border bg-muted/50 rounded-lg px-3 text-sm font-bold disabled:opacity-50"
-                                            value={newDiscount.type === "Free Shipping" ? "Free" : newDiscount.value}
-                                            disabled={newDiscount.type === "Free Shipping"}
-                                            onChange={(e) => setNewDiscount({ ...newDiscount, value: e.target.value })}
-                                        />
+                                            <Save size={16} /> {isEditCodeOpen ? "SAVE" : "CREATE"}
+                                        </Button>
+                                        <button 
+                                            onClick={closeNewCode} 
+                                            className="h-12 w-12 bg-muted/20 border border-border/50 rounded-xl flex items-center justify-center transition-all text-muted-foreground hover:text-rose-500 hover:bg-rose-500/10 shadow-sm"
+                                        >
+                                            <X size={24} />
+                                        </button>
                                     </div>
                                 </div>
 
-                                <div className="flex flex-col gap-2">
-                                    <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">MAX USES (OPTIONAL)</label>
-                                    <input
-                                        type="number"
-                                        placeholder="e.g. 1000"
-                                        className="h-10 border border-border bg-muted/50 rounded-lg px-3 text-sm font-bold"
-                                        value={newDiscount.maxUses}
-                                        onChange={(e) => setNewDiscount({ ...newDiscount, maxUses: e.target.value })}
-                                    />
-                                </div>
-
-                                <Button onClick={handleSubmitCode} className="h-12 w-full mt-4 bg-primary text-white font-black italic tracking-widest uppercase text-xs rounded-xl shadow-lg shadow-primary/20">
-                                    {isEditCodeOpen ? "Save Changes" : "Deploy Code"}
-                                </Button>
-                            </div>
-                        </motion.div>
-                    </motion.div>
-                )}
-            </AnimatePresence>
-
-            {/* Edit Upcoming Promo Overlay Modal */}
-            <AnimatePresence>
-                {isEditPromoOpen && (
-                    <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm p-6"
-                    >
-                        <motion.div
-                            initial={{ scale: 0.95, y: 20 }}
-                            animate={{ scale: 1, y: 0 }}
-                            exit={{ scale: 0.95, y: 20 }}
-                            className="w-full max-w-md bg-card border border-border rounded-2xl p-6 shadow-2xl relative"
-                        >
-                            <button onClick={() => setIsEditPromoOpen(false)} className="absolute top-4 right-4 text-muted-foreground hover:text-foreground">
-                                <XCircle size={20} />
-                            </button>
-                            <h2 className="text-xl font-black italic uppercase tracking-tight mb-6">Edit Home Banner</h2>
-
-                            <div className="flex flex-col gap-4">
-                                <div className="flex flex-col gap-2">
-                                    <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">CAMPAIGN TITLE</label>
-                                    <input
-                                        type="text"
-                                        placeholder="e.g. Holiday Sale"
-                                        className="h-10 border border-border bg-muted/50 rounded-lg px-3 text-sm font-bold"
-                                        value={editPromo.title}
-                                        onChange={(e) => setEditPromo({ ...editPromo, title: e.target.value })}
-                                    />
-                                </div>
-                                <div className="flex flex-col gap-2">
-                                    <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">CAMPAIGN SUBTITLE</label>
-                                    <input
-                                        type="text"
-                                        placeholder="e.g. Get 20% Off All Items"
-                                        className="h-10 border border-border bg-muted/50 rounded-lg px-3 text-sm font-bold"
-                                        value={editPromo.subtitle}
-                                        onChange={(e) => setEditPromo({ ...editPromo, subtitle: e.target.value })}
-                                    />
-                                </div>
-
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div className="flex flex-col gap-2">
-                                        <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">STARTS IN</label>
-                                        <input
-                                            type="text"
-                                            placeholder="e.g. 12 days"
-                                            className="h-10 border border-border bg-muted/50 rounded-lg px-3 text-sm font-bold"
-                                            value={editPromo.startsIn}
-                                            onChange={(e) => setEditPromo({ ...editPromo, startsIn: e.target.value })}
-                                        />
+                                <div className="flex-1 overflow-y-auto p-8 md:p-12 flex flex-col gap-12 custom-scrollbar">
+                                    <div className="grid grid-cols-2 gap-8">
+                                         <div className="flex flex-col gap-3">
+                                            <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest ml-1 italic">Discount Code</label>
+                                            <input
+                                                type="text"
+                                                placeholder="e.g. Summer26"
+                                                className="h-16 border border-border bg-muted/30 rounded-2xl px-8 text-sm font-black italic tracking-widest focus:border-primary/30 outline-none transition-all"
+                                                value={newDiscount.code}
+                                                onChange={(e) => setNewDiscount({ ...newDiscount, code: e.target.value })}
+                                            />
+                                        </div>
+                                         <div className="flex flex-col gap-3">
+                                            <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest ml-1 italic">Display Name</label>
+                                            <input
+                                                type="text"
+                                                placeholder="e.g. Summer Sale 2026"
+                                                className="h-16 border border-border bg-muted/30 rounded-2xl px-8 text-sm font-black tracking-widest focus:border-primary/30 outline-none transition-all"
+                                                value={newDiscount.campaign}
+                                                onChange={(e) => setNewDiscount({ ...newDiscount, campaign: e.target.value })}
+                                            />
+                                        </div>
                                     </div>
-                                    <div className="flex flex-col gap-2">
-                                        <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">EST. REACH</label>
-                                        <input
-                                            type="text"
-                                            placeholder="e.g. 4.2K Units"
-                                            className="h-10 border border-border bg-muted/50 rounded-lg px-3 text-sm font-bold"
-                                            value={editPromo.targetReach}
-                                            onChange={(e) => setEditPromo({ ...editPromo, targetReach: e.target.value })}
-                                        />
+
+                                    <div className="grid grid-cols-2 gap-8">
+                                         <div className="flex flex-col gap-3">
+                                            <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest ml-1 italic">Discount Type</label>
+                                            <select
+                                                className="h-16 border border-border bg-muted/30 rounded-2xl px-6 text-[10px] font-black uppercase tracking-widest outline-none focus:border-primary/30 transition-all cursor-pointer"
+                                                value={newDiscount.type}
+                                                onChange={(e) => setNewDiscount({ ...newDiscount, type: e.target.value })}
+                                            >
+                                                <option>Percentage</option>
+                                                <option>Fixed Amount</option>
+                                                <option>Free Shipping</option>
+                                            </select>
+                                        </div>
+                                         <div className="flex flex-col gap-3">
+                                            <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest ml-1 italic">Discount Value</label>
+                                            <input
+                                                type="text"
+                                                placeholder={newDiscount.type === "Percentage" ? "e.g. 15%" : "KSh 1000"}
+                                                className="h-16 border border-border bg-muted/30 rounded-2xl px-8 text-[10px] font-black uppercase tracking-widest disabled:opacity-50 focus:border-primary/30 outline-none transition-all"
+                                                value={newDiscount.type === "Free Shipping" ? "Free" : newDiscount.value}
+                                                disabled={newDiscount.type === "Free Shipping"}
+                                                onChange={(e) => setNewDiscount({ ...newDiscount, value: e.target.value })}
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div className="grid grid-cols-2 gap-8">
+                                         <div className="flex flex-col gap-3">
+                                            <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest ml-1 italic">Usage Limit</label>
+                                            <input
+                                                type="number"
+                                                placeholder="e.g. 1000"
+                                                className="h-16 border border-border bg-muted/30 rounded-2xl px-8 text-[10px] font-black uppercase tracking-widest focus:border-primary/30 outline-none transition-all"
+                                                value={newDiscount.maxUses}
+                                                onChange={(e) => setNewDiscount({ ...newDiscount, maxUses: e.target.value })}
+                                            />
+                                        </div>
+                                         <div className="flex flex-col gap-3">
+                                            <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest ml-1 italic">Min. Purchase</label>
+                                            <input
+                                                type="number"
+                                                placeholder="e.g. 500"
+                                                className="h-16 border border-border bg-muted/30 rounded-2xl px-8 text-[10px] font-black uppercase tracking-widest focus:border-primary/30 outline-none transition-all"
+                                                value={newDiscount.minPurchase}
+                                                onChange={(e) => setNewDiscount({ ...newDiscount, minPurchase: e.target.value })}
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div className="grid grid-cols-2 gap-8">
+                                         <div className="flex flex-col gap-3">
+                                            <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest ml-1 italic">Start Date</label>
+                                            <input
+                                                type="date"
+                                                className="h-16 border border-border bg-muted/30 rounded-2xl px-8 text-[10px] font-black uppercase tracking-widest focus:border-primary/30 outline-none transition-all"
+                                                value={newDiscount.startDate}
+                                                onChange={(e) => setNewDiscount({ ...newDiscount, startDate: e.target.value })}
+                                            />
+                                        </div>
+                                        <div className="flex flex-col gap-3">
+                                             <div className="flex items-center justify-between px-1">
+                                                <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest italic">End Date</label>
+                                                <button 
+                                                    onClick={() => setNewDiscount({ ...newDiscount, endDate: newDiscount.endDate === "NEVER" ? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0] : "NEVER" })}
+                                                    className={cn("text-[8px] font-black uppercase tracking-widest px-2 py-1 rounded border transition-all", newDiscount.endDate === "NEVER" ? "bg-primary text-white border-primary" : "text-muted-foreground border-border")}
+                                                >
+                                                    {newDiscount.endDate === "NEVER" ? "Indefinite Active" : "Set Indefinite"}
+                                                </button>
+                                            </div>
+                                            <input
+                                                type="date"
+                                                disabled={newDiscount.endDate === "NEVER"}
+                                                className="h-16 border border-border bg-muted/30 rounded-2xl px-8 text-[10px] font-black uppercase tracking-widest focus:border-primary/30 outline-none transition-all disabled:opacity-20 disabled:grayscale"
+                                                value={newDiscount.endDate === "NEVER" ? "" : newDiscount.endDate}
+                                                onChange={(e) => setNewDiscount({ ...newDiscount, endDate: e.target.value })}
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div className="flex items-center justify-between p-8 bg-muted/20 border border-border rounded-[2rem] shadow-inner">
+                                         <div className="flex flex-col gap-1">
+                                            <span className="text-sm font-black italic uppercase tracking-tighter text-foreground">Discount Status</span>
+                                            <span className="text-[8px] font-bold text-muted-foreground uppercase tracking-widest italic">Global Visibility</span>
+                                        </div>
+                                         <button 
+                                            onClick={() => setNewDiscount({ ...newDiscount, isActive: !newDiscount.isActive })}
+                                            className={cn(
+                                                "h-12 px-10 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all italic shadow-md",
+                                                newDiscount.isActive ? "bg-success text-success-foreground shadow-success/20" : "bg-muted text-muted-foreground"
+                                            )}
+                                        >
+                                            {newDiscount.isActive ? "Active" : "Inactive"}
+                                        </button>
                                     </div>
                                 </div>
-
-                                <div className="flex flex-col gap-2">
-                                    <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">DISCOUNT CODE</label>
-                                    <input
-                                        type="text"
-                                        placeholder="e.g. HOLIDAY20"
-                                        className="h-10 border border-border bg-muted/50 rounded-lg px-3 text-sm font-bold uppercase"
-                                        value={editPromo.discountCode}
-                                        onChange={(e) => setEditPromo({ ...editPromo, discountCode: e.target.value.toUpperCase() })}
-                                    />
-                                </div>
-
-                                <div className="flex flex-col gap-2">
-                                    <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">BUDGET PROGRESS (%)</label>
-                                    <input
-                                        type="number"
-                                        min="0" max="100"
-                                        placeholder="0"
-                                        className="h-10 border border-border bg-muted/50 rounded-lg px-3 text-sm font-bold"
-                                        value={editPromo.progress}
-                                        onChange={(e) => setEditPromo({ ...editPromo, progress: parseInt(e.target.value) || 0 })}
-                                    />
-                                </div>
-
-                                <Button onClick={handleSaveBanner} className="h-12 w-full mt-4 bg-primary text-white font-black italic tracking-widest uppercase text-xs rounded-xl shadow-lg shadow-primary/20">
-                                    Save Changes
-                                </Button>
-                            </div>
-                        </motion.div>
-                    </motion.div>
-                )}
-            </AnimatePresence>
-                </div>
-            ) : activeTab === 'automated' ? (
-                <div className="animate-in fade-in slide-in-from-bottom-2 duration-500">
-                    <PromotionManager />
-                </div>
-            ) : (
-                <div className="animate-in fade-in slide-in-from-bottom-2 duration-500">
-                    <HomepageManager />
-                </div>
-            )}
+                            </motion.div>
+                        </div>
+                    )}
+                </AnimatePresence>
+            </div>
         </div>
     )
 }

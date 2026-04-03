@@ -16,12 +16,11 @@ import { cn } from "@/lib/utils"
 import { toast } from "react-hot-toast"
 import { useRouter } from "next/navigation"
 
-const AI_FORECASTS = [
-    { model: "iPhone 16 Pro Max", current: 8, predicted_30d: 45, confidence: 94, action: "Reorder: 40 Units", status: "Critical", statusColor: "text-red-500 bg-red-500/10" },
-    { model: "Samsung S24 Ultra", current: 0, predicted_30d: 32, confidence: 88, action: "Reorder: 35 Units", status: "Critical", statusColor: "text-red-500 bg-red-500/10" },
-    { model: "Lumina ZX", current: 45, predicted_30d: 38, confidence: 91, action: "None Required", status: "Healthy", statusColor: "text-emerald-500 bg-emerald-500/10" },
-    { model: "Xiaomi 14 Ultra", current: 3, predicted_30d: 12, confidence: 82, action: "Reorder: 10 Units", status: "Low Stock", statusColor: "text-amber-500 bg-amber-500/10" },
-    { model: "Google Pixel 9", current: 112, predicted_30d: 40, confidence: 96, action: "Pause Inbound", status: "Overstock", statusColor: "text-blue-500 bg-blue-500/10" },
+const DEMAND_FORECASTS = [
+    { id: "FC-101", product: "iPhone 16 Pro Max", confidence: 94, trend: "Rising", volume: "High", color: "text-primary" },
+    { id: "FC-102", product: "MacBook Pro 14", confidence: 88, trend: "Stable", volume: "Medium", color: "text-emerald-500" },
+    { id: "FC-103", product: "AirPods Pro 2", confidence: 91, trend: "Rising", volume: "High", color: "text-primary" },
+    { id: "FC-104", product: "Samsung S24 Ultra", confidence: 82, trend: "Declining", volume: "Low", color: "text-amber-500" },
 ]
 
 export default function SupplyChainPage() {
@@ -35,7 +34,7 @@ export default function SupplyChainPage() {
             {
                 loading: 'Updating stock predictions...',
                 success: 'Supply information updated',
-                error: 'Sync Error: Prediction Interrupted',
+                error: 'Database Sync Error',
             },
             {
                 style: {
@@ -87,8 +86,8 @@ export default function SupplyChainPage() {
                         <BrainCircuit className="text-primary" size={18} />
                         <span className="text-[10px] font-black uppercase text-primary tracking-widest italic">Smart Supply System</span>
                     </div>
-                    <h1 className="text-3xl font-extrabold tracking-tight text-foreground">Supply Chain Management</h1>
-                    <p className="text-sm font-medium text-muted-foreground tracking-tight">AI-driven sales forecasting & automatic stock updates.</p>
+                    <h1 className="text-3xl font-black tracking-tight text-foreground italic uppercase">Supply Chain Management</h1>
+                    <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest leading-none mt-2">Managing product logistics and demand forecasting.</p>
                 </div>
                 <div className="flex items-center gap-3">
                     <Button
@@ -105,7 +104,7 @@ export default function SupplyChainPage() {
             {/* AI Network Stats */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                 {[
-                    { label: "Prediction Accuracy", value: "96.4%", detail: "Delta -0.2% vs Prev", icon: <TrendingUp className="text-emerald-500" /> },
+                    { label: "Prediction Accuracy", value: "96.4%", detail: "Variance -0.2% vs Prev", icon: <TrendingUp className="text-emerald-500" /> },
                     { label: "Automatic Orders", value: "12", detail: "Active Reorders", icon: <Package className="text-blue-500" /> },
                     { label: "Cost Savings", value: "$4.2K", detail: "Order Optimization", icon: <Smartphone className="text-amber-500" /> },
                     { label: "System Sync", value: "100%", detail: "Cloud Connection Vital", icon: <Shield className="text-purple-500" /> }
@@ -127,9 +126,9 @@ export default function SupplyChainPage() {
                 {/* Demand Prediction Matrix */}
                 <Card className="xl:col-span-2 rounded-2xl lg:rounded-[2.5rem] border-border/40 shadow-sm overflow-hidden bg-card">
                     <CardHeader className="p-4 lg:p-8 border-b border-border/30 flex flex-row items-center justify-between">
-                        <div className="flex flex-col">
-                            <CardTitle className="text-xl font-extrabold tracking-tight text-foreground">Stock Prediction Table</CardTitle>
-                            <span className="text-xs text-muted-foreground/60 font-bold uppercase tracking-widest italic">System: Sales History Tracker</span>
+                        <div className="flex flex-col gap-1">
+                             <CardTitle className="text-xl font-black italic tracking-tight uppercase">Logistics Centers</CardTitle>
+                             <span className="text-[10px] text-muted-foreground font-black uppercase tracking-widest italic">Active logistics hubs and fulfillment performance</span>
                         </div>
                         <Button
                             variant="outline"
@@ -145,14 +144,14 @@ export default function SupplyChainPage() {
                             <thead className="bg-slate-50/50">
                                 <tr className="text-[9px] font-black uppercase tracking-widest text-slate-400">
                                     <th className="px-8 py-5">Product Model</th>
-                                    <th className="px-8 py-5">Stock Prediction</th>
+                                     <th className="px-8 py-5">Fulfillment ID & Region</th>
                                     <th className="px-8 py-5">Prediction Score</th>
                                     <th className="px-8 py-5">Recommended Action</th>
                                     <th className="px-8 py-5 text-right">Action</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-border/30">
-                                {AI_FORECASTS.map((item, i) => (
+                                {DEMAND_FORECASTS.map((item, i) => (
                                     <tr key={i} className="hover:bg-muted/30 transition-colors group">
                                         <td className="px-8 py-6">
                                             <div className="flex items-center gap-4">
@@ -160,9 +159,9 @@ export default function SupplyChainPage() {
                                                     <Smartphone size={18} className="text-muted-foreground group-hover:text-primary transition-colors" />
                                                 </div>
                                                 <div className="flex flex-col">
-                                                    <span className="text-sm font-extrabold text-foreground tracking-tight">{item.model}</span>
-                                                    <span className={cn("text-[9px] font-black uppercase tracking-widest", item.statusColor.replace('bg-', 'text-').split(' ')[0])}>
-                                                        {item.status}: {item.current} Units
+                                                    <span className="text-sm font-extrabold text-foreground tracking-tight">{item.product}</span>
+                                                    <span className={cn("text-[9px] font-black uppercase tracking-widest", item.color)}>
+                                                        {item.trend}: {item.volume}
                                                     </span>
                                                 </div>
                                             </div>
@@ -171,7 +170,7 @@ export default function SupplyChainPage() {
                                             <div className="flex flex-col gap-1">
                                                 <div className="flex items-center gap-2">
                                                     <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-                                                    <span className="text-xs font-black text-foreground tracking-tight">{item.predicted_30d} Units</span>
+                                                    <span className="text-sm font-black italic text-foreground uppercase tracking-tight group-hover:text-primary transition-colors">Global Logistics Corp</span>
                                                 </div>
                                                 <span className="text-[8px] font-bold text-muted-foreground/60 uppercase tracking-widest">30-DAY PREDICTION</span>
                                             </div>
@@ -195,9 +194,9 @@ export default function SupplyChainPage() {
                                         <td className="px-8 py-6">
                                             <div className={cn(
                                                 "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest",
-                                                item.action.startsWith("Reorder") ? "bg-amber-100 text-amber-700" : "bg-emerald-100 text-emerald-700"
+                                                item.trend === "Rising" ? "bg-emerald-100 text-emerald-700" : item.trend === "Declining" ? "bg-amber-100 text-amber-700" : "bg-blue-100 text-blue-700"
                                             )}>
-                                                {item.action}
+                                                {item.trend}
                                             </div>
                                         </td>
                                         <td className="px-8 py-6 text-right">
@@ -217,7 +216,7 @@ export default function SupplyChainPage() {
                     </div>
                 </Card>
 
-                {/* Automation Silos & Global Supply */}
+                {/* Automation Centers & Global Supply */}
                 <div className="flex flex-col gap-8">
                     <Card className="rounded-[2.5rem] border-none shadow-sm bg-slate-900 text-white p-8 group overflow-hidden relative">
                         <div className="absolute top-0 right-0 w-32 h-32 bg-primary/20 rounded-full blur-[60px] -z-1" />

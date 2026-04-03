@@ -8,10 +8,17 @@ export async function PUT(
 ) {
     try {
         const { id: orderId } = await params
+        console.log(`[PAYMENT] Updating status for order ${orderId}...`)
         
         // 1. Verify Admin
-        if (!(await verifyAdmin(req))) {
-            return NextResponse.json({ error: "Unauthorized access" }, { status: 401 })
+        const isAdmin = await verifyAdmin(req)
+        if (!isAdmin) {
+            const diag = (req as any).authDiagnostics
+            console.warn(`[AUTH] Access denied for manifest ${orderId}. Diagnostics:`, diag)
+            return NextResponse.json({ 
+                error: "Unauthorized access",
+                diagnostics: diag
+            }, { status: 401 })
         }
 
         const admin = await getAuthUser(req)
@@ -19,24 +26,31 @@ export async function PUT(
         const { paymentStatus } = body
 
         if (!paymentStatus) {
-            return NextResponse.json({ error: "Payment status is required" }, { status: 400 })
+            return NextResponse.json({ error: "Missing payment status in request" }, { status: 400 })
         }
 
         // 2. Fetch current status for auditing
-        const { data: currentOrder, error: fetchError } = await supabaseAdmin
+        console.log(`[SYNC] Finding order ${orderId}...`)
+        
+        const { data: currentOrder, error: sbFetchError } = await supabaseAdmin
             .from('Order')
-            .select('paymentStatus, orderNumber')
+            .select('*')
             .eq('id', orderId)
-            .single()
+            .maybeSingle()
 
-        if (fetchError || !currentOrder) {
-            return NextResponse.json({ error: "Order not found" }, { status: 404 })
+        if (sbFetchError) throw sbFetchError
+        if (!currentOrder) {
+            console.error(`[SYNC] Order ${orderId} not found.`)
+            return NextResponse.json({ error: "Order record not found" }, { status: 404 })
         }
 
         const previousStatus = currentOrder.paymentStatus
+        const orderNumber = currentOrder.orderNumber
 
         // 3. Update Status
-        const { data: updatedOrder, error: updateError } = await supabaseAdmin
+        console.log(`[TRANSITION] Updating ${orderNumber} from ${previousStatus} to ${paymentStatus}...`)
+
+        const { data: updatedOrder, error: sbUpdateError } = await supabaseAdmin
             .from('Order')
             .update({ 
                 paymentStatus,
@@ -46,34 +60,38 @@ export async function PUT(
             .select()
             .single()
 
-        if (updateError) throw updateError
+        if (sbUpdateError) {
+            console.error(`[TRANSITION] Cloud Core update failed:`, sbUpdateError.message)
+            throw sbUpdateError
+        }
+
+        console.log(`[TRANSITION] Cloud Core update successful.`)
 
         // 4. Log the change for auditing
-        // Using the existing AuditLog table which has strict NOT NULL constraints
-        const { error: logError } = await supabaseAdmin.from('AuditLog').insert([{
-            id: crypto.randomUUID(),
-            action: 'UPDATE_PAYMENT_STATUS',
-            category: 'FINANCIAL',
-            details: `Updated payment status for order ${currentOrder.orderNumber} from ${previousStatus} to ${paymentStatus}`,
-            orderId,
-            previousPaymentStatus: previousStatus || 'N/A',
-            newPaymentStatus: paymentStatus,
-            adminId: admin?.id || '00000000-0000-0000-0000-000000000000',
-            adminName: (admin?.user_metadata?.full_name || admin?.email || 'System Admin'),
-            adminEmail: admin?.email || 'admin@smarthub.com',
-            timestamp: new Date().toISOString()
-        }])
-
-        if (logError) {
-            console.error("Audit Logging Failed:", logError.message)
-            // We don't fail the request if logging fails, but we log it to console
+        try {
+            await supabaseAdmin.from('AuditLog').insert([{
+                id: crypto.randomUUID(),
+                action: 'UPDATE_PAYMENT_STATUS',
+                category: 'FINANCIAL',
+                details: `Payment update: ${orderNumber} -> ${paymentStatus}`,
+                orderId,
+                previousPaymentStatus: previousStatus || 'N/A',
+                newPaymentStatus: paymentStatus,
+                adminId: admin?.id || '00000000-0000-0000-0000-000000000000',
+                adminName: (admin?.user_metadata?.full_name || admin?.email || 'System Admin'),
+                adminEmail: admin?.email || 'admin@smarthub.com',
+                timestamp: new Date().toISOString()
+            }])
+        } catch (logErr) {
+            console.warn("[AUDIT] Logging failure. Operation continued anyway.")
         }
 
         return NextResponse.json(updatedOrder)
     } catch (error: any) {
-        console.error("Admin Payment Status Update Error:", error)
+        console.error("[CRITICAL] Financial status update crashed:", error.message)
         return NextResponse.json({ 
-            error: error.message || "Failed to update payment status" 
+            error: error.message || "Payment system error" 
         }, { status: 500 })
     }
 }
+

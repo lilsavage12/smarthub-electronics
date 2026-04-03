@@ -148,7 +148,7 @@ export default function DealsPage() {
                             className="mt-8 h-14 px-8 rounded-2xl bg-primary text-white font-black italic uppercase tracking-widest"
                             onClick={() => router.push("/products")}
                         >
-                            BACK TO REGISTRY
+                            BROWSE PRODUCTS
                         </Button>
                     </div>
                 )}
@@ -160,12 +160,12 @@ export default function DealsPage() {
                    <div className="flex flex-col gap-4">
                         <ShieldCheck className="text-primary" size={32} />
                         <h4 className="text-xl font-black font-outfit uppercase italic tracking-tighter">Verified Hardware</h4>
-                        <p className="text-sm font-medium text-muted-foreground leading-relaxed">Every unit in this promotional registry undergoes full performance evaluation before listing.</p>
+                        <p className="text-sm font-medium text-muted-foreground leading-relaxed">Every item in this sale undergoes a full quality check before being listed.</p>
                    </div>
                    <div className="flex flex-col gap-4">
                         <Clock className="text-amber-500" size={32} />
                         <h4 className="text-xl font-black font-outfit uppercase italic tracking-tighter">Limited Windows</h4>
-                        <p className="text-sm font-medium text-muted-foreground leading-relaxed">Promotion timelines are strict. Once the synchronization window closes, pricing reverts to standard registry levels.</p>
+                        <p className="text-sm font-medium text-muted-foreground leading-relaxed">Sale limits are strict. Once the sale period ends, prices return to their original values.</p>
                    </div>
                    <div className="flex flex-col gap-4">
                         <Zap className="text-purple-500" size={32} />

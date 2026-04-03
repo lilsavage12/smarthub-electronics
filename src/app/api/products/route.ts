@@ -1,16 +1,56 @@
 import { NextResponse } from "next/server"
-import { supabase } from "@/lib/supabase"
-import { verifyAdmin } from "@/lib/server-auth"
+import { supabaseAdmin } from "@/lib/supabase"
+export const dynamic = "force-dynamic"
 
-// Helper: safely parse specs JSON string back to object if needed
-function parseProduct(product: any) {
-    const parsedSpecs = typeof product.specs === "string" ? (() => {
-        try { return JSON.parse(product.specs) } catch { return {} }
-    })() : (product.specs || {});
+// Helper: safely parse specs and images JSON strings back to objects
+function parseProduct(product: any, promotions: any[] = []) {
+    let parsedSpecs = {}
+    if (typeof product.specs === "string" && product.specs.length > 2) {
+        try { parsedSpecs = JSON.parse(product.specs) } catch { parsedSpecs = {} }
+    } else {
+        parsedSpecs = product.specs || {}
+    }
 
-    // Category Normalization (Standardize 'smartphone' to 'Smartphones')
-    const rawCat = (product.category || "Smartphones").trim();
-    const normalizedCategory = rawCat.toLowerCase().includes("phone") ? "Smartphones" : (rawCat.charAt(0).toUpperCase() + rawCat.slice(1));
+    let parsedImages = []
+    const rawGallery = product.galleryImages || product.images // Support both for transition
+    if (typeof rawGallery === "string" && rawGallery.length > 2) {
+        try { parsedImages = JSON.parse(rawGallery) } catch { parsedImages = [] }
+    } else {
+        parsedImages = Array.isArray(rawGallery) ? rawGallery : []
+    }
+
+    const finalImages = parsedImages.length > 0 ? parsedImages : (product.image ? [product.image] : [])
+    const rawCat = (product.category || "Smartphones").trim()
+    const normalizedCategory = rawCat.toLowerCase().includes("phone") ? "Smartphones" : (rawCat.charAt(0).toUpperCase() + rawCat.slice(1))
+
+    // Unified filter across all promotion sources
+    const productPromos = promotions.map(p => ({
+        ...p,
+        discount: p.discount || p.value || 0,
+        value: p.discount || p.value || 0,
+        saleStock: p.saleStock || null,
+        soldInPromo: p.soldInPromo || 0,
+        productId: product.id 
+    }))
+
+    // Parse Variants deep
+    const enrichedVariants = (product.variants || []).map((v: any) => {
+        let vColors = []
+        if (typeof v.productColors === "string") {
+            try { vColors = JSON.parse(v.productColors) } catch { vColors = [] }
+        } else { vColors = v.productColors || [] }
+
+        let vFields = []
+        if (typeof v.customFields === "string") {
+            try { vFields = JSON.parse(v.customFields) } catch { vFields = [] }
+        } else { vFields = v.customFields || [] }
+
+        return {
+            ...v,
+            productColors: Array.isArray(vColors) ? vColors : [],
+            customFields: Array.isArray(vFields) ? vFields : []
+        }
+    })
 
     return {
         ...product,
@@ -19,142 +59,164 @@ function parseProduct(product: any) {
         category: normalizedCategory,
         brand: (product.brand || "").trim(),
         specs: parsedSpecs,
-        variants: product.variants?.map((v: any) => ({
-            ...v,
-            images: typeof v.images === "string" ? (() => {
-                try { return JSON.parse(v.images) } catch { return [] }
-            })() : (v.images || [])
-        })) ?? [],
-        // Data Normalization for filters
-        traditionalSpecs: {
-            ...(parsedSpecs?.identity || {}),
-            ...(parsedSpecs?.display || {}),
-            ...(parsedSpecs?.performance || {}),
-            ...(parsedSpecs?.camera || {}),
-            ...(parsedSpecs?.battery || {}),
-            ...(parsedSpecs?.connectivity || {}),
-            ...(parsedSpecs?.physical || {}),
-            ...parsedSpecs // Fallback for already flat specs
-        }
+        images: finalImages,
+        variants: enrichedVariants,
+        promotions: productPromos,
+        traditionalSpecs: { ...parsedSpecs }
     }
 }
 
-export async function GET() {
+export async function GET(req: Request) {
     try {
-        // 1. Fetch base products
-        const { data: products, error } = await supabase
+        const { searchParams } = new URL(req.url)
+        const category = searchParams.get("category")
+        const limitStr = searchParams.get("limit")
+        const limit = limitStr ? parseInt(limitStr) : 100
+
+        console.log(`Supabase: Product fetch request - Category: ${category || 'ALL'}, Limit: ${limit}`)
+        
+        // 1. Fetch Cloud Products from Supabase with Variants
+        let query = supabaseAdmin
             .from('Product')
             .select('*, variants:ProductVariant(*)')
             .order('createdAt', { ascending: false })
+            .limit(limit)
+        
+        if (category) {
+            query = query.eq('category', category)
+        }
 
-        if (error) throw error
+        const { data: products, error: productsError } = await query
+        
+        if (productsError) throw productsError
 
-        // 2. Fetch active promotions
-        const now = new Date().toISOString()
-        const { data: promotions, error: promoError } = await supabase
+        // 2. Fetch Active Promotions (Handling Indefinite Campaigns)
+        const nowStr = new Date().toISOString()
+        const { data: rawPromos } = await supabaseAdmin
             .from('Promotion')
             .select('*, products:PromotionProduct(productId, saleStock, soldInPromo)')
             .eq('isActive', true)
-            .lte('startDate', now)
-            .gte('endDate', now)
+            .lte('startDate', nowStr)
 
-        if (promoError) {
-            console.warn("Promotion fetch failed, continuing without promos:", promoError)
-        }
+        const activePromotions = (rawPromos || []).filter(p => !p.endDate || new Date(p.endDate) >= new Date())
 
-        // 3. Enrich products with their promos
-        const enrichedProducts = products.map((p: any) => {
-            const parsed = parseProduct(p)
-            const productPromos = promotions?.filter(promo => 
-                promo.products?.some((pp: any) => pp.productId === p.id)
-            ).map(promo => {
-                const link = promo.products?.find((pp: any) => pp.productId === p.id)
-                
-                // Normalization for Home Dashboard Display
-                let category = promo.category || "";
-                if (category.toLowerCase().includes("flash")) category = "FLASH_SALE";
-                else if (category.toLowerCase().includes("deal") || category.toLowerCase().includes("daily")) category = "DAILY_DEAL";
-
-                return {
-                    ...promo,
-                    category,
-                    saleStock: link?.saleStock,
-                    soldInPromo: link?.soldInPromo
+        // Map promotions to products for high-performance lookup
+        const promoMap: Record<string, any[]> = {}
+        activePromotions.forEach(p => {
+            // Priority 1: Direct Link (Legacy/Singular)
+            if (p.productId) {
+                if (!promoMap[p.productId]) promoMap[p.productId] = []
+                promoMap[p.productId].push(p)
+            }
+            // Priority 2: Junction Table Links (Modern) - Override stock with link-specific values
+            (p.products || []).forEach((l: any) => {
+                const productSpecificPromo = {
+                    ...p,
+                    saleStock: l.saleStock ?? p.saleStock,
+                    soldInPromo: l.soldInPromo ?? p.soldInPromo
                 }
-            }) || []
+                if (!promoMap[l.productId]) promoMap[l.productId] = []
+                promoMap[l.productId].push(productSpecificPromo)
+            })
+        })
+
+        const enrichedProducts = (products || []).map((p: any) => {
+            const raw = promoMap[p.id] || []
+            const uniquePromos = Array.from(new Map(raw.map(item => [item.id, item])).values())
+            const parsed = parseProduct(p, uniquePromos)
             return {
                 ...parsed,
-                promotions: productPromos
+                price: Math.round(Number(parsed.price || 0))
             }
         })
 
         return NextResponse.json(enrichedProducts)
     } catch (error: any) {
-        console.error("Detailed API Error:", error)
+        console.error("Supabase Database Fetch Failure:", error)
         return NextResponse.json({ 
-            error: "Failed to fetch products",
+            error: "Database Error: Failed to fetch product data",
             details: error.message || error 
         }, { status: 500 })
     }
 }
 
 export async function POST(req: Request) {
+    let body: any = {}
     try {
-        if (!(await verifyAdmin(req))) {
-            return NextResponse.json({ error: "Unauthorized access" }, { status: 401 })
-        }
-        const body = await req.json()
-        const { variants, specs, ...productData } = body
+        body = await req.json()
+        const { variants, specs, images, ...productData } = body
 
-        // Generate a unique ID if not provided (slug-like)
-        const slug = `${productData.brand}-${body.model || 'product'}`.toLowerCase().replace(/[^a-z0-9]+/g, '-')
-        const id = `${slug}-${Math.random().toString(36).substring(2, 7)}`
+        console.log(`Supabase: Initiating new product creation for "${productData.name}"`)
+        require('fs').appendFileSync('tmp/api_payload_debug.log', JSON.stringify(productData, null, 2) + '\n');
+        console.log("DEBUG: Reloading API context...")
 
         // 1. Create Product
-        const { data: product, error: productError } = await supabase
+        // 1. Explicitly select valid database columns to avoid SQL errors from extra fields
+        const validProductData: any = {
+            id: crypto.randomUUID(),
+            name: productData.name,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+            description: productData.description,
+            price: Number(productData.price),
+            image: productData.image,
+            category: productData.category,
+            brand: productData.brand,
+            stock: Number(productData.stock) || 0,
+            isNew: Boolean(productData.isNew),
+            isSale: Boolean(productData.isSale) || !!productData.discountPrice || !!productData.discountPercent,
+            discount: productData.discountPercent ? Number(productData.discountPercent) : (productData.discountPrice ? Math.round(((Number(productData.price) - Number(productData.discountPrice)) / Number(productData.price)) * 100) : null),
+            galleryImages: JSON.stringify(images || []),
+            specs: JSON.stringify(specs || {}),
+            isFeatured: Boolean(productData.isFeatured),
+            sku: productData.sku || null,
+            condition: productData.condition || 'New',
+            quickDescription: productData.quickDescription || null
+        };
+
+        console.log("DEBUG: Sending to Supabase:", JSON.stringify(validProductData, null, 2));
+        require('fs').appendFileSync('tmp/valid_product_debug.log', JSON.stringify(validProductData, null, 2) + '\n');
+
+        const { data: product, error: productError } = await supabaseAdmin
             .from('Product')
-            .insert([{
-                id,
-                ...productData,
-                name: `${productData.brand} ${body.model || ''}`.trim(),
-                specs: specs ? JSON.stringify(specs) : null,
-                createdAt: new Date().toISOString(),
-                updatedAt: new Date().toISOString()
-            }])
+            .insert(validProductData)
             .select()
             .single()
 
         if (productError) throw productError
 
-        // 2. Create Variants if any
+        // 2. Create Variants using the new decentralized architecture
         if (variants && variants.length > 0) {
-            const variantData = variants.map((v: any) => ({
+            const variantsToInsert = variants.map((v: any) => ({
+                id: crypto.randomUUID(),
                 productId: product.id,
-                color: v.color || "",
-                stock: parseInt(v.stock) || 0,
-                price: v.price ? parseFloat(v.price) : null,
-                images: JSON.stringify(Array.isArray(v.images) ? v.images : [])
+                ram: v.ram || "",
+                storage: v.storage || "",
+                color: "", // Suppressing legacy column NOT NULL constraint
+                price: v.price ? Math.round(parseFloat(v.price)) : null,
+                productColors: JSON.stringify(v.productColors || []),
+                customFields: JSON.stringify(v.customFields || []),
+                images: JSON.stringify([]) 
             }))
 
-            const { error: variantError } = await supabase
+            const { error: variantsError } = await supabaseAdmin
                 .from('ProductVariant')
-                .insert(variantData)
-
-            if (variantError) throw variantError
+                .insert(variantsToInsert)
+            
+            if (variantsError) {
+                console.error("Supabase: Primary variants creation failure:", variantsError)
+                // Continue since parent product was created
+            }
         }
 
-        // Fetch again to include variants
-        const { data: completeProduct, error: fetchError } = await supabase
-            .from('Product')
-            .select('*, variants:ProductVariant(*)')
-            .eq('id', product.id)
-            .single()
-
-        if (fetchError) throw fetchError
-
-        return NextResponse.json(parseProduct(completeProduct))
-    } catch (error) {
-        console.error("Supabase Create Error:", error)
-        return NextResponse.json({ error: "Failed to create product" }, { status: 500 })
+        return NextResponse.json(parseProduct(product), { status: 201 })
+    } catch (error: any) {
+        try { require('fs').appendFileSync('tmp/api_trace.log', `\n[POST ERROR ${new Date().toISOString()}]: ${error.stack || error.message}\nPAYLOAD: ${JSON.stringify(body || {}, null, 2)}\n`) } catch {}
+        console.error("Supabase Database Creation Failure:", error)
+        return NextResponse.json({ 
+            error: "Database Error: Product creation failed",
+            details: error.message 
+        }, { status: 500 })
     }
 }
+

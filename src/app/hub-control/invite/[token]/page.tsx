@@ -1,17 +1,19 @@
 "use client"
 
 import React, { useState, useEffect } from "react"
-import { motion } from "framer-motion"
-import { Smartphone, Zap, ShieldCheck, Mail, Lock, ArrowRight, UserPlus } from "lucide-react"
+import { motion, AnimatePresence } from "framer-motion"
+import { Smartphone, Zap, ShieldCheck, Mail, Lock, ArrowRight, UserPlus, Sun, Moon } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useRouter, useParams } from "next/navigation"
 import { toast } from "react-hot-toast"
 import { useAuth } from "@/lib/auth-store"
+import { ThemeToggle } from "@/components/shared/ThemeToggle"
 
 export default function AdminInvite() {
     const { token } = useParams()
     const router = useRouter()
 
+    const [displayName, setDisplayName] = useState("ADMINISTRATOR")
     const [email, setEmail] = useState("")
     const [password, setPassword] = useState("")
     const [confirmPassword, setConfirmPassword] = useState("")
@@ -47,39 +49,41 @@ export default function AdminInvite() {
         e.preventDefault()
 
         if (password !== confirmPassword) {
-            toast.error("Protocol Error: Passwords do not match")
+            toast.error("Error: Passwords do not match")
             return
         }
 
         if (password.length < 8) {
-            toast.error("Protocol Error: Security key too weak (min 8 chars)")
+            toast.error("Error: Password too weak (min 8 chars)")
             return
         }
 
         setIsProcessing(true)
 
         try {
-            // 1. Create User in Local DB with ADMIN role
+            // 1. Create User in Local DB with correct role from invite
             const regRes = await fetch("/api/auth/register", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ 
                     email, 
                     password, 
-                    displayName: "Admin Operative",
-                    role: "ADMIN" // The API currently defaults to USER, we'll need to upgrade it or rely on invite role
+                    displayName,
+                    role: inviteDoc?.role || "ADMIN"
                 })
             })
 
             const regData = await regRes.json()
+            if (!regRes.ok) throw new Error(regData.error || "Onboarding Failed")
 
-            if (!regRes.ok) throw new Error(regData.error || "Onboarding Protocol Failed")
+            // 2. Mark Invite as ACCEPTED to prevent reuse
+            await fetch(`/api/invites/accept/${token}`, { method: "POST" })
 
-            // 2. Set Auth State
+            // 3. Set Auth State
             setAuth(regData.user)
             localStorage.setItem("sh_admin_user", JSON.stringify(regData.user))
 
-            toast.success("Identity Verified. Vault Access Initialized.", {
+            toast.success("Identity verified. Access granted.", {
                 style: {
                     background: '#0F0F12',
                     color: '#fff',
@@ -94,112 +98,155 @@ export default function AdminInvite() {
             router.push("/hub-control")
         } catch (error: any) {
             console.error(error)
-            toast.error(error.message || "Registration Protocol Failed")
+            toast.error(error.message || "Registration Failed")
             setIsProcessing(false)
         }
     }
 
     if (isValidToken === null) {
-        return <div className="min-h-screen bg-[#050507] flex items-center justify-center">
-            <div className="flex flex-col items-center gap-4 animate-pulse">
-                <ShieldCheck className="w-12 h-12 text-primary opacity-50" />
-                <span className="text-[10px] font-black uppercase tracking-[0.4em] text-muted-foreground">Authenticating Token...</span>
+        return <div className="min-h-screen bg-background flex items-center justify-center">
+            <div className="flex flex-col items-center gap-6 animate-pulse">
+                <ShieldCheck className="w-16 h-16 text-primary" />
+                <span className="text-[10px] font-black uppercase text-foreground tracking-[0.4em]">Verifying Invite Link...</span>
             </div>
         </div>
     }
 
     if (isValidToken === false) {
-        return <div className="min-h-screen bg-[#050507] flex items-center justify-center p-6">
-            <div className="bg-red-500/5 border border-red-500/20 rounded-[3rem] p-12 text-center flex flex-col gap-6 max-w-lg">
-                <Zap className="w-16 h-16 text-red-500 mx-auto" />
-                <h1 className="text-3xl font-black font-outfit uppercase italic tracking-tighter">Token <span className="text-red-500 italic">Invalid</span></h1>
-                <p className="text-xs font-bold text-muted-foreground uppercase leading-relaxed tracking-widest">This security token has expired, been burned, or has already been used to initialize an identity.</p>
-                <Button variant="outline" className="h-14 rounded-2xl border-red-500/20 text-red-500 font-bold uppercase" onClick={() => router.push("/")}>Return to Homepage</Button>
+        return <div className="min-h-screen bg-background flex flex-col items-center justify-center p-6 gap-8">
+            <div className="absolute top-10 right-10">
+                <ThemeToggle />
+            </div>
+            <div className="bg-destructive/5 border border-destructive/20 rounded-[3rem] p-12 md:p-16 text-center flex flex-col gap-8 max-w-lg shadow-2xl">
+                <div className="w-20 h-20 bg-destructive/10 rounded-3xl flex items-center justify-center mx-auto ring-1 ring-destructive/20">
+                    <Zap className="w-10 h-10 text-destructive" />
+                </div>
+                <div className="flex flex-col gap-3">
+                    <h1 className="text-4xl font-black font-outfit uppercase italic tracking-tighter text-foreground">Token <span className="text-destructive">Expired</span></h1>
+                    <p className="text-xs font-bold text-muted-foreground uppercase leading-relaxed tracking-widest px-4">This administrative link is no longer valid or has already been used.</p>
+                </div>
+                <Button 
+                    variant="outline" 
+                    className="h-16 rounded-2xl border-border text-foreground font-black uppercase tracking-widest text-[10px] hover:bg-muted transition-all" 
+                    onClick={() => router.push("/")}
+                >
+                    Return to Homepage
+                </Button>
             </div>
         </div>
     }
 
     return (
-        <div className="min-h-screen bg-[#050507] flex items-center justify-center p-6 relative overflow-hidden">
+        <div className="min-h-screen bg-background flex items-center justify-center p-6 relative overflow-hidden font-inter">
             {/* Background Effects */}
-            <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-primary/20 rounded-full blur-[120px] opacity-50" />
-            <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-blue-500/10 rounded-full blur-[120px] opacity-30" />
+            <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-primary/[0.08] rounded-full blur-[120px] pointer-events-none" />
+            <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-blue-500/[0.05] rounded-full blur-[120px] pointer-events-none" />
+
+            {/* Theme Control Matrix */}
+            <div className="absolute top-8 right-8 z-50">
+                <ThemeToggle />
+            </div>
 
             <motion.div
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                className="w-full max-w-md z-10"
+                initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                transition={{ type: "spring", damping: 20, stiffness: 100 }}
+                className="w-full max-w-lg z-10"
             >
-                <div className="bg-background/40 backdrop-blur-xl border border-white/5 rounded-[3rem] p-10 md:p-12 shadow-2xl relative overflow-hidden group">
-                    <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-1000" />
+                <div className="bg-card/40 backdrop-blur-3xl border border-border rounded-[3.5rem] p-10 md:p-16 shadow-[0_32px_128px_-16px_rgba(0,0,0,0.1)] relative overflow-hidden group">
+                    <div className="absolute top-0 right-0 w-64 h-64 bg-primary/5 rounded-full -translate-y-1/2 translate-x-1/2 blur-[80px]" />
 
-                    <div className="relative z-10 flex flex-col items-center gap-8">
-                        <div className="bg-primary/10 p-4 rounded-2xl border border-primary/20">
-                            <UserPlus className="w-10 h-10 text-primary" />
+                    <div className="relative z-10 flex flex-col items-center gap-12">
+                        <div className="bg-primary shadow-2xl shadow-primary/20 p-5 rounded-3xl border border-white/10 ring-8 ring-primary/5">
+                            <UserPlus className="w-10 h-10 text-white" />
                         </div>
 
-                        <div className="text-center flex flex-col gap-2">
-                            <h1 className="text-3xl font-black font-outfit uppercase tracking-tighter italic">Identity <span className="text-primary italic">Initialization</span></h1>
-                            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.3em]">Vault Officer Onboarding Pulse</p>
+                        <div className="text-center flex flex-col gap-3">
+                            <h1 className="text-4xl md:text-5xl font-black font-outfit uppercase tracking-tighter italic leading-none text-foreground">
+                                Account <span className="text-primary italic">Setup</span>
+                            </h1>
+                            <p className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.4em] mt-1 opacity-70">Administrative Onboarding Matrix</p>
                         </div>
 
-                        <form onSubmit={handleSignUp} className="w-full flex flex-col gap-6">
-                            <div className="flex flex-col gap-3">
-                                <label className="text-[9px] font-black uppercase tracking-widest text-muted-foreground ml-4">Authorized Email</label>
-                                <div className="relative">
-                                    <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-primary" />
+                        <form onSubmit={handleSignUp} className="w-full flex flex-col gap-8">
+                            <div className="flex flex-col gap-4">
+                                <label className="text-[11px] font-black uppercase tracking-widest text-foreground ml-2 italic">Authorized Identity</label>
+                                <div className="relative group/email">
+                                    <div className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-primary">
+                                        <Mail size={20} />
+                                    </div>
                                     <input
                                         type="email"
                                         disabled
                                         value={email}
-                                        className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-12 pr-4 outline-none opacity-50 text-xs font-bold uppercase tracking-widest"
+                                        className="w-full bg-muted/30 border border-border rounded-[1.5rem] h-16 pl-16 pr-6 outline-none text-xs font-black uppercase tracking-widest text-foreground opacity-60 italic"
                                     />
                                 </div>
                             </div>
 
-                            <div className="flex flex-col gap-3">
-                                <label className="text-[9px] font-black uppercase tracking-widest text-muted-foreground ml-4">Master Security Key</label>
-                                <div className="relative group/input">
-                                    <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground group-focus-within/input:text-primary transition-colors" />
+                            <div className="flex flex-col gap-4">
+                                <label className="text-[11px] font-black uppercase tracking-widest text-foreground ml-2 italic">Full Identity</label>
+                                <div className="relative group/identity">
+                                    <div className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-primary transition-transform group-focus-within/identity:scale-110">
+                                        <ShieldCheck size={20} />
+                                    </div>
                                     <input
-                                        type="password"
+                                        type="text"
                                         required
-                                        value={password}
-                                        onChange={(e) => setPassword(e.target.value)}
-                                        placeholder="••••••••••••"
-                                        className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-12 pr-4 outline-none focus:border-primary/50 transition-all text-center tracking-[0.5em] font-bold"
+                                        value={displayName}
+                                        onChange={(e) => setDisplayName(e.target.value)}
+                                        placeholder="YOUR FULL NAME"
+                                        className="w-full bg-muted/40 border border-border rounded-[1.5rem] h-16 pl-16 pr-6 outline-none focus:border-primary/40 focus:ring-4 focus:ring-primary/5 transition-all text-xs font-black italic uppercase tracking-[0.2em] text-foreground"
                                     />
                                 </div>
                             </div>
 
-                            <div className="flex flex-col gap-3">
-                                <label className="text-[9px] font-black uppercase tracking-widest text-muted-foreground ml-4">Confirm Security Key</label>
-                                <div className="relative group/input">
-                                    <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground group-focus-within/input:text-primary transition-colors" />
-                                    <input
-                                        type="password"
-                                        required
-                                        value={confirmPassword}
-                                        onChange={(e) => setConfirmPassword(e.target.value)}
-                                        placeholder="••••••••••••"
-                                        className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-12 pr-4 outline-none focus:border-primary/50 transition-all text-center tracking-[0.5em] font-bold"
-                                    />
+                            <div className="flex flex-col gap-4">
+                                <label className="text-[11px] font-black uppercase tracking-widest text-foreground ml-2 italic">Access Credentials</label>
+                                <div className="space-y-4">
+                                    <div className="relative group/input">
+                                        <div className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground group-focus-within/input:text-primary transition-colors">
+                                            <Lock size={20} />
+                                        </div>
+                                        <input
+                                            type="password"
+                                            required
+                                            value={password}
+                                            onChange={(e) => setPassword(e.target.value)}
+                                            placeholder="NEW PASSWORD"
+                                            className="w-full bg-muted/40 border border-border rounded-[1.5rem] h-16 pl-16 pr-6 outline-none focus:border-primary/40 focus:ring-4 focus:ring-primary/5 transition-all text-xs font-black tracking-widest placeholder:text-muted-foreground/30"
+                                        />
+                                    </div>
+                                    <div className="relative group/input">
+                                        <div className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground group-focus-within/input:text-primary transition-colors">
+                                            <Lock size={20} />
+                                        </div>
+                                        <input
+                                            type="password"
+                                            required
+                                            value={confirmPassword}
+                                            onChange={(e) => setConfirmPassword(e.target.value)}
+                                            placeholder="CONFIRM SECRECY"
+                                            className="w-full bg-muted/40 border border-border rounded-[1.5rem] h-16 pl-16 pr-6 outline-none focus:border-primary/40 focus:ring-4 focus:ring-primary/5 transition-all text-xs font-black tracking-widest placeholder:text-muted-foreground/30"
+                                        />
+                                    </div>
                                 </div>
                             </div>
 
                             <Button
                                 type="submit"
                                 disabled={isProcessing}
-                                variant="premium"
-                                className="h-16 rounded-2xl text-xs font-black italic tracking-[0.2em] shadow-xl group"
+                                className="h-20 rounded-[1.5rem] bg-primary text-white text-[11px] font-black italic uppercase tracking-[0.25em] shadow-2xl shadow-primary/20 group hover:scale-[1.02] transition-all relative overflow-hidden"
                             >
-                                {isProcessing ? "INITIALIZING..." : "VERIFY & ENTER HUB"}
-                                {!isProcessing && <ArrowRight className="ml-2 w-4 h-4 group-hover:translate-x-1 transition-transform" />}
+                                <div className="relative z-10 flex items-center justify-center gap-3">
+                                    {isProcessing ? "INITIALIZING..." : "SYNCHRONIZE ACCOUNT"}
+                                    {!isProcessing && <ArrowRight className="w-5 h-5 group-hover:translate-x-2 transition-transform" />}
+                                </div>
                             </Button>
                         </form>
 
-                        <div className="pt-4 border-t border-white/5 w-full text-center">
-                            <p className="text-[9px] text-muted-foreground uppercase font-medium tracking-widest opacity-40">System: SH-Vault-Core-v4.2.0 • Status: Protocol Phase 2</p>
+                        <div className="pt-8 border-t border-border/50 w-full text-center">
+                            <p className="text-[9px] text-muted-foreground uppercase font-black tracking-widest opacity-30 italic italic">SmartHub Enterprise • Security Stage 02</p>
                         </div>
                     </div>
                 </div>

@@ -8,9 +8,9 @@ import { PRODUCTS } from "@/lib/mock-data"
 import { cn } from "@/lib/utils"
 
 const LOCATIONS = [
-    "London, UK", "New York, USA", "Berlin, DE", "Tokyo, JP", 
-    "Paris, FR", "Dubai, UAE", "Toronto, CA", "Sydney, AU",
-    "Singapore, SG", "Seoul, KR"
+    "Nairobi, KE", "Mombasa, KE", "Kisumu, KE", "Eldoret, KE", 
+    "Nakuru, KE", "Thika, KE", "Malindi, KE", "Kitale, KE",
+    "Garissa, KE", "Naivasha, KE"
 ]
 
 export const SalesNotification = () => {

@@ -9,7 +9,7 @@ import {
     Percent, BarChart3, FileText, Settings,
     ChevronLeft, ChevronRight, Bell, Search,
     MessageSquare, Plus, User, LogOut, Shield, Menu, X, Zap, RefreshCcw,
-    Circle, ChevronUp, Activity
+    Circle, ChevronUp, Activity, Image as ImageIcon
 } from "lucide-react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
@@ -27,7 +27,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(true)
     const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false)
     const [isNotificationsOpen, setIsNotificationsOpen] = useState(false)
-    const { user: authUser, isInitialized, logout: authLogout } = useAuth()
+    const { user: authUser, isInitialized, isRefreshing, logout: authLogout } = useAuth()
     const [isAuthorized, setIsAuthorized] = useState<boolean | null>(null)
     const [user, setUser] = useState<any>(null)
     const pathname = usePathname()
@@ -35,7 +35,8 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
 
     const [notifications, setNotifications] = useState<any[]>([])
     const [lastOrderTimestamp, setLastOrderTimestamp] = useState<string | null>(null)
-    const [processedLowStockIds, setProcessedLowStockIds] = useState<Set<string>>(new Set())
+    const [cmsSettings, setCmsSettings] = useState<any>(null)
+    const shownStockAlerts = React.useRef<Set<string>>(new Set())
 
     const markAllRead = () => {
         setNotifications(prev => prev.map(n => ({ ...n, read: true })))
@@ -57,16 +58,49 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
         localStorage.setItem("adminSidebarCollapsed", String(newState))
     }
 
+    useEffect(() => {
+        const fetchCms = async () => {
+            try {
+                const res = await fetch("/api/cms/homepage")
+                if (res.ok) {
+                    const data = await res.json()
+                    setCmsSettings(data.settings)
+                }
+            } catch (error) {
+                console.error("Failed to fetch CMS settings:", error)
+            }
+        }
+        fetchCms()
+    }, [])
+
+    const [unreadMessages, setUnreadMessages] = useState<number>(0)
+
+    const fetchUnreadMessages = async () => {
+        try {
+            const res = await fetch("/api/contact?status=UNREAD")
+            if (res.ok) {
+                const data = await res.json()
+                setUnreadMessages(data.length)
+            }
+        } catch (error) {
+            console.error("Failed to fetch unread messages count:", error)
+        }
+    }
+
     // Real-time Notification Service
     useEffect(() => {
         if (!isAuthorized) return
 
         const pollNotifications = async () => {
             try {
+                // Fetch unread messages for sidebar badge
+                fetchUnreadMessages()
                 const [ordersRes, productsRes] = await Promise.all([
                     fetch("/api/orders"),
                     fetch("/api/products")
                 ])
+                
+                // ... rest of polling logic exists here
 
                 if (ordersRes.ok) {
                     const orders = await ordersRes.json()
@@ -78,7 +112,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
 
                         // Check if this is a new order since we last polled
                         if (lastOrderTimestamp && new Date(latestOrder.createdAt) > new Date(lastOrderTimestamp)) {
-                            toast.success(`NEW ORDER: $${latestOrder.totalAmount} from ${latestOrder.customerName || 'Anonymous'}`, {
+                            toast.success(`NEW ORDER: KSh ${latestOrder.totalAmount} from ${latestOrder.customerName || 'Anonymous'}`, {
                                 icon: '🛒',
                                 duration: 5000,
                                 position: 'top-right',
@@ -96,7 +130,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                             const newNotify = {
                                 id: Date.now(),
                                 title: "New Order Received",
-                                message: `Order #${latestOrder.orderNumber || latestOrder.id.slice(-6)}: $${latestOrder.totalAmount}`,
+                                message: `Order #${latestOrder.orderNumber || latestOrder.id.slice(-6)}: KSh ${latestOrder.totalAmount}`,
                                 time: "Just now",
                                 type: "order",
                                 read: false
@@ -109,7 +143,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
 
                 if (productsRes.ok) {
                     const products = await productsRes.json()
-                    const lowStock = products.filter((p: any) => p.stock < 10 && !processedLowStockIds.has(p.id))
+                    const lowStock = products.filter((p: any) => p.stock < 10 && !shownStockAlerts.current.has(p.id))
 
                     lowStock.forEach((p: any) => {
                         toast.error(`LOW STOCK: ${p.name} (${p.stock} units remaining)`, {
@@ -134,11 +168,11 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                             read: false
                         }
                         setNotifications(prev => [newNotify, ...prev].slice(0, 10))
-                        setProcessedLowStockIds(prev => new Set(prev).add(p.id))
+                        shownStockAlerts.current.add(p.id)
                     })
                 }
             } catch (err) {
-                console.error("Notification check failed:", err)
+                // Silently handle polling failures to avoid console noise during dev restarts
             }
         }
 
@@ -146,10 +180,10 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
         pollNotifications()
         const interval = setInterval(pollNotifications, 15000) // 15s polling for notification center
         return () => clearInterval(interval)
-    }, [isAuthorized, lastOrderTimestamp, processedLowStockIds])
+    }, [isAuthorized, lastOrderTimestamp])
 
     useEffect(() => {
-        if (!isInitialized) return
+        if (!isInitialized || isRefreshing) return
 
         if (authUser) {
             if (authUser.role === "ADMIN" || authUser.role === "SUPER_ADMIN") {
@@ -157,7 +191,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                 setIsAuthorized(true)
             } else {
                 setIsAuthorized(false)
-                toast.error("Security Protocol Violation: Admin Privileges Required.")
+                toast.error("Access Denied: Admin privileges required.")
                 router.push("/")
             }
         } else {
@@ -181,10 +215,10 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
         return <>{children}</>
     }
 
-    if (isAuthorized === null) {
+    if (isAuthorized === null || (!isInitialized || isRefreshing)) {
         return (
-            <div className="min-h-screen bg-background flex items-center justify-center">
-                <div className="flex flex-col items-center gap-6 animate-pulse">
+            <div className="min-h-screen bg-background flex items-center justify-center" suppressHydrationWarning>
+                <div className="flex flex-col items-center gap-6 animate-pulse" suppressHydrationWarning>
                     <Zap className="w-12 h-12 text-primary" />
                     <span className="text-[10px] font-black uppercase tracking-[0.4em] text-muted-foreground">Loading Admin Panel...</span>
                 </div>
@@ -197,30 +231,26 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
             group: "Operations", items: [
                 { name: "Dashboard", icon: <LayoutDashboard className="w-[18px] h-[18px]" />, href: "/hub-control" },
                 { name: "Orders", icon: <ShoppingCart className="w-[18px] h-[18px]" />, href: "/hub-control/orders" },
-                { name: "Inventory", icon: <Package className="w-[18px] h-[18px]" />, href: "/hub-control/inventory" },
-                { name: "Shipping", icon: <Truck className="w-[18px] h-[18px]" />, href: "/hub-control/supply" },
+                { name: "Delivery Fee", icon: <Truck className="w-[18px] h-[18px]" />, href: "/hub-control/delivery" },
+                { name: "Messages", icon: <MessageSquare className="w-[18px] h-[18px]" />, href: "/hub-control/messages", badge: unreadMessages > 0 ? unreadMessages : undefined },
+                { name: "Storefront CMS", icon: <ImageIcon className="w-[18px] h-[18px]" />, href: "/hub-control/cms" },
             ]
         },
         {
             group: "Products", items: [
                 { name: "Products", icon: <Smartphone className="w-[18px] h-[18px]" />, href: "/hub-control/products" },
-                { name: "Categories", icon: <Tags className="w-[18px] h-[18px]" />, href: "/hub-control/categories" },
                 { name: "Discounts", icon: <Percent className="w-[18px] h-[18px]" />, href: "/hub-control/discounts" },
             ]
         },
         {
             group: "Settings", items: [
-                { name: "Documents", icon: <FileText className="w-[18px] h-[18px]" />, href: "/hub-control/templates" },
-                { name: "Audit Logs", icon: <Activity className="w-[18px] h-[18px]" />, href: "/hub-control/audit" },
-                { name: "Data Sync", icon: <RefreshCcw className="w-[18px] h-[18px]" />, href: "/hub-control/sync" },
-                { name: "Security", icon: <Shield className="w-[18px] h-[18px]" />, href: "/hub-control/security" },
                 { name: "Settings", icon: <Settings className="w-[18px] h-[18px]" />, href: "/hub-control/settings" },
             ]
         }
     ]
 
     return (
-        <div className="min-h-screen bg-background flex text-foreground font-inter">
+        <div className="min-h-screen bg-background flex text-foreground font-inter" suppressHydrationWarning>
             {/* Mobile Sidebar Portal */}
             <AnimatePresence>
                 {isMobileSidebarOpen && (
@@ -237,7 +267,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                             animate={{ x: 0 }}
                             exit={{ x: "-100%" }}
                             transition={{ type: "spring", damping: 25, stiffness: 200 }}
-                            className="fixed left-0 top-0 h-full w-80 bg-card border-r border-border z-[101] lg:hidden flex flex-col p-6"
+                            className="fixed left-0 top-0 h-full w-[85%] max-w-[320px] bg-card border-r border-border z-[101] lg:hidden flex flex-col p-6 shadow-2xl"
                         >
                             <div className="flex items-center justify-between mb-8">
                                 <div className="flex items-center gap-3">
@@ -259,7 +289,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                             <nav className="flex-1 overflow-y-auto no-scrollbar flex flex-col gap-6">
                                 {menuItems.map((group, idx) => (
                                     <div key={idx} className="flex flex-col">
-                                        <span className="text-[9px] font-black uppercase tracking-[0.3em] text-muted-foreground/30 mb-4 italic px-2">{group.group}</span>
+                                        <span className="text-[9px] font-black uppercase tracking-[0.3em] text-muted-foreground/60 mb-4 italic px-2">{group.group}</span>
                                         <div className="flex flex-col gap-1">
                                             {group.items.map((item) => {
                                                 const isActive = pathname === item.href
@@ -269,12 +299,17 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                                                         href={item.href}
                                                         onClick={() => setIsMobileSidebarOpen(false)}
                                                         className={cn(
-                                                            "flex items-center gap-4 py-3.5 px-5 rounded-2xl transition-all",
+                                                            "flex items-center gap-4 py-3.5 px-5 rounded-2xl transition-all relative",
                                                             isActive ? "bg-primary/10 text-primary" : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
                                                         )}
                                                     >
                                                         {item.icon}
                                                         <span className="text-[10px] font-black uppercase tracking-widest translate-y-[1px]">{item.name}</span>
+                                                        {(item as any).badge && (
+                                                            <span className="absolute right-4 top-1/2 -translate-y-1/2 bg-primary text-primary-foreground text-[8px] font-black w-5 h-5 rounded-lg flex items-center justify-center shadow-lg shadow-primary/20">
+                                                                {(item as any).badge}
+                                                            </span>
+                                                        )}
                                                     </Link>
                                                 )
                                             })}
@@ -286,7 +321,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                             <div className="pt-6 border-t border-border mt-auto">
                                 <button
                                     onClick={handleLogout}
-                                    className="w-full flex items-center gap-4 py-4 px-6 rounded-2xl bg-red-500/5 text-red-500 font-black text-[10px] uppercase tracking-widest transition-all hover:bg-red-500/10"
+                                    className="w-full flex items-center gap-4 py-4 px-6 rounded-2xl bg-destructive/5 text-destructive font-black text-[10px] uppercase tracking-widest transition-all hover:bg-destructive/10"
                                 >
                                     <LogOut size={18} />
                                     Sign Out
@@ -307,13 +342,23 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                 {/* Header: Brand Identity */}
                 <div className="h-24 flex items-center shrink-0 justify-center">
                     <div className={cn("flex items-center gap-4 transition-all px-6 w-full", isSidebarCollapsed && "px-0 justify-center")}>
-                        <div className="p-2.5 rounded-2xl bg-primary shadow-lg shadow-primary/20 shrink-0">
-                            <Zap className="w-5 h-5 text-primary-foreground fill-primary-foreground" />
-                        </div>
+                        {cmsSettings?.logoUrl ? (
+                            <div className="p-1 rounded-xl bg-muted/50 border border-border/40 shrink-0">
+                                <div className="relative w-8 h-8">
+                                    <img src={cmsSettings.logoUrl} alt="Logo" className="w-full h-full object-contain" />
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="p-2.5 rounded-2xl bg-primary shadow-lg shadow-primary/20 shrink-0">
+                                <Zap className="w-5 h-5 text-primary-foreground fill-primary-foreground" />
+                            </div>
+                        )}
                         {!isSidebarCollapsed && (
                             <div className="flex flex-col overflow-hidden">
-                                <span className="font-black text-xs tracking-[0.2em] uppercase italic text-foreground leading-none">SmartHub</span>
-                                <span className="text-[10px] font-bold uppercase tracking-tighter text-primary mt-1">Command Centre</span>
+                                <span className="font-black text-xs tracking-[0.05em] text-foreground leading-tight truncate">
+                                    {cmsSettings?.storeName || "SmartHub"}
+                                </span>
+                                <span className="text-[10px] font-bold uppercase tracking-tighter text-primary mt-1">Admin Dashboard</span>
                             </div>
                         )}
                     </div>
@@ -324,7 +369,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                     {menuItems.map((group, idx) => (
                         <div key={idx} className="flex flex-col">
                             {!isSidebarCollapsed && (
-                                <span className="text-[9px] font-black uppercase tracking-[0.3em] text-muted-foreground/30 px-8 mb-4 italic">{group.group}</span>
+                                <span className="text-[9px] font-black uppercase tracking-[0.3em] text-muted-foreground/60 px-8 mb-4 italic">{group.group}</span>
                             )}
                             <div className="flex flex-col gap-1 px-3">
                                 {group.items.map((item) => {
@@ -348,6 +393,16 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                                             {!isSidebarCollapsed && (
                                                 <span className="text-[10px] font-black uppercase tracking-widest leading-none translate-y-[1px] truncate">{item.name}</span>
                                             )}
+                                            {(item as any).badge && (
+                                                <div className={cn(
+                                                    "absolute bg-primary text-primary-foreground text-[8px] font-black rounded-lg flex items-center justify-center shadow-lg shadow-primary/20 transition-all duration-300",
+                                                    isSidebarCollapsed 
+                                                        ? "w-4 h-4 -top-1 -right-1" 
+                                                        : "w-5 h-5 right-4"
+                                                )}>
+                                                    {(item as any).badge}
+                                                </div>
+                                            )}
                                             {isActive && (
                                                 <div className={cn(
                                                     "absolute bg-primary transition-all duration-300",
@@ -367,7 +422,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                     ))}
                 </nav>
 
-                {/* Footer: Operative Profile */}
+                {/* Footer: User Profile */}
                 <div className="p-4 flex flex-col gap-3 bg-muted/5 border-t border-border mt-auto">
                     <div
                         className={cn(
@@ -396,7 +451,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                         </button>
                         <button
                             onClick={handleLogout}
-                            className="flex-1 flex items-center justify-center h-11 rounded-[14px] bg-card border border-border text-red-500/60 hover:text-red-500 hover:bg-red-500/5 transition-all"
+                            className="flex-1 flex items-center justify-center h-11 rounded-[14px] bg-card border border-border text-destructive/60 hover:text-destructive hover:bg-destructive/5 transition-all"
                             title="Sign Out"
                         >
                             <LogOut size={18} />
@@ -408,12 +463,13 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
             {/* Main Content Viewport */}
             <div
                 className={cn(
-                    "flex-1 flex flex-col min-w-0 transition-all duration-300",
-                    isSidebarCollapsed ? "lg:ml-20" : "lg:ml-72"
+                    "flex-1 flex flex-col min-w-0 transition-all duration-300 relative",
+                    isSidebarCollapsed ? "lg:ml-20" : "lg:ml-72",
+                    "w-full overflow-x-hidden"
                 )}
             >
-                {/* Global Command Bar */}
-                <header className="h-16 lg:h-20 bg-background/60 backdrop-blur-xl border-b border-border sticky top-0 z-40 flex items-center justify-between px-4 lg:px-10">
+                {/* Navigation Sections */}
+                <header className="h-16 lg:h-20 bg-background/60 backdrop-blur-xl border-b border-border sticky top-0 z-40 flex items-center justify-between px-4 sm:px-6 lg:px-10">
                     <div className="flex items-center gap-6">
                         <button
                             onClick={() => setIsMobileSidebarOpen(true)}
@@ -421,12 +477,12 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                         >
                             <Menu size={20} />
                         </button>
-                        <div className="relative group hidden sm:flex items-center">
+                        <div className="relative group flex items-center">
                             <Search className="absolute left-4 text-muted-foreground group-focus-within:text-primary transition-colors" size={16} />
                             <input
                                 type="text"
                                 placeholder="Search products, orders, customers..."
-                                className="h-10 lg:h-11 bg-muted/40 border-none rounded-2xl py-2 pl-12 pr-6 text-[11px] w-64 lg:w-96 font-bold uppercase tracking-widest focus:ring-1 focus:ring-primary/20 transition-all outline-none text-foreground placeholder:text-muted-foreground/30 italic"
+                                className="h-10 lg:h-11 bg-muted/40 border-none rounded-2xl py-2 pl-12 pr-6 text-[11px] w-48 sm:w-64 lg:w-96 font-bold uppercase tracking-widest focus:ring-1 focus:ring-primary/20 transition-all outline-none text-foreground placeholder:text-muted-foreground/30 italic"
                             />
                         </div>
                     </div>
@@ -455,10 +511,10 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                                             initial={{ opacity: 0, y: 10, scale: 0.95 }}
                                             animate={{ opacity: 1, y: 0, scale: 1 }}
                                             exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                                            className="absolute right-0 mt-4 w-96 bg-card border border-border rounded-3xl shadow-2xl z-50 overflow-hidden"
+                                            className="absolute right-0 mt-4 w-[280px] sm:w-[320px] md:w-96 bg-card border border-border rounded-3xl shadow-2xl z-50 overflow-hidden"
                                         >
                                             <div className="px-6 py-5 border-b border-border flex items-center justify-between bg-muted/20">
-                                                <h3 className="text-xs font-black uppercase tracking-[0.2em] italic">System Logs</h3>
+                                                <h3 className="text-xs font-black uppercase tracking-[0.2em] italic">Activity Logs</h3>
                                                 <button onClick={markAllRead} className="text-[10px] font-bold text-primary hover:underline">Mark all read</button>
                                             </div>
                                             <div className="max-h-[400px] overflow-y-auto no-scrollbar">
@@ -467,7 +523,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                                                         <div className="flex items-start gap-4">
                                                             <div className={cn(
                                                                 "p-2 rounded-xl shrink-0",
-                                                                n.type === 'alert' ? "bg-red-500/10 text-red-500" :
+                                                                n.type === 'alert' ? "bg-destructive/10 text-destructive" :
                                                                     n.type === 'order' ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground",
                                                                 !n.read && "ring-1 ring-inset ring-current/20"
                                                             )}>
@@ -493,7 +549,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                                                     variant="ghost"
                                                     className="w-full text-[10px] font-black uppercase tracking-widest h-10 rounded-xl"
                                                 >
-                                                    View Internal Audit
+                                                    View Activity Logs
                                                 </Button>
                                             </div>
                                         </motion.div>
@@ -503,8 +559,8 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                         </div>
                         <div className="h-6 w-[1px] bg-border mx-2" />
                         <div className="hidden sm:flex items-center gap-2 px-4 py-2 bg-muted/40 rounded-2xl border border-border">
-                            <Circle size={8} className="fill-emerald-500 text-emerald-500" />
-                            <span className="text-[9px] font-black uppercase tracking-widest opacity-60">System Online</span>
+                            <Circle size={8} className="fill-success text-success" />
+                            <span className="text-[9px] font-black uppercase tracking-widest opacity-60">Active Session</span>
                         </div>
                     </div>
                 </header>

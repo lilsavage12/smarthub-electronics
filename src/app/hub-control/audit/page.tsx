@@ -36,9 +36,9 @@ interface AuditLog {
 const MOCK_LOGS: AuditLog[] = [
     {
         id: 'L-8422',
-        action: 'CORE_SYST_LOGIN',
+        action: 'ADMIN_LOGIN',
         category: 'Security',
-        details: 'Root admin authorized from IP 192.168.1.1',
+        details: 'Admin login successful from IP 192.168.1.1',
         adminName: 'System Admin',
         adminEmail: 'admin@smarthub.com',
         adminId: 'ROOT',
@@ -47,7 +47,7 @@ const MOCK_LOGS: AuditLog[] = [
     },
     {
         id: 'L-8423',
-        action: 'PROD_REG_MODIFIED',
+        action: 'PRODUCT_UPDATED',
         category: 'Product',
         details: 'Modified SKU: SH-101-BLK base pricing model',
         adminName: 'Inventory Mgr',
@@ -69,9 +69,9 @@ const MOCK_LOGS: AuditLog[] = [
     },
     {
         id: 'L-8425',
-        action: 'DB_SYNC_COMPLETE',
+        action: 'DATABASE_SYNC',
         category: 'System',
-        details: 'Global inventory synchronization completed across 4 nodes',
+        details: 'Global inventory synchronization completed across regions',
         adminName: 'System Bot',
         adminEmail: 'bot@smarthub.com',
         adminId: 'SYS-BOT',
@@ -83,9 +83,9 @@ const MOCK_LOGS: AuditLog[] = [
         action: 'SEC_UNAUTH_ATTEMPT',
         category: 'Security',
         details: 'Detected 3 failed login attempts from unknown IP 45.12.8.9',
-        adminName: 'Shield Guard',
+        adminName: 'Security Monitor',
         adminEmail: 'security@smarthub.com',
-        adminId: 'SHIELD',
+        adminId: 'SEC-MONITOR',
         timestamp: { toDate: () => new Date(Date.now() - 14400000) },
         severity: 'Critical'
     },
@@ -93,7 +93,7 @@ const MOCK_LOGS: AuditLog[] = [
         id: 'L-8427',
         action: 'CRM_EXPORT_CSV',
         category: 'User',
-        details: 'Customer database exported for marketing protocol',
+        details: 'Customer database exported for marketing operations',
         adminName: 'Marketing Dir',
         adminEmail: 'marketing@smarthub.com',
         adminId: 'M-05',
@@ -162,9 +162,9 @@ export default function AuditLogsPage() {
         const url = window.URL.createObjectURL(blob)
         const a = document.createElement("a")
         a.href = url
-        a.download = `audit_vault_${new Date().toISOString().split('T')[0]}.csv`
+        a.download = `activity_log_${new Date().toISOString().split('T')[0]}.csv`
         a.click()
-        toast.success("Audit Registry Downloaded")
+        toast.success("Activity Logs Downloaded")
     }
 
     return (
@@ -172,8 +172,8 @@ export default function AuditLogsPage() {
             {/* Header */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                 <div className="flex flex-col gap-1">
-                    <h1 className="text-3xl font-black tracking-tight text-foreground italic uppercase">Audit Governance</h1>
-                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest opacity-60">High-fidelity log of all administrative and cryptographic events.</p>
+                    <h1 className="text-3xl font-black tracking-tight text-foreground italic uppercase">Activity Logs</h1>
+                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest opacity-60">Complete history of all administrative actions and security events.</p>
                 </div>
                 <div className="flex items-center gap-3">
                     <Button
@@ -182,7 +182,7 @@ export default function AuditLogsPage() {
                         onClick={handleExport}
                     >
                         <Download size={18} />
-                        EXPORT REGISTRY
+                        EXPORT LOGS
                     </Button>
                     <div className="h-12 px-4 rounded-xl bg-primary/5 border border-primary/20 flex items-center gap-2">
                         <ShieldCheck className="text-primary" size={18} />
@@ -218,7 +218,7 @@ export default function AuditLogsPage() {
                     <div className="relative flex-1 w-full md:max-w-md">
                         <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
                         <Input
-                            placeholder="Scan logs for actions or UIDs..."
+                            placeholder="Search activity logs..."
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                             className="h-12 bg-muted border-none rounded-xl pl-12 pr-4 text-sm font-medium"
@@ -247,11 +247,11 @@ export default function AuditLogsPage() {
                         <thead>
                             <tr className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/60">
                                 <th className="px-6 py-5">Event ID & Time</th>
-                                <th className="px-6 py-5">Action Matrix</th>
+                                <th className="px-6 py-5">Action</th>
                                 <th className="px-6 py-5">Administrator</th>
                                 <th className="px-6 py-5 text-center">Category</th>
                                 <th className="px-6 py-5 text-center">Severity</th>
-                                <th className="px-6 py-5">Evidence/Details</th>
+                                <th className="px-6 py-5">Activity Details</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-border/30">
@@ -274,7 +274,7 @@ export default function AuditLogsPage() {
                                     <td className="px-6 py-6">
                                         <div className="flex flex-col">
                                             <span className="text-[10px] font-black text-primary leading-none uppercase">{log.action}</span>
-                                            <span className="text-[9px] font-bold text-muted-foreground uppercase opacity-40 mt-1">PROTOCOL EVENT</span>
+                                            <span className="text-[9px] font-bold text-muted-foreground uppercase opacity-40 mt-1">SYSTEM EVENT</span>
                                         </div>
                                     </td>
                                     <td className="px-6 py-6">

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server"
-import { supabase } from "@/lib/supabase"
+import { supabaseAdmin } from "@/lib/supabase"
 import { verifyAdmin } from "@/lib/server-auth"
 
 export async function GET(req: Request) {
@@ -7,13 +7,13 @@ export async function GET(req: Request) {
         if (!(await verifyAdmin(req))) {
             return NextResponse.json({ error: "Unauthorized access" }, { status: 401 })
         }
-        const { data: users, error } = await supabase
-            .from('profiles')
+        const { data: users, error } = await supabaseAdmin
+            .from('User')
             .select(`
                 *,
                 sessions:DeviceSession(updatedAt)
             `)
-            .order('created_at', { ascending: false })
+            .order('createdAt', { ascending: false })
 
         if (error) throw error
 
@@ -23,3 +23,4 @@ export async function GET(req: Request) {
         return NextResponse.json({ error: "Failed to fetch users" }, { status: 500 })
     }
 }
+

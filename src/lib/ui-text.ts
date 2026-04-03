@@ -210,7 +210,6 @@ export const UI_TEXT = {
     quantity: "Quantity",
     description: "Description",
     specifications: "Specifications",
-    reviews: "Reviews",
     features: "Features",
     details: "Product Details",
     category: "Category",

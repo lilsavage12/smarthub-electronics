@@ -14,7 +14,7 @@ export default function CartPage() {
     const { items, removeItem, updateQuantity, totalPrice, totalItems } = useCart()
     const { user } = useAuth()
     const [promoInput, setPromoInput] = React.useState("")
-    const [activeDiscount, setActiveDiscount] = React.useState<{ type: string, value: string, code: string } | null>(null)
+    const [activeDiscount, setActiveDiscount] = React.useState<{ type: string, value: string, code: string, name?: string } | null>(null)
     const [verifyingPromo, setVerifyingPromo] = React.useState(false)
 
     const rawTotal = totalPrice()
@@ -29,15 +29,14 @@ export default function CartPage() {
             discountAmount = rawTotal * (pct / 100)
             discountedTotal -= discountAmount
         } else if (activeDiscount.type === "Fixed Amount") {
-            const flat = parseInt(activeDiscount.value.replace("$", "")) || 0
+            const flat = parseInt(activeDiscount.value.replace("KSh", "")) || 0
             discountAmount = flat
             discountedTotal -= discountAmount
             if (discountedTotal < 0) discountedTotal = 0
         }
     }
 
-    const tax = Math.round(discountedTotal * 0.08)
-    const finalTotal = discountedTotal + shipping + tax
+    const finalTotal = discountedTotal + shipping
 
     const { toast } = require("react-hot-toast")
 
@@ -54,11 +53,11 @@ export default function CartPage() {
             const data = await res.json()
 
             if (res.ok) {
-                toast.success(`Discount Applied: ${data.discount.value} off`)
+                toast.success(`${data.discount.name || 'Discount'} Applied: ${data.discount.value} off`)
                 setActiveDiscount(data.discount)
                 setPromoInput("") // Clear input
             } else {
-                toast.error(data.error || "Invalid or expired promo code", {
+                toast.error(data.error || "Sorry, that code didn't work", {
                     icon: "🚫",
                     style: {
                         background: '#0F0F12',
@@ -81,14 +80,14 @@ export default function CartPage() {
 
     if (items.length === 0) {
         return (
-            <div className="max-w-xl mx-auto px-6 py-32 flex flex-col items-center justify-center text-center gap-8">
-                <div className="bg-muted p-12 rounded-[4rem] group hover:scale-105 transition-transform duration-500 border border-border">
+            <div className="max-w-xl mx-auto px-6 py-32 flex flex-col items-center justify-center text-center gap-8" suppressHydrationWarning>
+                <div className="bg-muted p-12 rounded-[4rem] group hover:scale-105 transition-transform duration-500 border border-border" suppressHydrationWarning>
                     <ShoppingCart className="w-24 h-24 text-muted-foreground/30 animate-pulse" />
                 </div>
-                <h1 className="text-4xl font-black font-outfit uppercase tracking-tighter italic">Your Cart is Empty</h1>
-                <p className="text-muted-foreground text-lg leading-relaxed">It looks like you haven't added any items to your cart yet. Start exploring our latest deals.</p>
-                <Link href="/products">
-                    <Button variant="premium" size="lg" className="px-12 h-16 text-lg rounded-2xl shadow-xl group">
+                <h1 className="text-4xl font-black font-outfit uppercase tracking-tighter italic" suppressHydrationWarning>Your Cart is Empty</h1>
+                <p className="text-muted-foreground text-lg leading-relaxed" suppressHydrationWarning>It looks like you haven't added any items to your cart yet. Start exploring our latest deals.</p>
+                <Link href="/products" suppressHydrationWarning>
+                    <Button variant="premium" size="lg" className="px-12 h-16 text-lg rounded-2xl shadow-xl group" suppressHydrationWarning>
                         Start Shopping
                         <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
                     </Button>
@@ -98,18 +97,15 @@ export default function CartPage() {
     }
 
     return (
-        <div className="max-w-6xl mx-auto px-6 py-12 flex flex-col gap-8">
+        <div className="max-w-6xl mx-auto px-xs-fluid py-md-fluid flex flex-col gap-sm-fluid" suppressHydrationWarning>
             <div className="flex flex-col gap-3">
                 <Link href="/products" className="flex items-center gap-2 text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em] hover:text-primary transition-colors">
                     <ChevronLeft className="w-3.5 h-3.5" />
                     Back to Store
                 </Link>
                 <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
-                    <h1 className="text-2xl md:text-3xl font-black font-outfit uppercase tracking-tighter italic leading-none">Your <span className="text-primary italic">Shopping Cart</span></h1>
-                    <div className="flex items-center gap-2 bg-primary/5 px-3 py-1.5 rounded-lg text-primary font-black text-[10px] border border-primary/20 uppercase tracking-widest">
-                        <Zap className="w-3.5 h-3.5" fill="currentColor" />
-                        Ready for Delivery
-                    </div>
+                    <h1 className="text-3xl md:text-4xl font-black font-outfit uppercase tracking-tighter italic leading-none">Your <span className="text-primary italic">Cart</span></h1>
+
                 </div>
             </div>
 
@@ -131,45 +127,57 @@ export default function CartPage() {
                                 </div>
 
                                 <div className="flex-1 flex flex-col gap-1 w-full text-center md:text-left">
-                                    <div className="flex items-start justify-between">
+                                    <div className="flex items-center justify-between">
                                         <h3 className="text-base font-black font-outfit uppercase italic leading-tight hover:text-primary transition-colors cursor-pointer">{item.name}</h3>
                                         <button onClick={() => removeItem(item.id, user?.id)} className="text-muted-foreground hover:text-red-500 p-1.5 transition-colors">
                                             <Trash2 className="w-4 h-4" />
                                         </button>
                                     </div>
-                                    <div className="flex flex-wrap items-center justify-center md:justify-start gap-3 text-[9px] font-black uppercase tracking-widest text-muted-foreground opacity-60">
-                                        <span>Color: <span className="text-foreground">{item.color || "Default"}</span></span>
-                                        <div className="w-1 h-1 bg-border rounded-full" />
-                                        <span>Storage: <span className="text-foreground">{item.storage || "256GB"}</span></span>
-                                    </div>
 
                                     <div className="flex items-center justify-center md:justify-start gap-3 mt-3">
-                                        <div className="flex items-center gap-3 bg-background border border-border rounded-lg px-3 py-1.5">
-                                            <button onClick={() => updateQuantity(item.id, Math.max(1, item.quantity - 1), user?.id)} className="text-sm font-black text-muted-foreground hover:text-primary">-</button>
-                                            <span className="text-xs font-black min-w-[15px] text-center">{item.quantity}</span>
-                                            <button onClick={() => updateQuantity(item.id, item.quantity + 1, user?.id)} className="text-sm font-black text-muted-foreground hover:text-primary">+</button>
-                                        </div>
-                                        <div className="h-6 w-[1px] bg-border mx-1" />
-                                        <div className="flex flex-col">
-                                            <span className="text-lg font-black text-foreground font-outfit tracking-tighter uppercase leading-none">${item.price * item.quantity}</span>
-                                            <span className="text-[8px] uppercase font-black text-muted-foreground tracking-widest mt-0.5">${item.price} UNIT</span>
-                                        </div>
-                                    </div>
+                                         <div className="flex items-center gap-3 bg-background border border-border rounded-lg px-3 py-1.5">
+                                             <button 
+                                                 onClick={() => updateQuantity(item.id, Math.max(1, item.quantity - 1), user?.id)} 
+                                                 className="text-sm font-black text-muted-foreground hover:text-primary transition-colors disabled:opacity-20"
+                                                 disabled={item.quantity <= 1}
+                                             >-</button>
+                                             <input 
+                                                 type="number"
+                                                 value={item.quantity}
+                                                 onChange={(e) => {
+                                                     const val = parseInt(e.target.value)
+                                                     if (!isNaN(val)) {
+                                                         updateQuantity(item.id, val, user?.id)
+                                                     }
+                                                 }}
+                                                 className="w-10 bg-transparent border-none text-center text-xs font-black focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                                 min="1"
+                                                 max={item.stock || 999}
+                                             />
+                                             <button 
+                                                 onClick={() => updateQuantity(item.id, item.quantity + 1, user?.id)} 
+                                                 className="text-sm font-black text-muted-foreground hover:text-primary transition-colors disabled:opacity-20"
+                                                 disabled={item.stock !== undefined && item.quantity >= item.stock}
+                                             >+</button>
+                                         </div>
+                                         <div className="h-6 w-[1px] bg-border mx-1" />
+                                         <div className="flex flex-col text-left">
+                                             <span className="text-xl font-black text-foreground font-outfit tracking-tighter uppercase leading-none">KSh {Math.round(item.price * item.quantity).toLocaleString()}</span>
+
+                                         </div>
+                                     </div>
+                                     
+                                     {item.stock !== undefined && item.stock <= 5 && item.stock > 0 && (
+                                         <div className="flex items-center gap-1.5 text-[8px] font-black text-rose-500 uppercase tracking-widest mt-1 bg-rose-500/5 w-fit px-2 py-0.5 rounded-md">
+                                             <AlertCircle size={10} />
+                                             Only {item.stock} units left in stock
+                                         </div>
+                                     )}
                                 </div>
                             </motion.div>
                         ))}
                     </AnimatePresence>
 
-                    <div className="flex flex-col gap-4 p-5 bg-primary/5 rounded-2xl border border-primary/10 mt-4">
-                        <h4 className="text-[10px] font-black uppercase tracking-widest flex items-center gap-2">
-                            <Truck className="w-4 h-4 text-primary" />
-                            Delivery Instructions
-                        </h4>
-                        <textarea
-                            placeholder="Enter any instructions for delivery..."
-                            className="bg-background border border-border/50 rounded-xl p-3 text-xs font-medium outline-none focus:border-primary transition-all min-h-[80px] resize-none uppercase"
-                        />
-                    </div>
                 </div>
 
                 {/* Order Summary Summary */}
@@ -180,42 +188,38 @@ export default function CartPage() {
                         <div className="flex flex-col gap-3">
                             <div className="flex justify-between items-center text-[9px] font-black text-muted-foreground uppercase tracking-widest">
                                 <span>Subtotal</span>
-                                <span className={cn(activeDiscount && "line-through opacity-50")}>${rawTotal}</span>
+                                <span className={cn(activeDiscount && "line-through opacity-50")}>KSh {Math.round(rawTotal).toLocaleString()}</span>
                             </div>
                             {activeDiscount && (
                                 <div className="flex justify-between items-center text-[9px] font-black uppercase tracking-widest text-emerald-500">
                                     <span className="flex items-center gap-1">
                                         <Zap size={10} fill="currentColor" />
-                                        Discount ({activeDiscount.code})
+                                        {activeDiscount.name || 'Discount'} ({activeDiscount.code})
                                     </span>
-                                    <span>-${discountAmount.toFixed(2)}</span>
+                                    <span>-KSh {Math.round(discountAmount).toLocaleString()}</span>
                                 </div>
                             )}
                             <div className="flex justify-between items-center text-[9px] font-black text-muted-foreground uppercase tracking-widest">
                                 <span>Shipping</span>
                                 <span className="text-teal-500">FREE</span>
                             </div>
-                            <div className="flex justify-between items-center text-[9px] font-black text-muted-foreground uppercase tracking-widest">
-                                <span>Tax (8%)</span>
-                                <span className="text-foreground">${tax.toFixed(2)}</span>
-                            </div>
                         </div>
 
                         <div className="flex flex-col gap-3 border-t border-border/50 pt-3">
                             <div className="flex justify-between items-end">
                                 <span className="text-[8px] font-black uppercase tracking-widest text-muted-foreground mb-1 leading-none">Total Amount</span>
-                                <span className="text-3xl font-black text-foreground font-outfit tracking-tighter leading-none">${finalTotal.toFixed(2)}</span>
+                                <span className="text-3xl font-black text-foreground font-outfit tracking-tighter leading-none">KSh {Math.round(finalTotal).toLocaleString()}</span>
                             </div>
                         </div>
 
                         <div className="flex flex-col gap-3 mt-2">
                             <div className="flex items-center gap-2.5 p-2.5 bg-teal-500/5 rounded-xl border border-teal-500/10">
                                 <ShieldCheck className="w-4 h-4 text-teal-500 flex-shrink-0" />
-                                <span className="text-[8px] font-black uppercase tracking-widest text-teal-700/70 leading-tight">Securely encrypted checkout</span>
+                                <span className="text-[8px] font-black uppercase tracking-widest text-teal-700/70 leading-tight">Your payment is safe and secure</span>
                             </div>
-                            <Link href="/checkout">
-                                <Button variant="premium" size="lg" className="h-12 rounded-xl text-[10px] font-black italic tracking-widest uppercase">
-                                    CHECKOUT
+                            <Link href="/checkout" className="w-full">
+                                <Button variant="premium" size="lg" className="w-full h-14 rounded-xl text-xs-fluid font-black italic tracking-widest uppercase shadow-xl shadow-primary/20">
+                                    CHECKOUT NOW
                                 </Button>
                             </Link>
                         </div>

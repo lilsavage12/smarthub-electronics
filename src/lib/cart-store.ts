@@ -1,22 +1,29 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import { toast } from 'react-hot-toast'
+import { calculateFinalPrice } from './promo-utils'
 
 export interface CartItem {
     id: string
     productId: string
     name: string
     price: number
+    originalPrice: number
     quantity: number
     image: string
     color?: string
     storage?: string
+    stock?: number
+    promotions?: any[]
 }
 
 interface CartStore {
     items: CartItem[]
-    isSyncing: boolean
-    isLoaded: boolean
+    discount: {
+        code: string
+        type: 'PERCENTAGE' | 'FIXED'
+        value: number
+    } | null
     
     // Core Actions
     addItem: (product: any, userId?: string) => Promise<void>
@@ -24,173 +31,116 @@ interface CartStore {
     updateQuantity: (id: string, qty: number, userId?: string) => Promise<void>
     clearCart: (userId?: string) => Promise<void>
     
-    // Sync Actions
-    loadCart: (userId: string) => Promise<void>
-    syncOnLogin: (userId: string) => Promise<void>
+    // Discount Actions
+    applyDiscount: (code: string, type: 'PERCENTAGE' | 'FIXED', value: number) => void
+    removeDiscount: () => void
     
     // Computed
     totalItems: () => number
     totalPrice: () => number
+    discountedTotal: () => number
 }
 
 export const useCart = create<CartStore>()(
     persist(
         (set, get) => ({
             items: [],
-            isSyncing: false,
-            isLoaded: false,
+            discount: null,
             
             addItem: async (product, userId) => {
-                const pId = product.productId || product.id
-                const existing = get().items.find((i) => 
-                    i.productId === pId && 
-                    i.color === product.color && 
-                    i.storage === product.storage
-                )
+                const pId = product.id.toString()
+                const existing = get().items.find((i) => i.id.toString() === pId)
+                const currentQty = existing ? existing.quantity : 0
+                const requestedAdd = product.quantity || 1
                 
-                // 1. Optimistic Update
+                const availableStock = product.stock !== undefined ? product.stock : Infinity
+                if (currentQty + requestedAdd > availableStock) {
+                    const message = availableStock <= 0 
+                        ? `ASSET OUT OF SYNC: NO UNITS AVAILABLE.`
+                        : `Only ${availableStock} items available in stock.`
+                    
+                    toast.error(message, {
+                        style: { background: '#EF4444', color: '#fff', borderRadius: '16px', fontWeight: 'black', textTransform: 'uppercase', fontSize: '10px' }
+                    })
+                    return
+                }
+
                 if (existing) {
+                    const newQty = existing.quantity + requestedAdd
                     set({
                         items: get().items.map((i) =>
-                            i.id === existing.id ? { ...i, quantity: i.quantity + (product.quantity || 1) } : i
+                            i.id.toString() === pId ? { ...i, quantity: newQty } : i
                         ),
                     })
                 } else {
-                    const tempId = `temp-${Date.now()}`
                     set({ 
                         items: [...get().items, { 
                             ...product, 
-                            id: tempId, 
-                            productId: pId,
-                            quantity: product.quantity || 1 
+                            productId: product.productId || product.id,
+                            price: product.price,
+                            originalPrice: product.originalPrice || product.price,
+                            quantity: requestedAdd,
+                            stock: availableStock
                         }] 
                     })
-                }
-
-                // 2. Persistent Sync (if logged in)
-                if (userId) {
-                    try {
-                        const res = await fetch('/api/cart', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                                userId,
-                                productId: pId,
-                                quantity: product.quantity || 1,
-                                color: product.color,
-                                storage: product.storage
-                            })
-                        })
-                        if (!res.ok) throw new Error("Synchronization protocol failed")
-                        
-                        // Pull official IDs from server
-                        get().loadCart(userId)
-                    } catch (error) {
-                        console.error('Cart Item Sync Error:', error)
-                    }
                 }
             },
             
             removeItem: async (id, userId) => {
                 const originalItems = get().items
                 set({ items: originalItems.filter((i) => i.id !== id) })
-                
-                if (userId) {
-                    try {
-                        const res = await fetch(`/api/cart?id=${id}&userId=${userId}`, {
-                            method: 'DELETE'
-                        })
-                        if (!res.ok) throw new Error("Sync Failed")
-                    } catch (error) {
-                        set({ items: originalItems })
-                        toast.error("Failed to sync item removal")
-                    }
-                }
             },
             
             updateQuantity: async (id, qty, userId) => {
                 const originalItems = get().items
+                const item = originalItems.find(i => i.id === id)
+                if (!item) return
+
                 if (qty <= 0) {
                     get().removeItem(id, userId)
+                    return
+                }
+
+                const availableStock = item.stock !== undefined ? item.stock : Infinity
+                if (qty > availableStock) {
+                    const message = availableStock <= 0 
+                        ? `ASSET OUT OF SYNC: NO UNITS AVAILABLE.`
+                        : `Only ${availableStock} items available in stock.`
+                    
+                    toast.error(message, {
+                         style: { background: '#EF4444', color: '#fff', borderRadius: '16px', fontSize: '10px', fontWeight: 'black' }
+                    })
                     return
                 }
 
                 set({
                     items: get().items.map((i) => (i.id === id ? { ...i, quantity: qty } : i)),
                 })
-
-                if (userId) {
-                    try {
-                        const res = await fetch('/api/cart', {
-                            method: 'PATCH',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ userId, id, quantity: qty })
-                        })
-                        if (!res.ok) throw new Error("Quantity Sync Failed")
-                    } catch (error) {
-                        set({ items: originalItems })
-                        toast.error("Failed to sync quantity update")
-                    }
-                }
             },
             
             clearCart: async (userId) => {
-                set({ items: [] })
-                if (userId) {
-                    try {
-                        await fetch(`/api/cart?userId=${userId}`, { method: 'DELETE' })
-                    } catch (error) {
-                        console.error("Failed to clear cloud cart")
-                    }
-                }
+                set({ items: [], discount: null })
             },
             
-            loadCart: async (userId) => {
-                if (!userId) return
-                try {
-                    const res = await fetch(`/api/cart?userId=${userId}`)
-                    if (res.ok) {
-                        const data = await res.json()
-                        set({ items: data.items, isLoaded: true })
-                    }
-                } catch (error) {
-                    console.error('Cloud load failed:', error)
-                }
-            },
-
-            syncOnLogin: async (userId) => {
-                if (!userId || get().isSyncing) return
-                
-                set({ isSyncing: true })
-                const localItems = get().items
-                
-                try {
-                    // Trigger the Merge Protocol on Server
-                    const res = await fetch('/api/cart/sync', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ userId, items: localItems })
-                    })
-                    
-                    if (res.ok) {
-                        const data = await res.json()
-                        // Use the server's truth (which is now merged)
-                        set({ items: data.items, isLoaded: true })
-                        toast.success("Cart synchronized with account")
-                    }
-                } catch (error) {
-                    console.error('Account synchronization failed:', error)
-                } finally {
-                    set({ isSyncing: false })
-                }
-            },
+            applyDiscount: (code, type, value) => set({ discount: { code, type, value } }),
+            removeDiscount: () => set({ discount: null }),
             
             totalItems: () => get().items.reduce((acc, item) => acc + item.quantity, 0),
-            totalPrice: () => get().items.reduce((acc, item) => acc + (item.price * item.quantity), 0),
+            totalPrice: () => get().items.reduce((acc, item) => {
+                const itemPrice = calculateFinalPrice(item.price, item.promotions)
+                return acc + (itemPrice * item.quantity)
+            }, 0),
+            discountedTotal: () => {
+                const base = get().totalPrice()
+                const d = get().discount
+                if (!d) return base
+                if (d.type === 'PERCENTAGE') return base * (1 - d.value / 100)
+                return Math.max(0, base - d.value)
+            }
         }),
         { 
             name: 'smarthub-cart-sync',
-            partialize: (state) => ({ items: state.items })
+            partialize: (state) => ({ items: state.items, discount: state.discount })
         }
     )
 )

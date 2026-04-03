@@ -41,20 +41,33 @@ export default function CheckoutPage() {
     const [selectedAddressId, setSelectedAddressId] = useState<string | null>(null)
     const [showAddressForm, setShowAddressForm] = useState(false)
     const [saveNewAddress, setSaveNewAddress] = useState(false)
+    const [isMounted, setIsMounted] = useState(false)
+    const [transactionCode, setTransactionCode] = useState("")
+    
+    useEffect(() => {
+        setIsMounted(true)
+    }, [])
     
     const [formData, setFormData] = useState({
         firstName: "",
         lastName: "",
         email: "",
         address: "",
-        city: "NAIROBI (EXPRESS)",
+        city: "",
         phone: "",
         postalCode: "",
-        country: "Kenya"
+        country: "Kenya",
+        area: "",
+        notes: ""
     })
 
+    const [deliveryFee, setDeliveryFee] = useState(0)
+    const [availableCities, setAvailableCities] = useState<string[]>([])
+    const [availableAreas, setAvailableAreas] = useState<any[]>([])
+    const [isLoadingZones, setIsLoadingZones] = useState(false)
+
     const [promoCode, setPromoCode] = useState("")
-    const [appliedDiscount, setAppliedDiscount] = useState<{ code: string, percent: number } | null>(null)
+    const [appliedDiscount, setAppliedDiscount] = useState<{ code: string, percent: number, name?: string } | null>(null)
 
     useEffect(() => {
         if (user) {
@@ -65,7 +78,39 @@ export default function CheckoutPage() {
             }))
             fetchAddresses()
         }
+        fetchCities()
     }, [user])
+
+    const fetchCities = async () => {
+        try {
+            const res = await fetch("/api/delivery/zones")
+            if (res.ok) {
+                const data = await res.json()
+                const uniqueCities = Array.from(new Set(data.map((z: any) => z.city))) as string[]
+                setAvailableCities(uniqueCities)
+            }
+        } catch (err) { console.error("Failed to fetch cities", err) }
+    }
+
+    useEffect(() => {
+        if (!formData.city) {
+            setAvailableAreas([])
+            return
+        }
+        
+        const fetchAreas = async () => {
+            setIsLoadingZones(true)
+            try {
+                const res = await fetch(`/api/delivery/zones?city=${formData.city}`)
+                if (res.ok) {
+                    const data = await res.json()
+                    setAvailableAreas(data)
+                }
+            } catch (err) { console.error("Failed to fetch areas", err) }
+            finally { setIsLoadingZones(false) }
+        }
+        fetchAreas()
+    }, [formData.city])
 
     const fetchAddresses = async () => {
         if (!user) return
@@ -124,10 +169,10 @@ export default function CheckoutPage() {
             
             const data = await res.json()
             if (res.ok) {
-                setAppliedDiscount({ code: data.code, percent: data.percent })
-                toast.success(`${data.value} discount applied`, { id: tid })
+                setAppliedDiscount({ code: data.code, percent: data.percent, name: data.name })
+                toast.success(`${data.name || data.value} discount applied`, { id: tid })
             } else {
-                toast.error(data.error || "Invalid promo code", { id: tid })
+                toast.error(data.error || "That code didn't work", { id: tid })
             }
         } catch (error) {
             toast.error("Connection error", { id: tid })
@@ -135,14 +180,13 @@ export default function CheckoutPage() {
     }
 
     const subtotal = totalPrice()
-    const shipping = 0
+    const shipping = deliveryFee
     const discountAmount = appliedDiscount ? Math.round(subtotal * (appliedDiscount.percent / 100)) : 0
-    const tax = Math.round((subtotal - discountAmount) * 0.08)
-    const finalTotal = subtotal - discountAmount + shipping + tax
+    const finalTotal = subtotal - discountAmount + shipping
 
     const handleCompleteOrder = async () => {
         setIsProcessing(true)
-        const loadingToast = toast.loading("Processing Payment...")
+        const loadingToast = toast.loading("Confirming your order...")
 
         try {
             // Save new address if needed
@@ -177,10 +221,14 @@ export default function CheckoutPage() {
                     postalCode: formData.postalCode,
                     country: formData.country,
                     totalAmount: finalTotal,
+                    deliveryFee: shipping,
                     paymentMethod: paymentOption === 'cod' ? 'CASH ON DELIVERY' : selectedOnlineMethod.toUpperCase(),
-                    paymentStatus: paymentOption === 'cod' ? 'PENDING' : 'PAID',
+                    paymentStatus: paymentOption === 'cod' ? 'PENDING' : 'PENDING', // Both start as pending until verified
                     items: items,
-                    promoCode: appliedDiscount?.code
+                    promoCode: appliedDiscount?.code,
+                    transactionCode: paymentOption === 'online' ? transactionCode : null,
+                    notes: formData.notes,
+                    area: formData.area
                 })
             })
 
@@ -188,7 +236,7 @@ export default function CheckoutPage() {
 
             if (res.ok) {
                 setConfirmedOrderNumber(data.orderNumber)
-                toast.success("Payment Successful", { id: loadingToast })
+                toast.success("Order successful!", { id: loadingToast })
                 
                 // Clear local cart
                 clearCart()
@@ -229,10 +277,10 @@ export default function CheckoutPage() {
 
                 <div className="flex flex-col gap-4">
                     <h1 className="text-5xl md:text-7xl font-black font-outfit uppercase tracking-tighter italic">
-                        Order <span className="text-primary italic">Placed</span>
+                        Order <span className="text-primary italic">Confirmed!</span>
                     </h1>
                     <p className="text-xl text-muted-foreground leading-relaxed max-w-xl mx-auto">
-                        Your order <span className="text-foreground font-black italic">#{confirmedOrderNumber}</span> has been received and is being prepared.
+                        Thanks! Your order <span className="text-foreground font-black italic">#{confirmedOrderNumber}</span> is being packed and will be delivered soon.
                     </p>
                 </div>
 
@@ -243,23 +291,13 @@ export default function CheckoutPage() {
                             <ChevronRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
                         </Button>
                     </Link>
-                    {user && (
-                        <Button 
-                            onClick={() => router.push("/dashboard/orders")}
-                            variant="outline" 
-                            size="lg" 
-                            className="px-12 h-16 text-lg rounded-2xl border-2"
-                        >
-                            VIEW MY ORDERS
-                        </Button>
-                    )}
                 </div>
             </div>
         )
     }
 
     return (
-        <div className="max-w-6xl mx-auto px-6 py-12 flex flex-col gap-8">
+        <div className="max-w-6xl mx-auto px-xs-fluid py-md-fluid flex flex-col gap-sm-fluid">
             <div className="flex items-center gap-2 text-[10px] font-black text-muted-foreground uppercase tracking-widest">
                 <Link href="/cart" className="hover:text-primary transition-colors flex items-center gap-2">
                     <ChevronLeft className="w-3.5 h-3.5" />
@@ -277,7 +315,7 @@ export default function CheckoutPage() {
                             <div className={cn("h-1.5 flex-1 rounded-full border border-border overflow-hidden bg-muted")}>
                                 <motion.div className="h-full bg-primary" animate={{ width: step === 1 ? "50%" : "100%" }} />
                             </div>
-                            <span className="text-[9px] font-black uppercase tracking-widest text-primary italic">STEP {step} / 2</span>
+                            <span className="text-xs-fluid font-black uppercase tracking-widest text-primary italic whitespace-nowrap">STEP {step} OF 2</span>
                         </div>
                     </div>
 
@@ -298,13 +336,17 @@ export default function CheckoutPage() {
                                 setPromoCode={setPromoCode}
                                 handleApplyPromo={handleApplyPromo}
                                 handleNextStep={handleNextStep}
+                                availableCities={availableCities}
+                                availableAreas={availableAreas}
+                                isLoadingZones={isLoadingZones}
+                                setDeliveryFee={setDeliveryFee}
                             />
                         ) : (
                             <PaymentStep 
                                 paymentOption={paymentOption}
                                 setPaymentOption={setPaymentOption}
-                                selectedOnlineMethod={selectedOnlineMethod}
-                                setSelectedOnlineMethod={setSelectedOnlineMethod}
+                                transactionCode={transactionCode}
+                                setTransactionCode={setTransactionCode}
                                 formData={formData}
                                 setFormData={setFormData}
                                 finalTotal={finalTotal}
@@ -315,15 +357,17 @@ export default function CheckoutPage() {
                     </AnimatePresence>
                 </div>
 
-                <OrderSummary 
-                    items={items}
-                    subtotal={subtotal}
-                    discountAmount={discountAmount}
-                    appliedDiscount={appliedDiscount}
-                    tax={tax}
-                    finalTotal={finalTotal}
-                    totalItems={totalItems}
-                />
+                {isMounted && (
+                    <OrderSummary 
+                        items={items}
+                        subtotal={subtotal}
+                        discountAmount={discountAmount}
+                        appliedDiscount={appliedDiscount}
+                        shipping={shipping}
+                        finalTotal={finalTotal}
+                        totalItems={totalItems}
+                    />
+                )}
             </div>
         </div>
     )
@@ -333,7 +377,8 @@ export default function CheckoutPage() {
 function ShippingStep({ 
     formData, setFormData, addresses, selectedAddressId, selectAddress,
     showAddressForm, setShowAddressForm, saveNewAddress, setSaveNewAddress,
-    user, promoCode, setPromoCode, handleApplyPromo, handleNextStep 
+    user, promoCode, setPromoCode, handleApplyPromo, handleNextStep,
+    availableCities, availableAreas, isLoadingZones, setDeliveryFee
 }: any) {
     return (
         <motion.div
@@ -347,10 +392,10 @@ function ShippingStep({
                 <MapPin className="w-6 h-6 text-primary" />
                 <div className="flex flex-col">
                     <h2 className="text-lg font-black font-outfit uppercase italic tracking-tighter leading-none">
-                        Where should we deliver?
+                        Shipping Address
                     </h2>
                     <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest mt-1">
-                        Enter your shipping address
+                        Enter your delivery details
                     </span>
                 </div>
             </div>
@@ -427,11 +472,11 @@ function ShippingStep({
                     
                     <div className="flex flex-col gap-2">
                         <label className="text-[8px] uppercase font-black tracking-widest text-muted-foreground ml-3">
-                            Your Full Name *
+                            Your Name *
                         </label>
                         <input
                             type="text"
-                            placeholder="John Smith"
+                            placeholder="YOUR NAME"
                             value={formData.firstName}
                             onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
                             className="h-11 bg-background border border-border rounded-xl px-4 text-[10px] font-black uppercase tracking-widest outline-none focus:border-primary transition-all shadow-sm"
@@ -449,35 +494,57 @@ function ShippingStep({
                             className="h-11 bg-background border border-border rounded-xl px-4 text-[10px] font-black uppercase tracking-widest outline-none focus:border-primary transition-all shadow-sm"
                         />
                     </div>
-                    <div className="md:col-span-2 flex flex-col gap-2">
-                        <label className="text-[8px] uppercase font-black tracking-widest text-muted-foreground ml-3">
-                            Street Address *
-                        </label>
-                        <input
-                            type="text"
-                            placeholder="123 Main Street, Apt 4B"
-                            value={formData.address}
-                            onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                            className="h-11 bg-background border border-border rounded-xl px-4 text-[10px] font-black uppercase tracking-widest outline-none focus:border-primary transition-all shadow-sm"
-                        />
-                    </div>
                     <div className="flex flex-col gap-2">
                         <label className="text-[8px] uppercase font-black tracking-widest text-muted-foreground ml-3">
                             City *
                         </label>
                         <select
                             value={formData.city}
-                            onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+                            onChange={(e) => {
+                                setFormData({ ...formData, city: e.target.value, area: "" })
+                                setDeliveryFee(0)
+                            }}
                             className="h-11 bg-background border border-border rounded-xl px-4 text-[10px] font-black uppercase tracking-widest outline-none focus:border-primary transition-all shadow-sm appearance-none"
                         >
-                            <option>NAIROBI (Express - 1 Day)</option>
-                            <option>NAIROBI SUBURBS (2 Days)</option>
-                            <option>MOMBASA (3-5 Days)</option>
-                            <option>KISUMU (3-5 Days)</option>
-                            <option>NAKURU (3-5 Days)</option>
-                            <option>ELDORET (3-5 Days)</option>
-                            <option>OTHER CITIES</option>
+                            <option value="">SELECT CITY</option>
+                            {availableCities.map(city => (
+                                <option key={city} value={city}>{city.toUpperCase()}</option>
+                            ))}
                         </select>
+                    </div>
+                    <div className="flex flex-col gap-2 relative">
+                        <label className="text-[8px] uppercase font-black tracking-widest text-muted-foreground ml-3">
+                            Area / Neighborhood *
+                        </label>
+                        <select
+                            disabled={!formData.city || isLoadingZones}
+                            value={formData.area}
+                            onChange={(e) => {
+                                const area = availableAreas.find(a => a.area === e.target.value)
+                                if (area) {
+                                    setFormData({ ...formData, area: area.area })
+                                    setDeliveryFee(Number(area.fee))
+                                }
+                            }}
+                            className="h-11 bg-background border border-border rounded-xl px-4 text-[10px] font-black uppercase tracking-widest outline-none focus:border-primary transition-all shadow-sm appearance-none disabled:opacity-50"
+                        >
+                            <option value="">{isLoadingZones ? 'LOADING...' : 'SELECT AREA'}</option>
+                            {availableAreas.map(a => (
+                                <option key={a.id} value={a.area}>{a.area.toUpperCase()} (KSH {a.fee})</option>
+                            ))}
+                        </select>
+                    </div>
+                    <div className="md:col-span-2 flex flex-col gap-2">
+                        <label className="text-[8px] uppercase font-black tracking-widest text-muted-foreground ml-3">
+                            Street Address / Landmarks *
+                        </label>
+                        <input
+                            type="text"
+                            placeholder="E.G. MOI AVENUE, APARTMENT 4B, NEAR STADIUM"
+                            value={formData.address}
+                            onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                            className="h-11 bg-background border border-border rounded-xl px-4 text-[10px] font-black uppercase tracking-widest outline-none focus:border-primary transition-all shadow-sm"
+                        />
                     </div>
                     <div className="flex flex-col gap-2">
                         <label className="text-[8px] uppercase font-black tracking-widest text-muted-foreground ml-3">
@@ -542,8 +609,22 @@ function ShippingStep({
                 </div>
             </div>
 
-            <Button onClick={handleNextStep} variant="premium" size="lg" className="h-14 text-xs font-black italic tracking-[0.2em] rounded-xl shadow-xl group uppercase">
-                Continue to Payment
+            {/* Delivery Notes Integration */}
+            <div className="flex flex-col gap-3">
+                <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-4 flex items-center gap-2">
+                    <Clock size={12} className="text-primary italic" />
+                    Delivery Instructions (Optional)
+                </label>
+                <textarea
+                    placeholder="E.G. DROP OFF AT THE RECEPTION, CALL ME ON ARRIVAL, NEAR THE BLUE GATE..."
+                    value={formData.notes}
+                    onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                    className="w-full min-h-[100px] bg-muted/5 border border-border rounded-[1.5rem] p-5 text-[10px] font-black uppercase tracking-widest outline-none focus:border-primary transition-all shadow-sm resize-none focus:bg-background h-24"
+                />
+            </div>
+
+            <Button onClick={handleNextStep} variant="premium" size="lg" className="h-14 md:h-16 text-xs-fluid font-black italic tracking-[0.2em] rounded-xl shadow-xl group uppercase">
+                NEXT: PAYMENT
                 <ChevronRight className="ml-2 w-4 h-4 group-hover:translate-x-1 transition-transform" />
             </Button>
         </motion.div>
@@ -553,7 +634,7 @@ function ShippingStep({
 // Payment Step Component
 function PaymentStep({ 
     paymentOption, setPaymentOption, 
-    selectedOnlineMethod, setSelectedOnlineMethod, 
+    transactionCode, setTransactionCode, 
     formData, setFormData, finalTotal, 
     handleCompleteOrder, isProcessing 
 }: any) {
@@ -569,10 +650,10 @@ function PaymentStep({
                 <CreditCard className="w-6 h-6 text-primary" />
                 <div className="flex flex-col">
                     <h2 className="text-lg font-black font-outfit uppercase italic tracking-tighter leading-none">
-                        Payment Selection
+                        How would you like to pay?
                     </h2>
                     <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest mt-1">
-                        Select your preferred payment method
+                        Choose your payment method
                     </span>
                 </div>
             </div>
@@ -598,8 +679,8 @@ function PaymentStep({
                         {paymentOption === "cod" && <CheckCircle2 className="w-6 h-6 text-primary" />}
                     </div>
                     <div className="flex flex-col mt-2">
-                        <span className="font-black italic text-sm uppercase tracking-widest leading-tight">Pay on Delivery</span>
-                        <span className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground mt-1">Cash / M-PESA at your doorstep</span>
+                        <span className="font-black italic text-sm uppercase tracking-widest leading-tight">Cash on Delivery</span>
+                        <span className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground mt-1">Pay by Cash or M-PESA at your door</span>
                     </div>
                 </button>
 
@@ -618,18 +699,18 @@ function PaymentStep({
                             "p-3 rounded-xl transition-colors",
                             paymentOption === "online" ? "bg-primary text-white" : "bg-muted text-muted-foreground"
                         )}>
-                            <Zap size={24} />
+                            <Smartphone size={24} />
                         </div>
                         {paymentOption === "online" && <CheckCircle2 className="w-6 h-6 text-primary" />}
                     </div>
                     <div className="flex flex-col mt-2">
-                        <span className="font-black italic text-sm uppercase tracking-widest leading-tight">Pay Now</span>
-                        <span className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground mt-1">Instant Online Payment</span>
+                        <span className="font-black italic text-sm uppercase tracking-widest leading-tight">Pay Now...</span>
+                        <span className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground mt-1">Manual M-PESA Verification</span>
                     </div>
                 </button>
             </div>
 
-            {/* Online Payment Methods Sub-selection */}
+            {/* Manual M-PESA Details Section */}
             <AnimatePresence>
                 {paymentOption === "online" && (
                     <motion.div
@@ -638,31 +719,58 @@ function PaymentStep({
                         exit={{ opacity: 0, height: 0 }}
                         className="overflow-hidden"
                     >
-                        <div className="pt-4 border-t border-border/50 flex flex-col gap-4">
-                            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground italic ml-2">
-                                Select Online Method
-                            </span>
-                            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-                                {[
-                                    { id: "mpesa", name: "M-PESA", icon: <Smartphone size={16} /> },
-                                    { id: "card", name: "Card", icon: <CreditCard size={16} /> },
-                                    { id: "bonga", name: "Bonga", icon: <Gift size={16} /> },
-                                    { id: "bank", name: "Bank", icon: <Landmark size={16} /> },
-                                ].map((method) => (
-                                    <button
-                                        key={method.id}
-                                        onClick={() => setSelectedOnlineMethod(method.id)}
-                                        className={cn(
-                                            "flex items-center gap-2 p-3 rounded-xl border transition-all",
-                                            selectedOnlineMethod === method.id
-                                                ? "bg-primary text-white border-primary"
-                                                : "bg-muted/10 border-border/50 text-muted-foreground hover:border-primary/50"
-                                        )}
-                                    >
-                                        {method.icon}
-                                        <span className="text-[9px] font-black uppercase tracking-widest">{method.name}</span>
-                                    </button>
-                                ))}
+                        <div className="pt-6 border-t border-border/50 flex flex-col gap-6">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="p-6 rounded-2xl bg-primary/[0.03] border border-primary/20 flex flex-col gap-4">
+                                    <div className="flex items-center gap-3">
+                                        <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+                                            <Smartphone className="text-primary w-5 h-5" />
+                                        </div>
+                                        <div className="flex flex-col">
+                                            <span className="text-[10px] font-black uppercase text-primary tracking-widest italic">M-PESA DETAILS</span>
+                                            <span className="text-[8px] font-bold text-muted-foreground uppercase tracking-widest">Follow steps to pay</span>
+                                        </div>
+                                    </div>
+                                    
+                                    <div className="flex flex-col gap-3 py-2">
+                                        <div className="flex justify-between items-center border-b border-primary/10 pb-2">
+                                            <span className="text-[9px] font-black uppercase text-muted-foreground tracking-widest">Paybill / Till</span>
+                                            <span className="text-sm font-black tracking-widest text-foreground select-all">123456</span>
+                                        </div>
+                                        <div className="flex justify-between items-center border-b border-primary/10 pb-2">
+                                            <span className="text-[9px] font-black uppercase text-muted-foreground tracking-widest">Account Number</span>
+                                            <span className="text-sm font-black tracking-widest text-foreground select-all">SMARTHUB</span>
+                                        </div>
+                                        <div className="flex justify-between items-center border-b border-primary/10 pb-2">
+                                            <span className="text-[9px] font-black uppercase text-muted-foreground tracking-widest">Store Name</span>
+                                            <span className="text-sm font-black tracking-widest text-foreground">SMARTHUB ELECTRONICS</span>
+                                        </div>
+                                    </div>
+                                    
+                                    <div className="bg-primary/5 p-3 rounded-xl">
+                                        <p className="text-[8px] font-bold text-primary uppercase tracking-widest leading-relaxed text-center">
+                                            Total to pay: <span className="text-[10px] font-black">KSh {Math.round(finalTotal).toLocaleString()}</span>
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <div className="flex flex-col gap-4">
+                                    <div className="flex flex-col gap-2">
+                                        <label className="text-[9px] font-black uppercase tracking-widest text-muted-foreground ml-3 italic">
+                                            Enter Transaction Code *
+                                        </label>
+                                        <input
+                                            type="text"
+                                            placeholder="E.G. SKL123ABCD"
+                                            value={transactionCode}
+                                            onChange={(e) => setTransactionCode(e.target.value.toUpperCase())}
+                                            className="h-14 bg-background border-2 border-primary/30 rounded-xl px-4 text-sm font-black uppercase tracking-[0.2em] outline-none focus:border-primary transition-all shadow-lg shadow-primary/5"
+                                        />
+                                        <p className="text-[8px] font-bold text-muted-foreground uppercase tracking-widest mt-1 ml-3 opacity-60">
+                                            Verification will be done by our admin team
+                                        </p>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </motion.div>
@@ -681,10 +789,10 @@ function PaymentStep({
                         <AlertCircle className="w-5 h-5 text-amber-500 mt-0.5 flex-shrink-0" />
                         <div className="flex flex-col gap-1">
                             <span className="text-[10px] font-black uppercase tracking-widest text-amber-600 italic">
-                                Cash on Delivery Policy
+                                Payment Note
                             </span>
                             <p className="text-[9px] font-medium text-amber-900/60 leading-relaxed uppercase tracking-wider">
-                                Please ensure you have the exact amount ready upon delivery. Our couriers accept Cash or M-PESA.
+                                Please have the exact amount ready. You can pay our driver by cash or M-PESA.
                             </p>
                         </div>
                     </motion.div>
@@ -700,13 +808,13 @@ function PaymentStep({
                     className="h-16 text-sm font-black italic tracking-[0.2em] rounded-2xl shadow-2xl group uppercase relative overflow-hidden"
                 >
                     <span className="relative z-10 flex items-center gap-2">
-                        {isProcessing ? "PROCESSING..." : !paymentOption ? "SELECT A PAYMENT OPTION" : "PLACE ORDER NOW"}
+                        {isProcessing ? "PROCESSING..." : !paymentOption ? "SELECT A PAYMENT OPTION" : (paymentOption === 'online' && !transactionCode) ? "ENTER TRANSACTION CODE" : "FINISH ORDER"}
                         <Zap className="w-4 h-4 fill-white" />
                     </span>
                 </Button>
                 <p className="text-[8px] text-muted-foreground uppercase font-black tracking-widest text-center flex items-center justify-center gap-2">
                     <Lock className="w-3 h-3" />
-                    SECURE CHECKOUT - PROTECTED BY END-TO-END ENCRYPTION
+                    YOUR CHECKOUT IS SAFE AND SECURE
                 </p>
             </div>
         </motion.div>
@@ -714,12 +822,12 @@ function PaymentStep({
 }
 
 // Order Summary Component
-function OrderSummary({ items, subtotal, discountAmount, appliedDiscount, tax, finalTotal, totalItems }: any) {
+function OrderSummary({ items, subtotal, discountAmount, appliedDiscount, shipping, finalTotal, totalItems }: any) {
     return (
         <div className="lg:col-span-2 flex flex-col gap-6 sticky top-24">
             <div className="bg-background border border-border rounded-[2rem] p-6 shadow-sm overflow-hidden relative">
                 <h3 className="text-lg font-black font-outfit uppercase tracking-tighter italic border-b border-border/50 pb-4 mb-6 flex items-center justify-between">
-                    Order Review
+                    Your Order
                     <span className="text-[9px] bg-muted border border-border px-2 py-0.5 rounded-md font-black not-italic">
                         {totalItems()} ITEMS
                     </span>
@@ -736,11 +844,11 @@ function OrderSummary({ items, subtotal, discountAmount, appliedDiscount, tax, f
                                     {item.name}
                                 </span>
                                 <div className="flex items-center justify-between mt-1">
-                                    <span className="text-[8px] font-black italic bg-muted-foreground/10 px-1.5 py-0.5 rounded uppercase">
+                                    <span className="text-[10px] font-black italic bg-muted-foreground/10 px-1.5 py-0.5 rounded uppercase">
                                         QTY: {item.quantity}
                                     </span>
-                                    <span className="text-[11px] font-black text-foreground font-outfit tracking-tighter">
-                                        ${item.price * item.quantity}
+                                    <span className="text-sm font-black text-foreground font-outfit tracking-tighter">
+                                        KSh {Math.round(item.price * item.quantity).toLocaleString()}
                                     </span>
                                 </div>
                             </div>
@@ -751,30 +859,28 @@ function OrderSummary({ items, subtotal, discountAmount, appliedDiscount, tax, f
                 <div className="flex flex-col gap-3.5 pt-6 border-t border-border/50 bg-background relative z-10">
                     <div className="flex justify-between items-center text-[9px] font-black text-muted-foreground uppercase tracking-widest">
                         <span>Subtotal</span>
-                        <span className="text-foreground">${subtotal}</span>
+                        <span className="text-foreground">KSh {Math.round(subtotal).toLocaleString()}</span>
                     </div>
                     {appliedDiscount && (
                         <div className="flex justify-between items-center text-[9px] font-black text-emerald-500 uppercase tracking-widest">
                             <span className="flex items-center gap-1.5">
                                 <Tag size={10} />
-                                Discount ({appliedDiscount.percent}%)
+                                {appliedDiscount.name || 'Discount'} ({appliedDiscount.percent}%)
                             </span>
-                            <span>-${discountAmount}</span>
+                            <span>-KSh {Math.round(discountAmount).toLocaleString()}</span>
                         </div>
                     )}
                     <div className="flex justify-between items-center text-[9px] font-black text-muted-foreground uppercase tracking-widest">
                         <span>Shipping</span>
-                        <span className="text-teal-500">FREE</span>
-                    </div>
-                    <div className="flex justify-between items-center text-[9px] font-black text-muted-foreground uppercase tracking-widest border-b border-border/30 pb-4">
-                        <span>Tax</span>
-                        <span className="text-foreground">${tax}</span>
+                        <span className={shipping > 0 ? "text-foreground" : "text-teal-500"}>
+                            {shipping > 0 ? `KSh ${Math.round(shipping).toLocaleString()}` : 'FREE'}
+                        </span>
                     </div>
                     <div className="flex justify-between items-end pt-1">
                         <div className="flex flex-col">
                             <span className="text-[8px] font-black uppercase tracking-widest text-primary italic">Total</span>
                             <span className="text-3xl font-black font-outfit tracking-tighter text-foreground uppercase italic leading-none">
-                                ${finalTotal}
+                                KSh {Math.round(finalTotal).toLocaleString()}
                             </span>
                         </div>
                     </div>

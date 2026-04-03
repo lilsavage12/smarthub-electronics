@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server"
-import { supabase } from "@/lib/supabase"
+import { supabaseAdmin } from "@/lib/supabase"
 import { verifyAdmin } from "@/lib/server-auth"
 
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -12,20 +12,22 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
             return NextResponse.json({ error: "Invalid discount ID" }, { status: 400 })
         }
         const body = await req.json()
-        const { id: bodyId, ...updateData } = body
+        const { id: bodyId, createdAt, updatedAt, ...updateData } = body
         
-        const { data: discount, error } = await supabase
+        const { data: cloudDiscount, error } = await supabaseAdmin
             .from('Discount')
             .update({ ...updateData, updatedAt: new Date().toISOString() })
             .eq('id', id)
             .select()
-            .single()
+            .maybeSingle()
 
         if (error) throw error
-        return NextResponse.json(discount)
+        if (!cloudDiscount) return NextResponse.json({ error: "Discount not found" }, { status: 404 })
+
+        return NextResponse.json(cloudDiscount)
     } catch (error: any) {
-        console.error("Supabase Discount Update Error:", error)
-        return NextResponse.json({ error: error.message || "Failed to update discount" }, { status: 500 })
+        console.error("Supabase Discount Update Failure:", error)
+        return NextResponse.json({ error: error.message || "Failed to finalize update" }, { status: 500 })
     }
 }
 
@@ -38,12 +40,14 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
         if (!id || id === "undefined") {
             return NextResponse.json({ error: "Invalid discount ID" }, { status: 400 })
         }
-        const { error } = await supabase.from('Discount').delete().eq('id', id)
-        
+
+        const { error } = await supabaseAdmin.from('Discount').delete().eq('id', id)
         if (error) throw error
-        return NextResponse.json({ message: "Discount deleted successfully" })
-    } catch (error) {
-        console.error("Supabase Discount Deletion Error:", error)
-        return NextResponse.json({ error: "Failed to delete discount" }, { status: 500 })
+        
+        return NextResponse.json({ message: "Discount deleted" })
+    } catch (error: any) {
+        console.error("Supabase Discount Deletion Failure:", error)
+        return NextResponse.json({ error: "Failed to resolve deletion" }, { status: 500 })
     }
 }
+

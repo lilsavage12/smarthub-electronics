@@ -48,7 +48,7 @@ export default function CustomersPage() {
     }, [])
 
     const handleExportCRM = () => {
-        const toastId = toast.loading("Decrypting customer database for export...")
+        const toastId = toast.loading("Preparing customer database for export...")
         setTimeout(() => {
             const headers = "ID,Name,Email,Join Date,Role\n"
             const rows = customers.map(c => `${c.id},"${c.displayName || 'Anonymous'}",${c.email},${new Date(c.createdAt).toLocaleDateString()},${c.role}`).join("\n")
@@ -56,9 +56,9 @@ export default function CustomersPage() {
             const url = window.URL.createObjectURL(blob)
             const a = document.createElement("a")
             a.href = url
-            a.download = `smarthub_crm_${new Date().toISOString().split('T')[0]}.csv`
+            a.download = `smarthub_customers_${new Date().toISOString().split('T')[0]}.csv`
             a.click()
-            toast.success("Golden Record CRM exported successfully", { id: toastId })
+            toast.success("Customer database exported successfully", { id: toastId })
         }, 1500)
     }
 
@@ -73,8 +73,8 @@ export default function CustomersPage() {
             {/* Header */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                 <div className="flex flex-col gap-1">
-                    <h1 className="text-3xl font-black tracking-tight text-foreground italic uppercase">Customer CRM & Affinity</h1>
-                    <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest leading-none">Managing global hardware enthusiasts & loyalty silos.</p>
+                    <h1 className="text-3xl font-black tracking-tight text-foreground italic uppercase">Customer Directory</h1>
+                    <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest leading-none">Manage your global customer base and membership tiers.</p>
                 </div>
                 <div className="flex items-center gap-3">
                     <Link href="/hub-control/analytics">
@@ -97,10 +97,10 @@ export default function CustomersPage() {
             {/* Loyalty KPIs */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                 {[
-                    { label: "Total Members", value: customers.length.toString(), icon: <Users size={20} className="text-primary" />, sub: "Database Payload" },
-                    { label: "Active VIPs", value: activeVIPs.toString(), icon: <Star size={20} className="text-primary" />, sub: "High affinity users" },
-                    { label: "Sync Status", value: "Live", icon: <Zap size={20} className="text-primary" />, sub: "Real-time verification" },
-                    { label: "Avg Affinity", value: "94.2", icon: <DollarSign size={20} className="text-primary" />, sub: "Quality Index" }
+                    { label: "Total Customers", value: customers.length.toString(), icon: <Users size={20} className="text-primary" />, sub: "Active accounts" },
+                    { label: "VIP Members", value: activeVIPs.toString(), icon: <Star size={20} className="text-primary" />, sub: "High-value segment" },
+                    { label: "Sync Status", value: "Live", icon: <Zap size={20} className="text-primary" />, sub: "Real-time updates" },
+                    { label: "Avg LTV Score", value: "94.2", icon: <DollarSign size={20} className="text-primary" />, sub: "Loyalty Index" }
                 ].map((stat, i) => (
                     <Card key={i} className="rounded-2xl border-border shadow-sm p-6 bg-card group hover:shadow-xl transition-all cursor-pointer overflow-hidden relative">
                         <div className="absolute inset-0 bg-primary/5 opacity-0 group-hover:opacity-100 transition-opacity" />
@@ -118,13 +118,13 @@ export default function CustomersPage() {
                 ))}
             </div>
 
-            {/* Filter Hub */}
+            {/* Filters */}
             <div className="flex flex-col lg:flex-row gap-6 items-center justify-between bg-card p-6 rounded-[2.5rem] border border-border shadow-sm mt-4">
                 <div className="relative flex-1 w-full md:max-w-md">
                     <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground opacity-50" size={16} />
                     <input
                         type="text"
-                        placeholder="Search Identity, Email..."
+                        placeholder="Search by name, email, or ID..."
                         className="w-full h-12 bg-muted border border-border/50 rounded-2xl pl-12 pr-4 outline-none focus:border-primary/20 transition-all text-[10px] font-black uppercase tracking-widest text-foreground placeholder:text-muted-foreground/30"
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
@@ -132,17 +132,17 @@ export default function CustomersPage() {
                 </div>
             </div>
 
-            {/* Customer List Data Hub */}
+            {/* Customer Database */}
             <div className="bg-card border border-border rounded-[2.5rem] shadow-sm overflow-hidden mb-12 transition-colors">
                 <div className="overflow-x-auto">
                     <table className="w-full text-left">
                         <thead className="bg-muted">
                             <tr className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
-                                <th className="px-8 py-6">Identity Profile</th>
-                                <th className="px-8 py-6">Uplink Details</th>
-                                <th className="px-8 py-6">Affinity Status</th>
-                                <th className="px-8 py-6">Join Protocol</th>
-                                <th className="px-8 py-6 text-right">Ops</th>
+                                <th className="px-8 py-6">Customer Profile</th>
+                                <th className="px-8 py-6">Contact Details</th>
+                                <th className="px-8 py-6">Membership Tier</th>
+                                <th className="px-8 py-6">Registration</th>
+                                <th className="px-8 py-6 text-right">Actions</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-border">
@@ -189,7 +189,7 @@ export default function CustomersPage() {
                                     <td className="px-8 py-6 text-right">
                                         <div className="flex items-center justify-end gap-2">
                                             <Button
-                                                onClick={() => toast(`Viewing affinity history for ${customer.displayName || 'user'}...`, { icon: "📊" })}
+                                                onClick={() => toast(`Viewing order history for ${customer.displayName || 'user'}...`, { icon: "📊" })}
                                                 size="icon" variant="ghost" className="h-10 w-10 text-muted-foreground hover:text-primary rounded-xl hover:bg-primary/5"
                                             >
                                                 <History size={18} />

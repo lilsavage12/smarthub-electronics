@@ -24,7 +24,7 @@ export default function SystemSyncPage() {
     const triggerManualSync = () => {
         setIsSyncing(true)
         setSyncProgress(0)
-        const toastId = toast.loading("Initiating global data synchronization protocol...")
+        const toastId = toast.loading("Initiating global data management sync...")
 
         const interval = setInterval(() => {
             setSyncProgress(prev => {
@@ -45,8 +45,8 @@ export default function SystemSyncPage() {
             {/* Page Header */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                 <div className="flex flex-col gap-1">
-                    <h1 className="text-3xl font-black tracking-tight text-foreground italic uppercase">System Syncronization</h1>
-                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest opacity-60">Monitor and manage real-time data integrity and server latency.</p>
+                    <h1 className="text-3xl font-black tracking-tight text-foreground italic uppercase">Data Management</h1>
+                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest opacity-60">Monitor and manage real-time data integrity and server performance.</p>
                 </div>
                 <div className="flex items-center gap-3">
                     <Button
@@ -55,7 +55,7 @@ export default function SystemSyncPage() {
                         className="h-12 px-8 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground font-black italic uppercase tracking-widest text-[10px] gap-3 shadow-lg shadow-primary/20 transition-all border-none"
                     >
                         <RefreshCcw size={18} className={cn(isSyncing && "animate-spin")} />
-                        {isSyncing ? `SYNCING ${syncProgress}%` : "INITIATE PROTOCOL SYNC"}
+                        {isSyncing ? `SYNCING ${syncProgress}%` : "START FULL SYNC"}
                     </Button>
                 </div>
             </div>
@@ -64,7 +64,7 @@ export default function SystemSyncPage() {
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                 {[
                     { label: "Core Database", value: "CONNECTED", status: "Healthy", icon: <Database className="text-emerald-500" />, sub: "Firestore GCP Instance", bg: "bg-emerald-500/5" },
-                    { label: "Asset Storage", value: "94.2%", status: "Nominal", icon: <Cloud className="text-blue-500" />, sub: "5.8GB / 100GB Used", bg: "bg-blue-500/5" },
+                    { label: "Product Storage", value: "94.2%", status: "Active", icon: <Cloud className="text-blue-500" />, sub: "5.8GB / 100GB Used", bg: "bg-blue-500/5" },
                     { label: "Network Latency", value: `${latency}ms`, status: "Low", icon: <Activity className="text-amber-500" />, sub: "Regional Avg: 18ms", bg: "bg-amber-500/5" },
                     { label: "Client Listeners", value: "842", status: "Active", icon: <Wifi className="text-primary" />, sub: "Encrypted WebSocket Sockets", bg: "bg-primary/5" },
                 ].map((s, i) => (
@@ -111,7 +111,7 @@ export default function SystemSyncPage() {
 
                         <div className="flex flex-col gap-2">
                             <div className="flex justify-between items-baseline">
-                                <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Asset Retrieval Speed</span>
+                                <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Data Retrieval Speed</span>
                                 <span className="text-xs font-black italic">148ms • FAST</span>
                             </div>
                             <div className="h-3 w-full bg-muted rounded-full overflow-hidden p-0.5 border border-border/50">
@@ -136,7 +136,7 @@ export default function SystemSyncPage() {
                                 <Globe size={20} />
                             </div>
                             <div className="flex flex-col">
-                                <span className="text-[10px] font-black uppercase tracking-widest">Master Region Status</span>
+                                <span className="text-[10px] font-black uppercase tracking-widest">Primary Region Status</span>
                                 <span className="text-xs font-bold text-emerald-500 uppercase">US-EAST-1 (Active-Primary)</span>
                             </div>
                         </div>
@@ -154,11 +154,11 @@ export default function SystemSyncPage() {
                         </h3>
                         <div className="flex-1 flex flex-col gap-4 no-scrollbar overflow-y-auto max-h-[400px]">
                             {[
-                                { status: "Success", type: "Full", time: "2 mins ago", msg: "Global registry updated" },
-                                { status: "Success", type: "Delta", time: "18 mins ago", msg: "Inventory diff applied" },
-                                { status: "Warning", type: "Retried", time: "45 mins ago", msg: "Image server handshake" },
-                                { status: "Success", type: "Full", time: "1 hour ago", msg: "Logistics data reconciled" },
-                                { status: "Success", type: "Delta", time: "2 hours ago", msg: "Auth session cleanup" },
+                                { status: "Success", type: "Full", time: "2 mins ago", msg: "Global catalog updated" },
+                                { status: "Success", type: "Partial", time: "18 mins ago", msg: "Inventory changes applied" },
+                                { status: "Warning", type: "Retried", time: "45 mins ago", msg: "Image server connection" },
+                                { status: "Success", type: "Full", time: "1 hour ago", msg: "Logistics data updated" },
+                                { status: "Success", type: "Partial", time: "2 hours ago", msg: "Session cleanup" },
                             ].map((h, i) => (
                                 <div key={i} className="flex items-start gap-4 p-4 rounded-2xl bg-muted/20 border border-border/10 group hover:bg-muted/40 transition-all">
                                     <div className={cn("p-2 rounded-lg mt-1", h.status === 'Success' ? 'bg-emerald-500/10 text-emerald-500' : 'bg-amber-500/10 text-amber-500')}>
@@ -184,21 +184,21 @@ export default function SystemSyncPage() {
                     <Cpu className="text-primary mb-2" size={24} />
                     <h4 className="text-xs font-black uppercase tracking-widest">Processing Engine</h4>
                     <p className="text-[10px] font-medium text-muted-foreground leading-relaxed italic">
-                        SmartHub uses a custom abstraction layer over Firebase to ensure offline capabilities and lightning-fast state reconciliation.
+                        SmartHub uses a high-performance data integration layer to ensure offline capabilities and lightning-fast state reconciliation.
                     </p>
                 </Card>
                 <Card className="rounded-[2.5rem] border-border p-8 flex flex-col gap-4 shadow-sm bg-muted/20">
                     <Lock className="text-primary mb-2" size={24} />
                     <h4 className="text-xs font-black uppercase tracking-widest">End-to-End Encryption</h4>
                     <p className="text-[10px] font-medium text-muted-foreground leading-relaxed italic">
-                        Every synchronization sequence is signed with a cryptographic token to prevent man-in-the-middle data injection.
+                        Every synchronization process is signed with a secure token to prevent unauthorized data injection.
                     </p>
                 </Card>
                 <Card className="rounded-[2.5rem] border-border p-8 flex flex-col gap-4 shadow-sm bg-muted/20">
                     <Signal className="text-primary mb-2" size={24} />
-                    <h4 className="text-xs font-black uppercase tracking-widest">Real-time Propagator</h4>
+                    <h4 className="text-xs font-black uppercase tracking-widest">Real-time Sync</h4>
                     <p className="text-[10px] font-medium text-muted-foreground leading-relaxed italic">
-                        Changes made in the Admin vault are broadcasted via Cloud Messaging to all active web and mobile installations.
+                        Changes made in the Admin dashboard are broadcasted via Cloud Messaging to all active web and mobile installations.
                     </p>
                 </Card>
             </div>

@@ -172,18 +172,18 @@ export default function DocumentTemplates() {
 
     const handleSave = async () => {
         setSaving(true)
-        const toastId = toast.loading(`Publishing ${activeTab} configuration...`)
+        const toastId = toast.loading(`Saving ${activeTab} configuration...`)
         try {
             const res = await fetch('/api/admin/templates', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(current)
             })
-            if (!res.ok) throw new Error("Fault in transmission")
+            if (!res.ok) throw new Error("Database error")
             
-            toast.success(`${activeTab.charAt(0).toUpperCase() + activeTab.slice(1)} protocol updated`, { id: toastId })
+            toast.success(`${activeTab.charAt(0).toUpperCase() + activeTab.slice(1)} template updated`, { id: toastId })
         } catch (error) {
-            toast.error("Failed to publish changes", { id: toastId })
+            toast.error("Failed to save changes", { id: toastId })
         } finally {
             setSaving(false)
         }
@@ -192,7 +192,7 @@ export default function DocumentTemplates() {
     if (loading) return (
         <div className="flex flex-col items-center justify-center py-20 gap-4">
             <RefreshCcw className="w-8 h-8 animate-spin text-primary opacity-20" />
-            <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground animate-pulse">Syncing Design Registry...</span>
+            <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground animate-pulse">Loading designs...</span>
         </div>
     )
 
@@ -201,8 +201,8 @@ export default function DocumentTemplates() {
             {/* Page Header */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                 <div className="flex flex-col gap-1">
-                    <h1 className="text-3xl font-black tracking-tight text-foreground italic uppercase">Document Designer</h1>
-                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest opacity-60">Architect and customize official enterprise documentation.</p>
+                    <h1 className="text-3xl font-black tracking-tight text-foreground italic uppercase">Document Templates</h1>
+                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest opacity-60">Customize and preview your business documents.</p>
                 </div>
                 <div className="flex items-center gap-3">
                     <Button 
@@ -211,7 +211,7 @@ export default function DocumentTemplates() {
                         className="h-12 px-8 rounded-xl font-black italic tracking-widest uppercase text-[10px] gap-2 shadow-xl shadow-primary/20"
                     >
                         <Save size={18} />
-                        {saving ? 'SYNCHRONIZING...' : 'PUBLISH CHANGES'}
+                        {saving ? 'SAVING...' : 'SAVE CHANGES'}
                     </Button>
                 </div>
             </div>
@@ -245,7 +245,7 @@ export default function DocumentTemplates() {
                         <div className="p-8 border-b border-border bg-muted/10 flex items-center justify-between">
                             <div className="flex items-center gap-3">
                                 <Settings className="text-primary" size={18} />
-                                <span className="text-[10px] font-black uppercase tracking-widest">Configuration Matrix</span>
+                                <span className="text-[10px] font-black uppercase tracking-widest">Configuration</span>
                             </div>
                             <Badge variant="outline" className="rounded-lg text-[8px] font-black uppercase">{activeTab}</Badge>
                         </div>
@@ -259,7 +259,7 @@ export default function DocumentTemplates() {
                                 </span>
                                 <div className="grid grid-cols-1 gap-4">
                                     <div className="flex flex-col gap-2">
-                                        <label className="text-[8px] font-black uppercase text-muted-foreground tracking-widest px-1">Enterprise Name</label>
+                                        <label className="text-[8px] font-black uppercase text-muted-foreground tracking-widest px-1">Business Name</label>
                                         <Input 
                                             value={current.storeName}
                                             onChange={(e) => updateSetting('storeName', e.target.value)}
@@ -267,7 +267,7 @@ export default function DocumentTemplates() {
                                         />
                                     </div>
                                     <div className="flex flex-col gap-2">
-                                        <label className="text-[8px] font-black uppercase text-muted-foreground tracking-widest px-1">Headquarters Address</label>
+                                        <label className="text-[8px] font-black uppercase text-muted-foreground tracking-widest px-1">Business Address</label>
                                         <Input 
                                             value={current.storeAddress}
                                             onChange={(e) => updateSetting('storeAddress', e.target.value)}
@@ -276,7 +276,7 @@ export default function DocumentTemplates() {
                                     </div>
                                     <div className="grid grid-cols-2 gap-4">
                                         <div className="flex flex-col gap-2">
-                                            <label className="text-[8px] font-black uppercase text-muted-foreground tracking-widest px-1">Contact Intel</label>
+                                            <label className="text-[8px] font-black uppercase text-muted-foreground tracking-widest px-1">Contact Information</label>
                                             <Input 
                                                 value={current.storeContact}
                                                 onChange={(e) => updateSetting('storeContact', e.target.value)}
@@ -284,7 +284,7 @@ export default function DocumentTemplates() {
                                             />
                                         </div>
                                         <div className="flex flex-col gap-2">
-                                            <label className="text-[8px] font-black uppercase text-muted-foreground tracking-widest px-1">Official Domain</label>
+                                            <label className="text-[8px] font-black uppercase text-muted-foreground tracking-widest px-1">Website URL</label>
                                             <Input 
                                                 value={current.websiteUrl}
                                                 onChange={(e) => updateSetting('websiteUrl', e.target.value)}
@@ -305,7 +305,7 @@ export default function DocumentTemplates() {
                                 </span>
                                 <div className="grid grid-cols-2 gap-6">
                                     <div className="flex flex-col gap-3">
-                                        <label className="text-[8px] font-black uppercase text-muted-foreground tracking-widest px-1">Primary Signature</label>
+                                        <label className="text-[8px] font-black uppercase text-muted-foreground tracking-widest px-1">Primary Color</label>
                                         <div className="flex items-center gap-3">
                                             <input 
                                                 type="color" 
@@ -321,7 +321,7 @@ export default function DocumentTemplates() {
                                         </div>
                                     </div>
                                     <div className="flex flex-col gap-3">
-                                        <label className="text-[8px] font-black uppercase text-muted-foreground tracking-widest px-1">Header Spectrum</label>
+                                        <label className="text-[8px] font-black uppercase text-muted-foreground tracking-widest px-1">Header Color</label>
                                         <div className="flex items-center gap-3">
                                             <input 
                                                 type="color" 
@@ -338,15 +338,15 @@ export default function DocumentTemplates() {
                                     </div>
                                 </div>
                                 <div className="flex flex-col gap-2">
-                                    <label className="text-[8px] font-black uppercase text-muted-foreground tracking-widest px-1">Typography Suite</label>
+                                    <label className="text-[8px] font-black uppercase text-muted-foreground tracking-widest px-1">Font Family</label>
                                     <select 
                                         value={current.fontFamily}
                                         onChange={(e) => updateSetting('fontFamily', e.target.value)}
                                         className="h-11 bg-muted/50 border-none rounded-xl px-4 text-xs font-bold appearance-none outline-none"
                                     >
-                                        <option value="helvetica">Helvetica Official</option>
-                                        <option value="times">Times Heritage</option>
-                                        <option value="courier">Courier Monospace</option>
+                                        <option value="helvetica">Helvetica</option>
+                                        <option value="times">Times New Roman</option>
+                                        <option value="courier">Courier New</option>
                                     </select>
                                 </div>
                             </div>
@@ -357,7 +357,7 @@ export default function DocumentTemplates() {
                             <div className="flex flex-col gap-4">
                                 <span className="text-[9px] font-black uppercase text-primary tracking-widest flex items-center gap-2">
                                     <Badge variant="outline" className="w-5 h-5 p-0 flex items-center justify-center rounded-md border-primary/30 text-primary">3</Badge>
-                                    Module Visibility
+                                    Section Visibility
                                 </span>
                                 <div className="grid grid-cols-2 gap-x-10 gap-y-4 pt-2">
                                     {Object.keys(current.sectionVisibility).map(section => (
@@ -386,7 +386,7 @@ export default function DocumentTemplates() {
                 <div className="xl:col-span-7 flex flex-col gap-6">
                     <div className="flex items-center justify-between mb-2">
                         <div className="flex items-center gap-4">
-                            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">Real-time Visualization</span>
+                            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">Live Preview</span>
                             <div className="flex items-center gap-1">
                                 <button 
                                     onClick={() => setPreviewMode('desktop')}
@@ -402,7 +402,7 @@ export default function DocumentTemplates() {
                                 </button>
                             </div>
                         </div>
-                        <Badge variant="secondary" className="bg-emerald-500/10 text-emerald-500 border-none font-bold text-[8px] animate-pulse">LIVE ANALYTICS</Badge>
+                        <Badge variant="secondary" className="bg-emerald-500/10 text-emerald-500 border-none font-bold text-[8px] animate-pulse">LIVE PREVIEW</Badge>
                     </div>
 
                     <div className={cn(
@@ -439,18 +439,18 @@ export default function DocumentTemplates() {
                             {/* Reference Info */}
                             <div className="flex justify-between items-start mb-10">
                                 <div className="flex flex-col gap-1">
-                                    <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Client Identity</span>
+                                    <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Client Information</span>
                                     <p className="font-black text-sm">{SAMPLE_DATA.customerName}</p>
                                     <p className="text-[9px]">{SAMPLE_DATA.customerEmail}</p>
                                     <p className="text-[9px]">{SAMPLE_DATA.address}</p>
                                 </div>
                                 <div className="flex flex-col items-end gap-1">
                                     <div className="flex flex-col items-end">
-                                        <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Document Ref</span>
+                                        <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Invoice Number</span>
                                         <p className="font-black text-sm">{SAMPLE_DATA.orderNumber}</p>
                                     </div>
                                     <div className="flex flex-col items-end mt-2">
-                                        <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Timestamp</span>
+                                        <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Date</span>
                                         <p className="font-bold text-[10px]">{SAMPLE_DATA.date}</p>
                                     </div>
                                 </div>
@@ -461,7 +461,7 @@ export default function DocumentTemplates() {
                                 <table className="w-full text-left text-[9px] border-collapse">
                                     <thead>
                                         <tr style={{ backgroundColor: current.tableHeaderColor, color: '#fff' }}>
-                                            <th className="p-3 font-black uppercase tracking-widest rounded-l-lg">Hardware Module</th>
+                                            <th className="p-3 font-black uppercase tracking-widest rounded-l-lg">Product / Service</th>
                                             <th className="p-3 font-black uppercase tracking-widest text-center">Qty</th>
                                             <th className="p-3 font-black uppercase tracking-widest text-center">Unit Price</th>
                                             <th className="p-3 font-black uppercase tracking-widest text-right rounded-r-lg">Total</th>
@@ -483,18 +483,18 @@ export default function DocumentTemplates() {
                             {/* Financial Summary */}
                             <div className="mt-10 flex flex-col items-end gap-2 border-t pt-8">
                                 <div className="flex justify-between w-64 text-slate-500 font-bold text-[9px] uppercase tracking-widest">
-                                    <span>Financial Base</span>
+                                    <span>Subtotal</span>
                                     <span>${(SAMPLE_DATA.total - SAMPLE_DATA.tax).toLocaleString()}</span>
                                 </div>
                                 <div className="flex justify-between w-64 text-slate-500 font-bold text-[9px] uppercase tracking-widest">
-                                    <span>Tax Valuation (10%)</span>
+                                    <span>Tax (10%)</span>
                                     <span>${SAMPLE_DATA.tax.toLocaleString()}</span>
                                 </div>
                                 <div 
                                     className="flex justify-between w-64 mt-4 p-4 rounded-xl text-white font-black italic shadow-lg"
                                     style={{ backgroundColor: current.primaryColor }}
                                 >
-                                    <span className="uppercase text-[9px] mt-1">Total Valuation</span>
+                                    <span className="uppercase text-[9px] mt-1">Total Amount</span>
                                     <span className="text-xl">${SAMPLE_DATA.total.toLocaleString()}</span>
                                 </div>
                             </div>
@@ -506,11 +506,11 @@ export default function DocumentTemplates() {
                                     <div className="flex gap-10">
                                         <div className="flex flex-col items-center">
                                             <div className="w-16 h-[1px] bg-slate-200 mb-2" />
-                                            <span className="text-[6px] font-black uppercase tracking-[0.3em]">Audited By</span>
+                                            <span className="text-[6px] font-black uppercase tracking-[0.3em]">Signature</span>
                                         </div>
                                         <div className="flex flex-col items-center">
                                             <div className="w-16 h-[1px] bg-slate-200 mb-2" />
-                                            <span className="text-[6px] font-black uppercase tracking-[0.3em]">Authorized</span>
+                                            <span className="text-[6px] font-black uppercase tracking-[0.3em]">Date Signed</span>
                                         </div>
                                     </div>
                                 </div>

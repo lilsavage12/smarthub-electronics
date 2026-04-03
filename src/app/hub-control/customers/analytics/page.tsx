@@ -52,16 +52,16 @@ export default function CustomerAnalyticsPage() {
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                 <div className="flex flex-col gap-1">
                     <h1 className="text-3xl font-extrabold tracking-tight text-slate-900">Customer Intelligence</h1>
-                    <p className="text-sm font-medium text-slate-500 tracking-tight">Deciphering behavioral silos & lifetime value delta.</p>
+                    <p className="text-sm font-medium text-slate-500 tracking-tight">Analyzing behavioral patterns and customer lifetime value.</p>
                 </div>
                 <div className="flex items-center gap-3">
                     <Button variant="outline" className="h-12 px-6 rounded-xl bg-white border-slate-200 font-bold gap-2">
                         <Calendar size={18} />
-                        LAST 30 CYCLES
+                        LAST 30 DAYS
                     </Button>
                     <Button className="h-12 px-6 rounded-xl bg-slate-900 text-white font-bold gap-2 shadow-lg shadow-slate-200">
                         <Download size={20} />
-                        EXTRACT INTELLIGENCE
+                        EXPORT DATA
                     </Button>
                 </div>
             </div>
@@ -70,9 +70,9 @@ export default function CustomerAnalyticsPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 {[
                     { label: "Predictive LTV", value: "$4.8K", icon: <DollarSign size={20} />, sub: "+12.4% vs previous", trend: "up", color: "text-emerald-500" },
-                    { label: "Active Cohort", value: "2,412", icon: <UserCheck size={20} />, sub: "Retention alpha stable", trend: "up", color: "text-blue-500" },
+                    { label: "Active Cohort", value: "2,412", icon: <UserCheck size={20} />, sub: "Retention rate stable", trend: "up", color: "text-blue-500" },
                     { label: "Churn Velocity", value: "2.1%", icon: <UserMinus size={20} />, sub: "-0.8% health check", trend: "down", color: "text-rose-500" },
-                    { label: "Conversion Lift", value: "4.2%", icon: <Target size={20} />, sub: "Campaign uplink success", trend: "up", color: "text-amber-500" }
+                    { label: "Conversion Lift", value: "4.2%", icon: <Target size={20} />, sub: "Campaign performance up", trend: "up", color: "text-amber-500" }
                 ].map((stat, i) => (
                     <Card key={i} className="rounded-3xl border-none shadow-sm p-6 bg-white group hover:shadow-md transition-all cursor-pointer">
                         <div className="flex items-center justify-between">
@@ -95,8 +95,8 @@ export default function CustomerAnalyticsPage() {
                 <Card className="rounded-[2.5rem] border-none shadow-sm overflow-hidden bg-white">
                     <CardHeader className="p-8 border-b border-slate-50 flex flex-row items-center justify-between">
                         <div className="flex flex-col">
-                            <CardTitle className="text-xl font-extrabold tracking-tight">Acquisition Vectors</CardTitle>
-                            <span className="text-xs text-slate-400 font-bold uppercase tracking-widest italic">Inbound traffic silos by source</span>
+                            <CardTitle className="text-xl font-extrabold tracking-tight">Acquisition Sources</CardTitle>
+                            <span className="text-xs text-slate-400 font-bold uppercase tracking-widest italic">Inbound traffic by source</span>
                         </div>
                         <Button variant="ghost" size="icon" className="h-10 w-10 text-slate-400 rounded-xl"><Download size={20} /></Button>
                     </CardHeader>
@@ -133,7 +133,7 @@ export default function CustomerAnalyticsPage() {
                     <CardHeader className="p-8 border-b border-slate-50 flex flex-row items-center justify-between">
                         <div className="flex flex-col">
                             <CardTitle className="text-xl font-extrabold tracking-tight">Churn Resistance</CardTitle>
-                            <span className="text-xs text-slate-400 font-bold uppercase tracking-widest italic">Retention delta tracking protocol</span>
+                             <span className="text-xs text-slate-300 font-bold uppercase tracking-widest italic">Retention Monitoring</span>
                         </div>
                         <div className="flex items-center gap-2">
                             <span className="text-[10px] font-black uppercase text-emerald-500 tracking-widest italic">Improving</span>
@@ -177,7 +177,7 @@ export default function CustomerAnalyticsPage() {
                     <div className="flex flex-col items-center gap-8">
                         <div className="flex flex-col text-center">
                             <CardTitle className="text-xl font-extrabold tracking-tight">Segment Profile</CardTitle>
-                            <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 mt-1 italic">Active mission silos by type</span>
+                            <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 mt-1 italic">Active segments by type</span>
                         </div>
                         <div className="h-[200px] w-full">
                             <ResponsiveContainer width="100%" height="100%">
@@ -228,10 +228,10 @@ export default function CustomerAnalyticsPage() {
                         </div>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             {[
-                                { title: "Session Depth", value: "4m 42s", sub: "Alpha engagement detected", icon: <Activity className="text-primary" /> },
-                                { title: "NPS Score", value: "9.2/10", sub: "Affinity momentum high", icon: <Heart className="text-rose-500" /> },
-                                { title: "Returning Ratio", value: "64.2%", icon: <Zap className="text-amber-500" />, sub: "Loyalty protocol active" },
-                                { title: "Mobile Uplink", value: "82.1%", icon: <Smartphone className="text-blue-500" />, sub: "Hardware primary source" }
+                                { title: "Session Depth", value: "4m 42s", sub: "High engagement detected", icon: <Activity className="text-primary" /> },
+                                { title: "NPS Score", value: "9.2/10", sub: "Brand affinity trending", icon: <Heart className="text-rose-500" /> },
+                                { title: "Returning Ratio", value: "64.2%", icon: <Zap className="text-amber-500" />, sub: "Retention Status" },
+                                { title: "Mobile Traffic", value: "82.1%", icon: <Smartphone className="text-blue-500" />, sub: "Primary device source" }
                             ].map((item, i) => (
                                 <div key={i} className="flex items-center gap-6 p-6 bg-slate-50 rounded-3xl border border-slate-100 group hover:bg-white hover:border-primary/10 hover:shadow-xl transition-all">
                                     <div className="h-14 w-14 rounded-2xl bg-white flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform">
@@ -251,7 +251,7 @@ export default function CustomerAnalyticsPage() {
                         </div>
                         <div className="flex items-center gap-4 p-5 bg-emerald-50 rounded-2xl border border-emerald-100">
                             <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                            <p className="text-[10px] font-bold text-emerald-600 uppercase tracking-widest leading-none italic">"AI Insight: Customer retention is trending upward after recent loyalty protocol deployment."</p>
+                            <p className="text-[10px] font-bold text-emerald-600 uppercase tracking-widest leading-none italic">"AI Insight: Customer retention is trending upward after recent loyalty program updates."</p>
                         </div>
                     </div>
                 </Card>

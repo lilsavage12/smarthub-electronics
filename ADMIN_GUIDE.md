@@ -80,3 +80,18 @@ To maintain a high level of operational accuracy, all platform metrics are updat
 
 ### Access Control Systems
 The platform implements robust authentication and session management. In development environments, an "Immediate Access" override may be engaged for rapid prototyping; however, production environments utilize secure Role-Based Access Control (RBAC) to protect sensitive administrative functions.
+
+---
+
+## Deployment & Sharing
+
+### Project Sanitization & Cloning
+To facilitate safe sharing or production deployment without exposing sensitive data, the platform includes a **Sanitize & Clone** tool. This tool duplicates the project while removing unnecessary logs, build artifacts, and stripping values from environment variables.
+
+*   **Command**: `npm run sanitize-clone -- <source> <destination> [--preview]`
+*   **Default Behavior**: Clones the current folder to a neighbor folder named `[folder]-clean`.
+*   **Sanitization**: 
+    -   Automatically excludes `node_modules`, `.next`, `.git`, `tmp`, and `*.log` files.
+    -   Respects rules defined in `.gitignore`.
+    -   Strips secrets from `.env` files (preserves keys only).
+*   **Preview Mode**: Use the `--preview` flag to see exactly which files will be copied or skipped without performing any disk operations.

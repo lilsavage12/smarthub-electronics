@@ -1,35 +1,33 @@
 "use client"
 
-import React from "react"
+import React, { useEffect } from "react"
 import Link from "next/link"
-import Image from "next/image"
 import { motion, AnimatePresence } from "framer-motion"
-import { Heart, ShoppingCart, Trash2, ArrowRight, Smartphone, Zap } from "lucide-react"
+import { Heart, ShoppingCart, Trash2, ArrowRight, Smartphone, Zap, Loader2, X } from "lucide-react"
 import { useWishlist } from "@/lib/wishlist-store"
 import { useCart } from "@/lib/cart-store"
 import { useAuth } from "@/lib/auth-store"
 import { Button } from "@/components/ui/button"
 import { toast } from "react-hot-toast"
+import { ProductCard } from "@/components/products/ProductCard"
 
 export default function WishlistPage() {
-    const { items, removeItem } = useWishlist()
-    const { addItem } = useCart()
+    const { items, removeItem, loadWishlist, isLoaded } = useWishlist()
     const { user } = useAuth()
 
-    const handleMoveToCart = (item: any) => {
-        addItem({ ...item, quantity: 1 }, user?.id)
-        removeItem(item.id, user?.id)
-        toast.success(`${item.name} moved to your Cart!`, {
-            style: {
-                background: '#0F0F12',
-                color: '#fff',
-                border: '1px solid #1A1A1D',
-                fontSize: '10px',
-                fontWeight: '900',
-                letterSpacing: '0.1em',
-                textTransform: 'uppercase'
-            }
-        })
+    useEffect(() => {
+        if (user?.id && !isLoaded) {
+            loadWishlist(user.id)
+        }
+    }, [user?.id, isLoaded, loadWishlist])
+
+    if (!isLoaded && user?.id) {
+        return (
+            <div className="min-h-[60vh] flex flex-col items-center justify-center gap-4 mt-[80px]">
+                <Loader2 className="w-10 h-10 text-primary animate-spin" />
+                <span className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground">Loading Saved Items...</span>
+            </div>
+        )
     }
 
     if (items.length === 0) {
@@ -38,11 +36,11 @@ export default function WishlistPage() {
                 <div className="bg-muted p-12 rounded-[4rem] group hover:scale-105 transition-transform duration-500 border border-border">
                     <Heart className="w-24 h-24 text-red-500/20 animate-pulse" />
                 </div>
-                <h1 className="text-4xl font-black font-outfit uppercase tracking-tighter italic">Wishlist is Silent</h1>
-                <p className="text-muted-foreground text-lg leading-relaxed">Your future flagships are waiting to be highjacked. Explore our collection and save what you love.</p>
+                <h1 className="text-4xl font-black font-outfit uppercase tracking-tighter italic">Wishlist is Empty</h1>
+                <p className="text-muted-foreground text-lg leading-relaxed">Your future favorites are waiting to be added to your collection. Explore our catalog and save what you love.</p>
                 <Link href="/products">
-                    <Button variant="premium" size="lg" className="px-12 h-16 text-lg rounded-2xl shadow-xl group">
-                        Explore Flagships
+                    <Button variant="outline" size="lg" className="px-12 h-16 text-lg rounded-2xl shadow-xl group border-2">
+                        Explore Collection
                         <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
                     </Button>
                 </Link>
@@ -51,64 +49,56 @@ export default function WishlistPage() {
     }
 
     return (
-        <div className="max-w-7xl mx-auto px-6 py-12 flex flex-col gap-12 mt-[80px]" suppressHydrationWarning>
+        <div className="max-w-7xl mx-auto px-6 py-12 flex flex-col gap-12 mt-[100px]" suppressHydrationWarning>
             <div className="flex flex-col gap-4">
-                <h1 className="text-4xl md:text-6xl font-black font-outfit uppercase tracking-tighter italic">Your <span className="text-red-500 italic">Saved Items</span></h1>
-                <p className="text-muted-foreground uppercase text-xs font-black tracking-widest">{items.length} High-priority products are waiting</p>
+                <motion.h1 
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    className="text-4xl md:text-5xl font-black font-outfit uppercase tracking-tighter italic"
+                >
+                    Saved <span className="text-primary italic">Collection</span>
+                </motion.h1>
+                <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">{items.length} ITEMS SAVED</p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-6">
                 <AnimatePresence mode="popLayout">
-                    {items.filter(i => i.image && i.name).map((item) => (
-                        <motion.div
-                            key={item.id}
-                            layout
-                            initial={{ opacity: 0, y: 20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            exit={{ opacity: 0, scale: 0.9 }}
-                            className="bg-background border border-border rounded-[2.5rem] p-8 group relative flex flex-col gap-6 shadow-sm hover:shadow-2xl transition-all"
-                        >
-                            <div className="relative aspect-square w-full bg-muted/30 rounded-3xl overflow-hidden p-8 flex items-center justify-center border border-border/50">
-                                {item.image ? (
-                                    <Image 
-                                        src={item.image} 
-                                        alt={item.name || "Product"} 
-                                        fill 
-                                        className="object-contain p-4 group-hover:scale-110 transition-transform duration-500" 
-                                    />
-                                ) : (
-                                    <Smartphone className="w-12 h-12 text-muted-foreground/20" />
-                                )}
-                                <button
-                                    onClick={() => removeItem(item.productId || item.id, user?.id)}
-                                    className="absolute top-4 right-4 bg-white/80 backdrop-blur-md p-3 rounded-full text-muted-foreground hover:text-red-500 hover:scale-110 transition-all opacity-0 group-hover:opacity-100 shadow-xl"
-                                >
-                                    <Trash2 className="w-5 h-5" />
-                                </button>
-                            </div>
+                    {items.map((item) => {
+                        const productObject = {
+                            id: item.productId || item.id,
+                            name: item.name || "Premium Product",
+                            image: item.image || "/images/placeholder.png",
+                            price: item.price || 0,
+                            brand: item.brand || "SMARTHUB",
+                            stock: 10,
+                            isSale: false,
+                            discount: 0,
+                            promotions: [],
+                            variants: [],
+                            images: item.images || [item.image]
+                        }
 
-                            <div className="flex flex-col gap-2">
-                                <h3 className="text-2xl font-black font-outfit uppercase tracking-tighter italic">{item.name || "Unknown Product"}</h3>
-                                <div className="flex items-center justify-between">
-                                    <span className="text-3xl font-black text-primary font-outfit">${item.price || 0}</span>
-                                    <div className="flex items-center gap-2 bg-primary/10 px-3 py-1 rounded-full text-[10px] font-black uppercase text-primary border border-primary/20">
-                                        <Zap className="w-3 h-3 fill-primary" />
-                                        In Stock
-                                    </div>
-                                </div>
-                            </div>
-
-                            <Button
-                                variant="premium"
-                                size="lg"
-                                className="w-full h-16 rounded-2xl flex items-center gap-3 text-lg font-black italic tracking-widest shadow-xl group"
-                                onClick={() => handleMoveToCart(item)}
+                        return (
+                            <motion.div
+                                key={item.id}
+                                layout
+                                initial={{ opacity: 0, scale: 0.95 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                exit={{ opacity: 0, scale: 0.95 }}
                             >
-                                MOVE TO CART
-                                <ShoppingCart className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-                            </Button>
-                        </motion.div>
-                    ))}
+                                <div className="relative group">
+                                    <ProductCard product={productObject} />
+                                    <button
+                                        onClick={() => removeItem(item.id || item.productId, user?.id)}
+                                        className="absolute top-2 right-2 z-40 w-8 h-8 bg-black/80 text-rose-500 rounded-lg flex items-center justify-center shadow-lg hover:scale-110 active:scale-95 transition-all opacity-0 group-hover:opacity-100 backdrop-blur-md border border-white/10"
+                                        title="Remove Item"
+                                    >
+                                        <X className="w-4 h-4" />
+                                    </button>
+                                </div>
+                            </motion.div>
+                        )
+                    })}
                 </AnimatePresence>
             </div>
         </div>

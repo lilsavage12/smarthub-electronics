@@ -28,8 +28,8 @@ export default function PaymentsPage() {
             {/* Header */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                 <div className="flex flex-col gap-1">
-                    <h1 className="text-3xl font-black tracking-tight text-foreground italic uppercase">Capital Flow & Ledger</h1>
-                    <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Managing global transactions, gateway settlements, and liquidity silos.</p>
+                    <h1 className="text-3xl font-black tracking-tight text-foreground italic uppercase">Transaction Ledger</h1>
+                    <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Managing global transactions, gateway settlements, and cash flow.</p>
                 </div>
                 <div className="flex items-center gap-3">
                     <Button variant="outline" className="h-12 px-6 rounded-2xl border-border font-black italic uppercase tracking-widest text-[10px] gap-2">
@@ -47,9 +47,9 @@ export default function PaymentsPage() {
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                 {[
                     { label: "Gross Revenue", value: "$124,592", icon: <TrendingUp size={20} className="text-primary" />, sub: "+18.2% vs Last Mo", trend: <ArrowUpRight size={14} className="text-primary" /> },
-                    { label: "Net Assets", value: "$42,100", icon: <DollarSign size={20} className="text-primary" />, sub: "Hardware margin 32%", trend: <ArrowUpRight size={14} className="text-primary" /> },
-                    { label: "Pending Vault", value: "$15,245", icon: <Lock size={20} className="text-primary" />, sub: "Settlement in 24h", trend: <Clock size={14} className="text-primary" /> },
-                    { label: "Reserve Pool", value: "$4,200", icon: <RefreshCw size={20} className="text-muted-foreground" />, sub: "0.5% Dispute Rate", trend: <ArrowDownRight size={14} className="text-muted-foreground" /> }
+                    { label: "Net Profit", value: "$42,100", icon: <DollarSign size={20} className="text-primary" />, sub: "Hardware margin 32%", trend: <ArrowUpRight size={14} className="text-primary" /> },
+                    { label: "Pending Payout", value: "$15,245", icon: <Lock size={20} className="text-primary" />, sub: "Settlement in 24h", trend: <Clock size={14} className="text-primary" /> },
+                    { label: "Reserve Fund", value: "$4,200", icon: <RefreshCw size={20} className="text-muted-foreground" />, sub: "0.5% Dispute Rate", trend: <ArrowDownRight size={14} className="text-muted-foreground" /> }
                 ].map((stat, i) => (
                     <Card key={i} className="rounded-2xl border-border shadow-sm p-6 bg-card flex flex-col gap-4 group hover:shadow-xl transition-all cursor-pointer relative overflow-hidden">
                         <div className="absolute inset-0 bg-primary/5 opacity-0 group-hover:opacity-100 transition-opacity" />
@@ -103,12 +103,12 @@ export default function PaymentsPage() {
                             <table className="w-full text-left font-inter">
                                 <thead className="bg-muted">
                                     <tr className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
-                                        <th className="px-8 py-6">TX ID & Date</th>
-                                        <th className="px-8 py-6">Uplink Identity</th>
-                                        <th className="px-8 py-6 text-right">Commitment (Gross)</th>
-                                        <th className="px-8 py-6">Protocol Status</th>
+                                        <th className="px-8 py-6">Transaction ID</th>
+                                        <th className="px-8 py-6">Customer Identity</th>
+                                        <th className="px-8 py-6 text-right">Amount (Gross)</th>
+                                        <th className="px-8 py-6">Payment Status</th>
                                         <th className="px-8 py-6">Gateway</th>
-                                        <th className="px-8 py-6 text-right">Ops</th>
+                                        <th className="px-8 py-6 text-right">Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-border">
@@ -189,7 +189,7 @@ export default function PaymentsPage() {
                             <div className="p-6 bg-primary rounded-[2rem] text-primary-foreground flex flex-col gap-4 shadow-xl shadow-primary/5">
                                 <div className="flex items-center gap-2">
                                     <ShieldCheck className="text-primary-foreground" size={18} fill="currentColor" />
-                                    <span className="text-[10px] font-black uppercase tracking-widest italic opacity-80">Security Protocol Alpha</span>
+                                    <span className="text-[10px] font-black uppercase tracking-widest italic opacity-80">Security Compliance Active</span>
                                 </div>
                                 <p className="text-xs font-medium leading-relaxed opacity-90 font-inter tracking-tight">Active fraud detection engine is scanning all incoming signals for anomaly patterns.</p>
                                 <Button className="w-full bg-primary-foreground text-primary hover:opacity-90 h-12 rounded-xl font-black italic tracking-widest uppercase text-[10px]">
@@ -211,7 +211,7 @@ export default function PaymentsPage() {
                             </div>
                             <div className="h-[2px] w-full bg-border" />
                             <div className="flex justify-between items-center">
-                                <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Protocol Uplink</span>
+                                <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Data Encryption</span>
                                 <div className="flex items-center gap-2 text-primary">
                                     <div className="w-1.5 h-1.5 rounded-full bg-primary animate-ping" />
                                     <span className="text-[10px] font-black uppercase tracking-widest italic">Encrypted</span>
