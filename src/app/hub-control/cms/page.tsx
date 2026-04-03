@@ -147,7 +147,7 @@ export default function CMSPage() {
   })
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
-  const [editingLink, setEditingLink] = useState<number | null>(null)
+  const [editingLink, setEditingLink] = useState<any>(null)
   const [products, setProducts] = useState<any[]>([])
   const [searchTerm, setSearchTerm] = useState("")
   const [editingBanner, setEditingBanner] = useState<any>(null)
@@ -596,7 +596,7 @@ export default function CMSPage() {
 
                     {/* GLOBAL NAVIGATION EDITOR - RIGHT SIDE SLIDE-OVER */}
                     <AnimatePresence>
-                        {editingLink !== null && (
+                        {editingLink !== null && activeTab === "navigation" && (
                             <div className="fixed inset-0 z-[1000] flex justify-end overflow-hidden">
                                 <motion.div 
                                     initial={{ opacity: 0 }}

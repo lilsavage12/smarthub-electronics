@@ -507,7 +507,7 @@ function ShippingStep({
                             className="h-11 bg-background border border-border rounded-xl px-4 text-[10px] font-black uppercase tracking-widest outline-none focus:border-primary transition-all shadow-sm appearance-none"
                         >
                             <option value="">SELECT CITY</option>
-                            {availableCities.map(city => (
+                            {availableCities.map((city: string) => (
                                 <option key={city} value={city}>{city.toUpperCase()}</option>
                             ))}
                         </select>
@@ -520,7 +520,7 @@ function ShippingStep({
                             disabled={!formData.city || isLoadingZones}
                             value={formData.area}
                             onChange={(e) => {
-                                const area = availableAreas.find(a => a.area === e.target.value)
+                                const area = availableAreas.find((a: any) => a.area === e.target.value)
                                 if (area) {
                                     setFormData({ ...formData, area: area.area })
                                     setDeliveryFee(Number(area.fee))
@@ -529,7 +529,7 @@ function ShippingStep({
                             className="h-11 bg-background border border-border rounded-xl px-4 text-[10px] font-black uppercase tracking-widest outline-none focus:border-primary transition-all shadow-sm appearance-none disabled:opacity-50"
                         >
                             <option value="">{isLoadingZones ? 'LOADING...' : 'SELECT AREA'}</option>
-                            {availableAreas.map(a => (
+                            {availableAreas.map((a: any) => (
                                 <option key={a.id} value={a.area}>{a.area.toUpperCase()} (KSH {a.fee})</option>
                             ))}
                         </select>

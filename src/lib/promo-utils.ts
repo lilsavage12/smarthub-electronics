@@ -98,7 +98,7 @@ export function calculateMixedPrice(originalPrice: number, quantity: number, pro
     return Number((totalLinePrice / quantity).toFixed(2))
 }
 
-export function calculateFinalPrice(originalPrice: number, promos: any[]) {
+export function calculateFinalPrice(originalPrice: number, promos: any[] = []) {
     const promo = getEffectivePromotion(promos)
     const { discountedPrice } = calculateDiscountedPrice(originalPrice, promo)
     return discountedPrice

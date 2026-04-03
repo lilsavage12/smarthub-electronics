@@ -476,14 +476,14 @@ export default function ProductsPage() {
                     },
                     { 
                         label: "Asset Value", 
-                        value: `KSh ${new Intl.NumberFormat('en-KE').format(Math.floor(products.reduce((acc, p) => {
+                        value: `KSh ${new Intl.NumberFormat('en-KE').format(Math.floor(products.reduce((acc: number, p: any) => {
                             let val = 0;
                             const vars = p.variants || [];
                             const colors = p.specs?.productColors || [];
                             if (vars.length > 0) {
-                                val = vars.reduce((vA, v) => vA + (parseFloat(v.price || p.price) * (parseInt(v.stock) || 0)), 0);
+                                val = vars.reduce((vA: number, v: any) => vA + (parseFloat(v.price || p.price) * (parseInt(v.stock) || 0)), 0);
                             } else if (colors.length > 0) {
-                                val = colors.reduce((cA, c) => cA + (parseFloat(p.price) * (parseInt(c.stock) || 0)), 0);
+                                val = colors.reduce((cA: number, c: any) => cA + (parseFloat(p.price) * (parseInt(c.stock) || 0)), 0);
                             } else {
                                 val = (parseFloat(p.price) * (parseInt(p.stock) || 0));
                             }

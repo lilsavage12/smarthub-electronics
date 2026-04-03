@@ -125,8 +125,8 @@ export const useCart = create<CartStore>()(
             applyDiscount: (code, type, value) => set({ discount: { code, type, value } }),
             removeDiscount: () => set({ discount: null }),
             
-            totalItems: () => get().items.reduce((acc, item) => acc + item.quantity, 0),
-            totalPrice: () => get().items.reduce((acc, item) => {
+            totalItems: () => get().items.reduce((acc: number, item: CartItem) => acc + item.quantity, 0),
+            totalPrice: () => get().items.reduce((acc: number, item: CartItem) => {
                 const itemPrice = calculateFinalPrice(item.price, item.promotions)
                 return acc + (itemPrice * item.quantity)
             }, 0),

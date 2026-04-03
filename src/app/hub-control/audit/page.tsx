@@ -9,8 +9,6 @@ import {
     ChevronDown, ChevronUp, History, Database,
     UserCircle, ShieldAlert
 } from "lucide-react"
-import { collection, query, orderBy, limit, onSnapshot, Timestamp } from "firebase/firestore"
-import { db } from "@/lib/firebase"
 import { motion, AnimatePresence } from "framer-motion"
 import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -155,7 +153,7 @@ export default function AuditLogsPage() {
     const handleExport = () => {
         const headers = "ID,Timestamp,Action,Category,Admin,Details,Severity\n"
         const rows = filteredLogs.map(l => {
-            const time = l.timestamp?.toDate ? l.timestamp.toDate().toISOString() : 'N/A'
+            const time = l.timestamp?.toDate ? l.timestamp.toDate().toISOString() : (l.timestamp ? new Date(l.timestamp).toISOString() : 'N/A')
             return `${l.id},${time},${l.action},${l.category},${l.adminName},"${l.details}",${l.severity}`
         }).join("\n")
         const blob = new Blob([headers + rows], { type: "text/csv" })
@@ -267,7 +265,7 @@ export default function AuditLogsPage() {
                                         <div className="flex flex-col">
                                             <span className="text-xs font-black text-foreground tracking-tight uppercase">{log.id}</span>
                                             <span className="text-[9px] font-bold text-muted-foreground uppercase mt-1">
-                                                {log.timestamp?.toDate ? log.timestamp.toDate().toLocaleTimeString() : 'N/A'} • {log.timestamp?.toDate ? log.timestamp.toDate().toLocaleDateString() : ''}
+                                                {log.timestamp?.toDate ? log.timestamp.toDate().toLocaleTimeString() : (log.timestamp ? new Date(log.timestamp).toLocaleTimeString() : 'N/A')} • {log.timestamp?.toDate ? log.timestamp.toDate().toLocaleDateString() : (log.timestamp ? new Date(log.timestamp).toLocaleDateString() : '')}
                                             </span>
                                         </div>
                                     </td>
