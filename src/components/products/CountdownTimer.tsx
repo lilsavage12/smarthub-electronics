@@ -46,7 +46,7 @@ export const CountdownTimer = ({ endDate }: { endDate: string }) => {
     return (
         <div className="flex items-center gap-1.5 px-3 py-1.5 bg-black/80 backdrop-blur-md rounded-xl border border-white/10 text-white">
             <Clock size={12} className="text-red-500 animate-pulse" />
-            <div className="flex items-center gap-1 font-black italic text-[10px] tracking-tighter">
+            <div className="flex items-center gap-1 font-black  text-[10px] tracking-tighter">
                 <span className="w-4 text-center">{pad(timeLeft.hours)}</span>
                 <span className="opacity-50">:</span>
                 <span className="w-4 text-center">{pad(timeLeft.minutes)}</span>

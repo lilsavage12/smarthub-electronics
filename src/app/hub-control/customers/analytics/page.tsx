@@ -81,7 +81,7 @@ export default function CustomerAnalyticsPage() {
                         </div>
                         <div className="flex flex-col mt-4">
                             <div className="flex items-center gap-3">
-                                <span className="text-4xl font-black italic tracking-tighter text-slate-900 leading-none">{stat.value}</span>
+                                <span className="text-4xl font-black  tracking-tighter text-slate-900 leading-none">{stat.value}</span>
                                 {stat.trend === "up" ? <ArrowUpRight className="text-emerald-500" size={24} /> : <ArrowDownRight className="text-rose-500" size={24} />}
                             </div>
                             <span className="text-[9px] font-bold text-slate-500 uppercase mt-2 tracking-widest">{stat.sub}</span>
@@ -96,7 +96,7 @@ export default function CustomerAnalyticsPage() {
                     <CardHeader className="p-8 border-b border-slate-50 flex flex-row items-center justify-between">
                         <div className="flex flex-col">
                             <CardTitle className="text-xl font-extrabold tracking-tight">Acquisition Sources</CardTitle>
-                            <span className="text-xs text-slate-400 font-bold uppercase tracking-widest italic">Inbound traffic by source</span>
+                            <span className="text-xs text-slate-400 font-bold uppercase tracking-widest ">Inbound traffic by source</span>
                         </div>
                         <Button variant="ghost" size="icon" className="h-10 w-10 text-slate-400 rounded-xl"><Download size={20} /></Button>
                     </CardHeader>
@@ -133,10 +133,10 @@ export default function CustomerAnalyticsPage() {
                     <CardHeader className="p-8 border-b border-slate-50 flex flex-row items-center justify-between">
                         <div className="flex flex-col">
                             <CardTitle className="text-xl font-extrabold tracking-tight">Churn Resistance</CardTitle>
-                             <span className="text-xs text-slate-300 font-bold uppercase tracking-widest italic">Retention Monitoring</span>
+                             <span className="text-xs text-slate-300 font-bold uppercase tracking-widest ">Retention Monitoring</span>
                         </div>
                         <div className="flex items-center gap-2">
-                            <span className="text-[10px] font-black uppercase text-emerald-500 tracking-widest italic">Improving</span>
+                            <span className="text-[10px] font-black uppercase text-emerald-500 tracking-widest ">Improving</span>
                         </div>
                     </CardHeader>
                     <CardContent className="p-8 h-[400px]">
@@ -177,7 +177,7 @@ export default function CustomerAnalyticsPage() {
                     <div className="flex flex-col items-center gap-8">
                         <div className="flex flex-col text-center">
                             <CardTitle className="text-xl font-extrabold tracking-tight">Segment Profile</CardTitle>
-                            <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 mt-1 italic">Active segments by type</span>
+                            <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 mt-1 ">Active segments by type</span>
                         </div>
                         <div className="h-[200px] w-full">
                             <ResponsiveContainer width="100%" height="100%">
@@ -206,7 +206,7 @@ export default function CustomerAnalyticsPage() {
                                         <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: s.color }} />
                                         <span className="text-[10px] font-black uppercase tracking-tighter text-slate-900 leading-none">{s.name}</span>
                                     </div>
-                                    <span className="text-sm font-black italic text-slate-500 ml-3.5 tracking-tighter">{s.value}%</span>
+                                    <span className="text-sm font-black  text-slate-500 ml-3.5 tracking-tighter">{s.value}%</span>
                                 </div>
                             ))}
                         </div>
@@ -222,7 +222,7 @@ export default function CustomerAnalyticsPage() {
                         <div className="flex items-center justify-between">
                             <div className="flex flex-col">
                                 <h3 className="text-xl font-extrabold tracking-tight">Behavioral Log</h3>
-                                <p className="text-xs font-bold text-slate-400 uppercase tracking-widest italic">Processing real-time engagement metadata</p>
+                                <p className="text-xs font-bold text-slate-400 uppercase tracking-widest ">Processing real-time engagement metadata</p>
                             </div>
                             <Button variant="outline" className="h-10 px-4 rounded-xl text-[10px] font-black uppercase tracking-widest">View Master Logs</Button>
                         </div>
@@ -239,7 +239,7 @@ export default function CustomerAnalyticsPage() {
                                     </div>
                                     <div className="flex flex-col">
                                         <div className="flex items-center gap-2">
-                                            <span className="text-2xl font-black italic text-slate-900 tracking-tighter leading-none">{item.value}</span>
+                                            <span className="text-2xl font-black  text-slate-900 tracking-tighter leading-none">{item.value}</span>
                                         </div>
                                         <div className="flex flex-col mt-1">
                                             <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest">{item.title}</span>
@@ -251,7 +251,7 @@ export default function CustomerAnalyticsPage() {
                         </div>
                         <div className="flex items-center gap-4 p-5 bg-emerald-50 rounded-2xl border border-emerald-100">
                             <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                            <p className="text-[10px] font-bold text-emerald-600 uppercase tracking-widest leading-none italic">"AI Insight: Customer retention is trending upward after recent loyalty program updates."</p>
+                            <p className="text-[10px] font-bold text-emerald-600 uppercase tracking-widest leading-none ">"AI Insight: Customer retention is trending upward after recent loyalty program updates."</p>
                         </div>
                     </div>
                 </Card>

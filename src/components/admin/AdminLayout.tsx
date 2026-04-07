@@ -274,7 +274,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                                     <div className="p-2 rounded-xl bg-primary shadow-lg shadow-primary/20">
                                         <Zap className="w-5 h-5 text-primary-foreground fill-primary-foreground" />
                                     </div>
-                                    <span className="font-black text-sm tracking-widest uppercase italic">SmartHub</span>
+                                    <span className="font-black text-sm tracking-widest uppercase ">SmartHub</span>
                                 </div>
                                 <Button
                                     variant="ghost"
@@ -289,7 +289,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                             <nav className="flex-1 overflow-y-auto no-scrollbar flex flex-col gap-6">
                                 {menuItems.map((group, idx) => (
                                     <div key={idx} className="flex flex-col">
-                                        <span className="text-[9px] font-black uppercase tracking-[0.3em] text-muted-foreground/60 mb-4 italic px-2">{group.group}</span>
+                                        <span className="text-[9px] font-black uppercase tracking-[0.3em] text-muted-foreground/60 mb-4  px-2">{group.group}</span>
                                         <div className="flex flex-col gap-1">
                                             {group.items.map((item) => {
                                                 const isActive = pathname === item.href
@@ -369,7 +369,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                     {menuItems.map((group, idx) => (
                         <div key={idx} className="flex flex-col">
                             {!isSidebarCollapsed && (
-                                <span className="text-[9px] font-black uppercase tracking-[0.3em] text-muted-foreground/60 px-8 mb-4 italic">{group.group}</span>
+                                <span className="text-[9px] font-black uppercase tracking-[0.3em] text-muted-foreground/60 px-8 mb-4 ">{group.group}</span>
                             )}
                             <div className="flex flex-col gap-1 px-3">
                                 {group.items.map((item) => {
@@ -482,7 +482,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                             <input
                                 type="text"
                                 placeholder="Search products, orders, customers..."
-                                className="h-10 lg:h-11 bg-muted/40 border-none rounded-2xl py-2 pl-12 pr-6 text-[11px] w-48 sm:w-64 lg:w-96 font-bold uppercase tracking-widest focus:ring-1 focus:ring-primary/20 transition-all outline-none text-foreground placeholder:text-muted-foreground/30 italic"
+                                className="h-10 lg:h-11 bg-muted/40 border-none rounded-2xl py-2 pl-12 pr-6 text-[11px] w-48 sm:w-64 lg:w-96 font-bold uppercase tracking-widest focus:ring-1 focus:ring-primary/20 transition-all outline-none text-foreground placeholder:text-muted-foreground/30 "
                             />
                         </div>
                     </div>
@@ -514,7 +514,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                                             className="absolute right-0 mt-4 w-[280px] sm:w-[320px] md:w-96 bg-card border border-border rounded-3xl shadow-2xl z-50 overflow-hidden"
                                         >
                                             <div className="px-6 py-5 border-b border-border flex items-center justify-between bg-muted/20">
-                                                <h3 className="text-xs font-black uppercase tracking-[0.2em] italic">Activity Logs</h3>
+                                                <h3 className="text-xs font-black uppercase tracking-[0.2em] ">Activity Logs</h3>
                                                 <button onClick={markAllRead} className="text-[10px] font-bold text-primary hover:underline">Mark all read</button>
                                             </div>
                                             <div className="max-h-[400px] overflow-y-auto no-scrollbar">
@@ -542,16 +542,6 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                                                     </div>
                                                 ))}
                                             </div>
-                                            <div className="p-4 bg-muted/10 border-t border-border">
-                                                <Button
-                                                    onClick={() => router.push("/hub-control/audit")}
-                                                    size="sm"
-                                                    variant="ghost"
-                                                    className="w-full text-[10px] font-black uppercase tracking-widest h-10 rounded-xl"
-                                                >
-                                                    View Activity Logs
-                                                </Button>
-                                            </div>
                                         </motion.div>
                                     </>
                                 )}
@@ -566,7 +556,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                 </header>
 
                 <main className="flex-1 p-4 sm:p-6 lg:p-12 overflow-x-hidden no-scrollbar">
-                    <div className="max-w-[1600px] mx-auto animate-fade-in">
+                    <div className="max-w-[1800px] mx-auto animate-fade-in">
                         {children}
                     </div>
                 </main>

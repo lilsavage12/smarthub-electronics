@@ -23,8 +23,7 @@ export async function GET() {
         if (!config) {
             config = {
                 newArrivals: { visible: true, order: 1, title: "NEW ARRIVALS" },
-                discounted: { visible: true, order: 2, title: "DAILY DEALS" },
-                featured: { visible: true, order: 3, title: "BEST SELLERS" },
+                featured: { visible: true, order: 2, title: "BEST SELLERS" },
                 dynamicSections: []
             }
         }

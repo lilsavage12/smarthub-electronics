@@ -218,7 +218,7 @@ export default function BannerManager() {
         <div className="flex flex-col gap-8 p-8 max-w-7xl mx-auto min-h-screen">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                 <div className="flex flex-col gap-1">
-                    <h1 className="text-3xl font-black italic tracking-tighter uppercase text-foreground">Banner Management</h1>
+                    <h1 className="text-3xl font-black  tracking-tighter uppercase text-foreground">Banner Management</h1>
                     <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.2em] opacity-60">Control the visual highlights of the interface.</p>
                 </div>
                 <div className="flex items-center gap-4">
@@ -244,7 +244,7 @@ export default function BannerManager() {
                             })
                             setIsModalOpen(true)
                         }}
-                        className="h-12 px-8 rounded-2xl bg-primary text-white font-black italic tracking-widest uppercase text-xs gap-3 shadow-xl shadow-primary/20 hover:scale-105 transition-all"
+                        className="h-12 px-8 rounded-2xl bg-primary text-white font-black  tracking-widest uppercase text-xs gap-3 shadow-xl shadow-primary/20 hover:scale-105 transition-all"
                     >
                         <Plus size={18} />
                         CREATE NEW BANNER
@@ -284,7 +284,7 @@ export default function BannerManager() {
                                                 ORD: {index + 1}
                                             </Badge>
                                         </div>
-                                        <h3 className="text-2xl font-black text-white italic uppercase tracking-tighter leading-none">{banner.title}</h3>
+                                        <h3 className="text-2xl font-black text-white  uppercase tracking-tighter leading-none">{banner.title}</h3>
                                         <p className="text-xs font-bold text-white/60 uppercase tracking-widest mt-2">{banner.subtitle}</p>
                                    </div>
                                    
@@ -382,7 +382,7 @@ export default function BannerManager() {
                                     <X size={24} />
                                 </button>
 
-                                <h2 className="text-3xl font-black italic tracking-tighter uppercase mb-2">
+                                <h2 className="text-3xl font-black  tracking-tighter uppercase mb-2">
                                     {editingBanner ? 'UPDATE' : 'NEW'} <span className="text-primary">BANNER</span> CONFIGURATION
                                 </h2>
                                 <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-10 opacity-60">Enter banner details to update storefront visuals.</p>
@@ -443,7 +443,7 @@ export default function BannerManager() {
                                             <div className="flex flex-col gap-2">
                                                 <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest ml-1">CTA Label</label>
                                                 <input 
-                                                    className="h-14 bg-muted border border-border rounded-2xl px-6 text-[10px] font-black tracking-[0.2em] uppercase focus:border-primary outline-none transition-all italic"
+                                                    className="h-14 bg-muted border border-border rounded-2xl px-6 text-[10px] font-black tracking-[0.2em] uppercase focus:border-primary outline-none transition-all "
                                                     placeholder="e.g. SHOP NOW"
                                                     value={formData.buttonText}
                                                     onChange={(e) => setFormData({ ...formData, buttonText: e.target.value })}
@@ -462,7 +462,7 @@ export default function BannerManager() {
                                                         <>
                                                             <img src={formData.imageUrl} alt="" className="w-full h-full object-cover" />
                                                             <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-all flex items-center justify-center">
-                                                                <span className="text-[10px] font-black text-white uppercase tracking-widest italic">Replace Asset 01</span>
+                                                                <span className="text-[10px] font-black text-white uppercase tracking-widest ">Replace Asset 01</span>
                                                             </div>
                                                         </>
                                                     ) : (
@@ -486,7 +486,7 @@ export default function BannerManager() {
                                                             <>
                                                                 <img src={formData.imageUrl2} alt="" className="w-full h-full object-cover" />
                                                                 <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-all flex items-center justify-center">
-                                                                    <span className="text-[10px] font-black text-white uppercase tracking-widest italic">Replace Asset 02</span>
+                                                                    <span className="text-[10px] font-black text-white uppercase tracking-widest ">Replace Asset 02</span>
                                                                 </div>
                                                             </>
                                                         ) : (
@@ -573,7 +573,7 @@ export default function BannerManager() {
 
                                     <div className="bg-primary/5 border border-primary/20 rounded-3xl p-6 flex items-center justify-between">
                                         <div className="flex flex-col gap-1">
-                                            <label htmlFor="active-check" className="text-[10px] font-black uppercase tracking-widest text-foreground cursor-pointer italic">Enable Banner</label>
+                                            <label htmlFor="active-check" className="text-[10px] font-black uppercase tracking-widest text-foreground cursor-pointer ">Enable Banner</label>
                                             <p className="text-[8px] font-bold text-muted-foreground/60 uppercase tracking-widest">Mark this banner as active for current storefront.</p>
                                         </div>
                                         <input 
@@ -590,13 +590,13 @@ export default function BannerManager() {
                                             type="button"
                                             variant="outline"
                                             onClick={() => setIsModalOpen(false)}
-                                            className="h-20 flex-1 rounded-3xl border-border bg-transparent text-muted-foreground font-black italic tracking-widest uppercase text-xs hover:bg-muted/50 transition-all hover:text-foreground"
+                                            className="h-20 flex-1 rounded-3xl border-border bg-transparent text-muted-foreground font-black  tracking-widest uppercase text-xs hover:bg-muted/50 transition-all hover:text-foreground"
                                         >
                                             CANCEL CHANGES
                                         </Button>
                                         <Button 
                                             type="submit"
-                                            className="h-20 flex-[2] rounded-3xl bg-primary text-white font-black italic tracking-widest uppercase text-lg shadow-2xl shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-4"
+                                            className="h-20 flex-[2] rounded-3xl bg-primary text-white font-black  tracking-widest uppercase text-lg shadow-2xl shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-4"
                                         >
                                             {editingBanner ? 'UPDATE BANNER' : 'PUBLISH BANNER'}
                                             <CheckCircle2 className="w-6 h-6" />
@@ -620,7 +620,7 @@ export default function BannerManager() {
                                             <div className="relative aspect-[16/10] bg-white rounded-[2.5rem] shadow-2xl overflow-hidden border border-border/50">
                                                 {formData.imageUrl && <img src={formData.imageUrl} className="absolute inset-0 w-full h-full object-cover" alt="" />}
                                                 <div className="absolute inset-0 bg-black/40 p-8 flex flex-col justify-end text-white">
-                                                    <h4 className="text-3xl font-black italic uppercase leading-none mb-2">{formData.title || "TITLE"}</h4>
+                                                    <h4 className="text-3xl font-black  uppercase leading-none mb-2">{formData.title || "TITLE"}</h4>
                                                     <p className="text-[10px] font-bold uppercase tracking-widest opacity-80 mb-6">{formData.subtitle || "Subheading text goes here"}</p>
                                                     <div 
                                                         className="px-6 py-3 w-fit rounded-full text-[10px] font-black uppercase tracking-widest shadow-xl"
@@ -640,7 +640,7 @@ export default function BannerManager() {
                                                        <div className="w-1/2 relative bg-muted/30">
                                                             {formData.imageUrl2 && <img src={formData.imageUrl2} className="w-full h-full object-cover" alt="" />}
                                                             <div className="absolute inset-0 flex flex-col justify-center p-6 bg-black/20 text-white">
-                                                                <h4 className="text-xl font-black italic uppercase leading-tight line-clamp-2">{formData.title || "TITLE"}</h4>
+                                                                <h4 className="text-xl font-black  uppercase leading-tight line-clamp-2">{formData.title || "TITLE"}</h4>
                                                                 <p className="text-[10px] font-bold uppercase tracking-widest opacity-80 mt-2 line-clamp-1">{formData.subtitle}</p>
                                                                 <div 
                                                                     className="px-4 py-2 w-fit rounded-full text-[8px] font-black uppercase tracking-widest mt-4 shadow-lg"

@@ -234,7 +234,7 @@ export const PromotionManager = forwardRef(({ onUpdate, activeTab: externalTab }
                             
                             <div className="flex flex-col gap-6 relative z-10">
                                 <div className="flex items-center justify-between">
-                                    <div className={cn("px-3 py-1 rounded-full text-[8px] font-black uppercase tracking-widest italic border", 
+                                    <div className={cn("px-3 py-1 rounded-full text-[8px] font-black uppercase tracking-widest  border", 
                                         promo.category === 'FLASH_SALE' ? "bg-rose-500 text-white border-rose-600" : "bg-primary/10 text-primary border-primary/20")}>
                                         {promo.category.replace('_', ' ')}
                                     </div>
@@ -245,7 +245,7 @@ export const PromotionManager = forwardRef(({ onUpdate, activeTab: externalTab }
                                 </div>
 
                                 <div className="flex flex-col gap-1">
-                                    <h3 className="text-sm font-black italic tracking-tighter group-hover:text-primary transition-colors">{promo.name}</h3>
+                                    <h3 className="text-sm font-black  tracking-tighter group-hover:text-primary transition-colors">{promo.name}</h3>
                                     <span className="text-[10px] font-bold text-muted-foreground uppercase opacity-60 tracking-widest truncate">
                                         {(promo.products?.length || 0) > 1 
                                             ? `${promo.products.length} Products Included` 
@@ -255,20 +255,20 @@ export const PromotionManager = forwardRef(({ onUpdate, activeTab: externalTab }
 
                                 <div className="flex items-center gap-6">
                                     <div className="flex flex-col">
-                                        <span className="text-2xl font-black italic tracking-tighter text-primary">{promo.type === 'PERCENTAGE' ? `${promo.discount}%` : `KSh ${Math.round(promo.discount).toLocaleString()}`}</span>
-                                        <span className="text-[8px] font-black uppercase text-muted-foreground tracking-[0.2em] italic">DISCOUNT</span>
+                                        <span className="text-2xl font-black  tracking-tighter text-primary">{promo.type === 'PERCENTAGE' ? `${promo.discount}%` : `KSh ${Math.round(promo.discount).toLocaleString()}`}</span>
+                                        <span className="text-[8px] font-black uppercase text-muted-foreground tracking-[0.2em] ">DISCOUNT</span>
                                     </div>
                                     <div className="w-[1px] h-8 bg-border" />
                                     <div className="flex flex-col">
-                                        <span className="text-[10px] font-black italic text-foreground uppercase">{promo.endDate ? new Date(promo.endDate).toLocaleDateString() : "PERPETUAL"}</span>
-                                        <span className="text-[8px] font-black uppercase text-muted-foreground tracking-[0.2em] italic">EXPIRATION</span>
+                                        <span className="text-[10px] font-black  text-foreground uppercase">{promo.endDate ? new Date(promo.endDate).toLocaleDateString() : "PERPETUAL"}</span>
+                                        <span className="text-[8px] font-black uppercase text-muted-foreground tracking-[0.2em] ">EXPIRATION</span>
                                     </div>
                                     {promo.saleStock && (
                                         <>
                                             <div className="w-[1px] h-8 bg-border" />
                                             <div className="flex flex-col">
-                                                <span className="text-[10px] font-black italic text-rose-500 uppercase">{(promo.soldInPromo || 0)} / {promo.saleStock}</span>
-                                                <span className="text-[8px] font-black uppercase text-muted-foreground tracking-[0.2em] italic">UNITS SOLD</span>
+                                                <span className="text-[10px] font-black  text-rose-500 uppercase">{(promo.soldInPromo || 0)} / {promo.saleStock}</span>
+                                                <span className="text-[8px] font-black uppercase text-muted-foreground tracking-[0.2em] ">UNITS SOLD</span>
                                             </div>
                                         </>
                                     )}
@@ -294,7 +294,7 @@ export const PromotionManager = forwardRef(({ onUpdate, activeTab: externalTab }
             {filteredPromotions.length === 0 && (
                 <div className="py-40 flex flex-col items-center justify-center border-2 border-dashed border-border rounded-[4rem] opacity-30 text-center">
                     <Layers size={48} className="text-muted-foreground" />
-                    <span className="mt-8 text-[10px] font-black uppercase tracking-[0.3em] italic">No active promotions</span>
+                    <span className="mt-8 text-[10px] font-black uppercase tracking-[0.3em] ">No active promotions</span>
                 </div>
             )}
 
@@ -317,7 +317,7 @@ export const PromotionManager = forwardRef(({ onUpdate, activeTab: externalTab }
                                         <Zap size={24} />
                                     </div>
                                     <div className="flex flex-col">
-                                        <h2 className="text-xl font-black italic uppercase tracking-tighter text-foreground">Promotion <span className="text-primary">Editor</span></h2>
+                                        <h2 className="text-xl font-black  uppercase tracking-tighter text-foreground">Promotion <span className="text-primary">Editor</span></h2>
                                         <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.3em] opacity-40">Configure Campaign</span>
                                     </div>
                                 </div>
@@ -325,7 +325,7 @@ export const PromotionManager = forwardRef(({ onUpdate, activeTab: externalTab }
                                     <Button 
                                         onClick={savePromotion} 
                                         disabled={isSaving}
-                                        className="h-12 px-8 rounded-xl bg-primary text-white font-black italic uppercase tracking-widest text-[9px] gap-3 shadow-2xl shadow-primary/20 hover:scale-[1.02] transition-all"
+                                        className="h-12 px-8 rounded-xl bg-primary text-white font-black  uppercase tracking-widest text-[9px] gap-3 shadow-2xl shadow-primary/20 hover:scale-[1.02] transition-all"
                                     >
                                         {isSaving ? <RefreshCw className="animate-spin" size={16} /> : <Save size={16} />}
                                         {isSaving ? "SAVING..." : "SAVE PROMOTION"}
@@ -346,7 +346,7 @@ export const PromotionManager = forwardRef(({ onUpdate, activeTab: externalTab }
                                 {/* SECTION A: BASIC INFO */}
                                 <div className="flex flex-col gap-8">
                                     <div className="flex items-center gap-4">
-                                        <div className="w-10 h-10 rounded-xl bg-primary text-white flex items-center justify-center shadow-lg shadow-primary/20 font-black italic">A</div>
+                                        <div className="w-10 h-10 rounded-xl bg-primary text-white flex items-center justify-center shadow-lg shadow-primary/20 font-black ">A</div>
                                         <div className="flex flex-col">
                                             <span className="text-[11px] font-black uppercase tracking-widest text-foreground">Campaign Details</span>
                                             <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest opacity-50 font-inter">Identify the promotion name</span>
@@ -354,16 +354,16 @@ export const PromotionManager = forwardRef(({ onUpdate, activeTab: externalTab }
                                     </div>
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                                         <div className="flex flex-col gap-3">
-                                            <label className="text-[9px] font-black uppercase text-muted-foreground tracking-widest ml-2 italic">Campaign Name</label>
+                                            <label className="text-[9px] font-black uppercase text-muted-foreground tracking-widest ml-2 ">Campaign Name</label>
                                             <input 
                                                 placeholder="e.g. Summer Peak 2026..."
-                                                className="h-16 bg-muted/40 border border-border rounded-2xl px-6 text-xs font-black uppercase tracking-widest placeholder:text-muted-foreground/30 focus:border-primary transition-all outline-none italic"
+                                                className="h-16 bg-muted/40 border border-border rounded-2xl px-6 text-xs font-black uppercase tracking-widest placeholder:text-muted-foreground/30 focus:border-primary transition-all outline-none "
                                                 value={formData.name}
                                                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                                             />
                                         </div>
                                         <div className="flex flex-col gap-3">
-                                            <label className="text-[9px] font-black uppercase text-muted-foreground tracking-widest ml-2 italic">Detailed Description</label>
+                                            <label className="text-[9px] font-black uppercase text-muted-foreground tracking-widest ml-2 ">Detailed Description</label>
                                             <input 
                                                 placeholder="Optional context..."
                                                 className="h-16 bg-muted/40 border border-border rounded-2xl px-6 text-xs font-black uppercase tracking-widest placeholder:text-muted-foreground/30 focus:border-primary transition-all outline-none"
@@ -377,7 +377,7 @@ export const PromotionManager = forwardRef(({ onUpdate, activeTab: externalTab }
                                  {/* SECTION B: CONFIGURATION */}
                                  <div className="flex flex-col gap-8">
                                      <div className="flex items-center gap-4">
-                                         <div className="w-10 h-10 rounded-xl bg-primary text-white flex items-center justify-center shadow-lg shadow-primary/20 font-black italic">B</div>
+                                         <div className="w-10 h-10 rounded-xl bg-primary text-white flex items-center justify-center shadow-lg shadow-primary/20 font-black ">B</div>
                                          <div className="flex flex-col">
                                              <span className="text-[11px] font-black uppercase tracking-widest text-foreground">Discount Logic</span>
                                              <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest opacity-50 font-inter">Configure discount structures</span>
@@ -385,7 +385,7 @@ export const PromotionManager = forwardRef(({ onUpdate, activeTab: externalTab }
                                      </div>
                                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
                                           <div className="flex flex-col gap-3">
-                                             <label className="text-[9px] font-black uppercase text-muted-foreground tracking-widest pl-2 italic">Logic type</label>
+                                             <label className="text-[9px] font-black uppercase text-muted-foreground tracking-widest pl-2 ">Logic type</label>
                                              <select 
                                                  className="h-16 bg-muted/40 border border-border rounded-2xl px-6 text-[10px] font-black uppercase tracking-widest outline-none focus:border-primary transition-all cursor-pointer"
                                                  value={formData.type}
@@ -396,16 +396,16 @@ export const PromotionManager = forwardRef(({ onUpdate, activeTab: externalTab }
                                              </select>
                                          </div>
                                          <div className="flex flex-col gap-3">
-                                             <label className="text-[9px] font-black uppercase text-muted-foreground tracking-widest pl-2 italic">Benefit Value</label>
+                                             <label className="text-[9px] font-black uppercase text-muted-foreground tracking-widest pl-2 ">Benefit Value</label>
                                              <input 
                                                  type="number"
-                                                 className="h-16 bg-muted/40 border border-border rounded-2xl px-6 text-sm font-black italic text-primary focus:border-primary outline-none transition-all"
+                                                 className="h-16 bg-muted/40 border border-border rounded-2xl px-6 text-sm font-black  text-primary focus:border-primary outline-none transition-all"
                                                  value={formData.discount}
                                                  onChange={(e) => setFormData({ ...formData, discount: parseInt(e.target.value) || 0 })}
                                              />
                                          </div>
                                          <div className="flex flex-col gap-3">
-                                             <label className="text-[9px] font-black uppercase text-muted-foreground tracking-widest pl-2 italic">Promotion Category</label>
+                                             <label className="text-[9px] font-black uppercase text-muted-foreground tracking-widest pl-2 ">Promotion Category</label>
                                              <select 
                                                  className="h-16 bg-muted/40 border border-border rounded-2xl px-6 text-[10px] font-black uppercase tracking-widest outline-none focus:border-primary transition-all cursor-pointer"
                                                  value={formData.category}
@@ -418,11 +418,11 @@ export const PromotionManager = forwardRef(({ onUpdate, activeTab: externalTab }
                                              </select>
                                          </div>
                                          <div className="flex flex-col gap-3">
-                                             <label className="text-[9px] font-black uppercase text-muted-foreground tracking-widest pl-2 italic">Stock Limit (Units)</label>
+                                             <label className="text-[9px] font-black uppercase text-muted-foreground tracking-widest pl-2 ">Stock Limit (Units)</label>
                                              <input 
                                                  type="number"
                                                  placeholder="UNLIMITED"
-                                                 className="h-16 bg-muted/40 border border-border rounded-2xl px-6 text-sm font-black italic text-foreground focus:border-primary placeholder:text-muted-foreground/20 outline-none transition-all"
+                                                 className="h-16 bg-muted/40 border border-border rounded-2xl px-6 text-sm font-black  text-foreground focus:border-primary placeholder:text-muted-foreground/20 outline-none transition-all"
                                                  value={formData.saleStock}
                                                  onChange={(e) => setFormData({ ...formData, saleStock: e.target.value })}
                                              />
@@ -434,13 +434,13 @@ export const PromotionManager = forwardRef(({ onUpdate, activeTab: externalTab }
                                  <div className="p-6 bg-muted/10 rounded-2xl border border-border/50">
                                      <div className="flex items-center justify-between">
                                          <div className="flex flex-col gap-1">
-                                             <span className="text-[10px] font-black uppercase italic text-foreground leading-none">Display on Home</span>
+                                             <span className="text-[10px] font-black uppercase  text-foreground leading-none">Display on Home</span>
                                              <span className="text-[8px] font-bold text-muted-foreground uppercase tracking-widest leading-none opacity-60">Show this campaign on the site front</span>
                                          </div>
                                          <Button 
                                              type="button"
                                              variant={formData.showOnHome ? "default" : "outline"}
-                                             className={cn("h-8 px-4 rounded-xl text-[9px] font-black uppercase italic", formData.showOnHome ? "bg-primary" : "opacity-40")}
+                                             className={cn("h-8 px-4 rounded-xl text-[9px] font-black uppercase ", formData.showOnHome ? "bg-primary" : "opacity-40")}
                                              onClick={() => setFormData(prev => ({ ...prev, showOnHome: !prev.showOnHome }))}
                                          >
                                              {formData.showOnHome ? "ACTIVE" : "HIDDEN"}
@@ -451,7 +451,7 @@ export const PromotionManager = forwardRef(({ onUpdate, activeTab: externalTab }
                                 {/* SECTION C: SELECTION */}
                                 <div className="flex flex-col gap-8">
                                     <div className="flex items-center gap-4">
-                                        <div className="w-10 h-10 rounded-xl bg-primary text-white flex items-center justify-center shadow-lg shadow-primary/20 font-black italic">C</div>
+                                        <div className="w-10 h-10 rounded-xl bg-primary text-white flex items-center justify-center shadow-lg shadow-primary/20 font-black ">C</div>
                                         <div className="flex flex-col">
                                             <span className="text-[11px] font-black uppercase tracking-widest text-foreground">Target Products</span>
                                             <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest opacity-50 font-inter">Select products for promotion</span>
@@ -489,7 +489,7 @@ export const PromotionManager = forwardRef(({ onUpdate, activeTab: externalTab }
                                                 <AlertTriangle size={20} className="text-rose-500 shrink-0 mt-1" />
                                                 <div className="flex flex-col">
                                                     <span className="text-[10px] font-black uppercase text-rose-500 tracking-widest">Promotion Conflict Detected</span>
-                                                    <p className="text-[9px] font-bold text-rose-500/70 uppercase leading-relaxed mt-1 tracking-wider italic">The following products already have active promotions: <span className="text-rose-500">{conflictWarnings.join(", ")}</span>.</p>
+                                                    <p className="text-[9px] font-bold text-rose-500/70 uppercase leading-relaxed mt-1 tracking-wider ">The following products already have active promotions: <span className="text-rose-500">{conflictWarnings.join(", ")}</span>.</p>
                                                 </div>
                                             </motion.div>
                                         )}
@@ -499,7 +499,7 @@ export const PromotionManager = forwardRef(({ onUpdate, activeTab: externalTab }
                                 {/* SECTION D: SCHEDULING */}
                                 <div className="flex flex-col gap-8">
                                     <div className="flex items-center gap-4">
-                                        <div className="w-10 h-10 rounded-xl bg-primary text-white flex items-center justify-center shadow-lg shadow-primary/20 font-black italic">D</div>
+                                        <div className="w-10 h-10 rounded-xl bg-primary text-white flex items-center justify-center shadow-lg shadow-primary/20 font-black ">D</div>
                                         <div className="flex flex-col">
                                             <span className="text-[11px] font-black uppercase tracking-widest text-foreground">Campaign Duration</span>
                                             <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest opacity-50 font-inter">Set promotion active dates</span>
@@ -507,7 +507,7 @@ export const PromotionManager = forwardRef(({ onUpdate, activeTab: externalTab }
                                     </div>
                                     <div className="grid grid-cols-2 gap-8">
                                          <div className="flex flex-col gap-3">
-                                            <label className="text-[9px] font-black uppercase text-muted-foreground tracking-widest pl-2 italic">Start Date</label>
+                                            <label className="text-[9px] font-black uppercase text-muted-foreground tracking-widest pl-2 ">Start Date</label>
                                             <input 
                                                 type="date"
                                                 className="h-16 bg-muted/40 border border-border rounded-2xl px-6 text-xs font-black uppercase tracking-widest focus:border-primary transition-all outline-none"
@@ -517,7 +517,7 @@ export const PromotionManager = forwardRef(({ onUpdate, activeTab: externalTab }
                                         </div>
                                          <div className="flex flex-col gap-3">
                                             <div className="flex items-center justify-between px-1">
-                                                <label className="text-[9px] font-black uppercase text-muted-foreground tracking-widest italic opacity-60">End Date</label>
+                                                <label className="text-[9px] font-black uppercase text-muted-foreground tracking-widest  opacity-60">End Date</label>
                                                 <button 
                                                     type="button"
                                                     onClick={() => setFormData({ ...formData, endDate: formData.endDate === "NEVER" ? new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0] : "NEVER" })}
@@ -542,13 +542,13 @@ export const PromotionManager = forwardRef(({ onUpdate, activeTab: externalTab }
                                     <div className="flex flex-col gap-1">
                                         <div className="flex items-center gap-2">
                                             <div className={cn("w-2 h-2 rounded-full", formData.isActive ? "bg-emerald-500 animate-pulse" : "bg-muted")} />
-                                            <span className="text-lg font-black italic uppercase tracking-tighter">Live Status</span>
+                                            <span className="text-lg font-black  uppercase tracking-tighter">Live Status</span>
                                         </div>
                                         <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mt-1 opacity-60">Toggle promotion visibility on the storefront.</p>
                                     </div>
                                     <button 
                                         onClick={() => setFormData({ ...formData, isActive: !formData.isActive })}
-                                        className={cn("h-14 px-10 rounded-[1.25rem] text-[11px] font-black uppercase tracking-[0.2em] transition-all shadow-lg italic", 
+                                        className={cn("h-14 px-10 rounded-[1.25rem] text-[11px] font-black uppercase tracking-[0.2em] transition-all shadow-lg ", 
                                             formData.isActive ? "bg-emerald-500 text-white shadow-emerald-500/20" : "bg-slate-200 text-slate-500 border border-border/50")}
                                     >
                                         {formData.isActive ? "Active" : "Inactive"}
@@ -558,7 +558,7 @@ export const PromotionManager = forwardRef(({ onUpdate, activeTab: externalTab }
                                 <Button 
                                     onClick={savePromotion} 
                                     disabled={isSaving}
-                                    className="h-24 w-full rounded-[2.5rem] bg-foreground text-background font-black italic tracking-[.4em] uppercase text-sm shadow-2xl mt-8 mb-10 hover:bg-primary hover:text-white transition-all ring-8 ring-background group"
+                                    className="h-24 w-full rounded-[2.5rem] bg-foreground text-background font-black  tracking-[.4em] uppercase text-sm shadow-2xl mt-8 mb-10 hover:bg-primary hover:text-white transition-all ring-8 ring-background group"
                                 >
                                     {isSaving ? (
                                         <div className="flex items-center gap-4">

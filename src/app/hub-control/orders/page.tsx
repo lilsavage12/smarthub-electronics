@@ -406,7 +406,7 @@ export default function OrdersPage() {
             {/* Page Header */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                 <div className="flex flex-col gap-1">
-                    <h1 className="text-3xl font-black tracking-tight text-foreground italic uppercase">Order Management</h1>
+                    <h1 className="text-3xl font-black tracking-tight text-foreground  uppercase">Order Management</h1>
                     <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest opacity-60">Complete control dashboard for order fulfillment and logistics.</p>
                 </div>
                 <div className="flex items-center gap-3">
@@ -414,7 +414,7 @@ export default function OrdersPage() {
                     <Button
                         variant="outline"
                         onClick={handleExport}
-                        className="h-12 px-6 rounded-xl border-border font-black italic tracking-widest uppercase text-[10px] gap-2 hover:bg-muted transition-all"
+                        className="h-12 px-6 rounded-xl border-border font-black  tracking-widest uppercase text-[10px] gap-2 hover:bg-muted transition-all"
                     >
                         <Download size={18} />
                         EXPORT ORDERS
@@ -446,7 +446,7 @@ export default function OrdersPage() {
                         </div>
                         <div className="flex flex-col">
                             <div className="flex items-baseline gap-2">
-                                <span className="text-2xl font-black italic tracking-tighter">{s.count}</span>
+                                <span className="text-2xl font-black  tracking-tighter">{s.count}</span>
                                 <span className="text-[8px] font-black uppercase text-primary mb-1">Orders</span>
                             </div>
                             <span className="text-[10px] font-black uppercase tracking-widest text-foreground">{s.label}</span>
@@ -548,7 +548,7 @@ export default function OrdersPage() {
                                     <td className="px-6 py-6">
                                         <div className="flex flex-col">
                                             <span className="text-xs font-black text-foreground">{order.customerName || order.shippingAddress?.fullName}</span>
-                                            <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest opacity-40 italic">{order.customerEmail}</span>
+                                            <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest opacity-40 ">{order.customerEmail}</span>
                                         </div>
                                     </td>
                                     <td className="px-6 py-6 hidden md:table-cell">
@@ -652,11 +652,11 @@ export default function OrdersPage() {
                                     <ShieldAlert size={28} />
                                 </div>
                                 <div className="flex flex-col">
-                                    <h3 className="text-xl font-black uppercase italic tracking-tight">Confirm Action</h3>
+                                    <h3 className="text-xl font-black uppercase  tracking-tight">Confirm Action</h3>
                                     <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Confirmation Required</span>
                                 </div>
                             </div>
-                            <p className="text-sm font-medium text-muted-foreground leading-relaxed italic">
+                            <p className="text-sm font-medium text-muted-foreground leading-relaxed ">
                                 Are you certain you wish to {
                                     confirmAction.type === 'CANCEL' ? 'permanently cancel this order' :
                                         confirmAction.type === 'REFUND' ? 'initiate a full refund for this order' :
@@ -701,7 +701,7 @@ export default function OrdersPage() {
                                     <Truck size={28} />
                                 </div>
                                 <div className="flex flex-col">
-                                    <h3 className="text-xl font-black uppercase italic tracking-tight">Fulfillment Status</h3>
+                                    <h3 className="text-xl font-black uppercase  tracking-tight">Fulfillment Status</h3>
                                     <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Update Order #{selectedOrder.id.slice(0, 8)}</span>
                                 </div>
                             </div>

@@ -67,7 +67,7 @@ function ShopCollection() {
     if (isLoading) return (
         <div className="min-h-screen bg-background flex flex-col items-center justify-center gap-12 pt-[140px] md:pt-0" suppressHydrationWarning>
             <Smartphone className="w-12 h-12 text-primary animate-pulse" />
-            <span className="text-[10px] font-black uppercase tracking-[0.4em] italic">Loading {value.toUpperCase()} Collection</span>
+            <span className="text-[10px] font-black uppercase tracking-[0.4em] ">Loading {value.toUpperCase()} Collection</span>
         </div>
     )
 
@@ -76,9 +76,9 @@ function ShopCollection() {
             <div className="max-w-7xl mx-auto px-6 flex flex-col gap-12">
                 
                 <header className="flex flex-col gap-4 border-b border-border/50 pb-12">
-                     <span className="text-[10px] font-black uppercase tracking-[0.4em] text-primary italic">Official Collection</span>
-                    <h1 className="text-5xl md:text-8xl font-black italic tracking-tighter uppercase leading-none font-outfit">{value || "Product Collection"}</h1>
-                    <p className="text-[10px] font-black uppercase tracking-[0.4em] opacity-40 italic mt-2">Live: Connected to the {type || "global"} product database.</p>
+                     <span className="text-[10px] font-black uppercase tracking-[0.4em] text-primary ">Official Collection</span>
+                    <h1 className="text-5xl md:text-8xl font-black  tracking-tighter uppercase leading-none font-outfit">{value || "Product Collection"}</h1>
+                    <p className="text-[10px] font-black uppercase tracking-[0.4em] opacity-40  mt-2">Live: Connected to the {type || "global"} product database.</p>
                 </header>
 
                 <div className="flex flex-col lg:flex-row gap-16 relative">
@@ -104,7 +104,7 @@ function ShopCollection() {
                         {filteredProducts.length === 0 && (
                             <div className="py-40 flex flex-col items-center justify-center border-2 border-dashed border-border rounded-[4rem] opacity-30">
                                 <X size={48} />
-                                <span className="mt-8 text-[10px] font-black uppercase tracking-widest italic font-black uppercase tracking-widest italic">No Products Found</span>
+                                <span className="mt-8 text-[10px] font-black uppercase tracking-widest  font-black uppercase tracking-widest ">No Products Found</span>
                             </div>
                         )}
                     </div>

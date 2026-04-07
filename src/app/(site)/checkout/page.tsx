@@ -276,11 +276,11 @@ export default function CheckoutPage() {
                 </div>
 
                 <div className="flex flex-col gap-4">
-                    <h1 className="text-5xl md:text-7xl font-black font-outfit uppercase tracking-tighter italic">
-                        Order <span className="text-primary italic">Confirmed!</span>
+                    <h1 className="text-5xl md:text-7xl font-black font-outfit uppercase tracking-tighter ">
+                        Order <span className="text-primary ">Confirmed!</span>
                     </h1>
                     <p className="text-xl text-muted-foreground leading-relaxed max-w-xl mx-auto">
-                        Thanks! Your order <span className="text-foreground font-black italic">#{confirmedOrderNumber}</span> is being packed and will be delivered soon.
+                        Thanks! Your order <span className="text-foreground font-black ">#{confirmedOrderNumber}</span> is being packed and will be delivered soon.
                     </p>
                 </div>
 
@@ -308,14 +308,14 @@ export default function CheckoutPage() {
             <div className="grid grid-cols-1 lg:grid-cols-5 gap-12 lg:items-start">
                 <div className="lg:col-span-3 flex flex-col gap-8">
                     <div className="flex flex-col gap-4">
-                        <h1 className="text-2xl md:text-3xl font-black font-outfit uppercase tracking-tighter italic">
-                            Secure <span className="text-primary italic">Checkout</span>
+                        <h1 className="text-2xl md:text-3xl font-black font-outfit uppercase tracking-tighter ">
+                            Secure <span className="text-primary ">Checkout</span>
                         </h1>
                         <div className="flex items-center gap-4">
                             <div className={cn("h-1.5 flex-1 rounded-full border border-border overflow-hidden bg-muted")}>
                                 <motion.div className="h-full bg-primary" animate={{ width: step === 1 ? "50%" : "100%" }} />
                             </div>
-                            <span className="text-xs-fluid font-black uppercase tracking-widest text-primary italic whitespace-nowrap">STEP {step} OF 2</span>
+                            <span className="text-xs-fluid font-black uppercase tracking-widest text-primary  whitespace-nowrap">STEP {step} OF 2</span>
                         </div>
                     </div>
 
@@ -391,7 +391,7 @@ function ShippingStep({
             <div className="flex items-center gap-3 border-l-2 border-primary pl-4">
                 <MapPin className="w-6 h-6 text-primary" />
                 <div className="flex flex-col">
-                    <h2 className="text-lg font-black font-outfit uppercase italic tracking-tighter leading-none">
+                    <h2 className="text-lg font-black font-outfit uppercase  tracking-tighter leading-none">
                         Shipping Address
                     </h2>
                     <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest mt-1">
@@ -580,7 +580,7 @@ function ShippingStep({
                 <div className="flex items-center gap-3">
                     <Tag className="w-5 h-5 text-primary" />
                     <div className="flex flex-col">
-                        <span className="text-[10px] font-black uppercase tracking-[0.2em] text-foreground italic">
+                        <span className="text-[10px] font-black uppercase tracking-[0.2em] text-foreground ">
                             Have a Promo Code?
                         </span>
                         <span className="text-[8px] font-bold text-muted-foreground uppercase tracking-widest mt-0.5 opacity-60">
@@ -612,7 +612,7 @@ function ShippingStep({
             {/* Delivery Notes Integration */}
             <div className="flex flex-col gap-3">
                 <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-4 flex items-center gap-2">
-                    <Clock size={12} className="text-primary italic" />
+                    <Clock size={12} className="text-primary " />
                     Delivery Instructions (Optional)
                 </label>
                 <textarea
@@ -623,7 +623,7 @@ function ShippingStep({
                 />
             </div>
 
-            <Button onClick={handleNextStep} variant="premium" size="lg" className="h-14 md:h-16 text-xs-fluid font-black italic tracking-[0.2em] rounded-xl shadow-xl group uppercase">
+            <Button onClick={handleNextStep} variant="premium" size="lg" className="h-14 md:h-16 text-xs-fluid font-black  tracking-[0.2em] rounded-xl shadow-xl group uppercase">
                 NEXT: PAYMENT
                 <ChevronRight className="ml-2 w-4 h-4 group-hover:translate-x-1 transition-transform" />
             </Button>
@@ -649,7 +649,7 @@ function PaymentStep({
             <div className="flex items-center gap-3 border-l-2 border-primary pl-4">
                 <CreditCard className="w-6 h-6 text-primary" />
                 <div className="flex flex-col">
-                    <h2 className="text-lg font-black font-outfit uppercase italic tracking-tighter leading-none">
+                    <h2 className="text-lg font-black font-outfit uppercase  tracking-tighter leading-none">
                         How would you like to pay?
                     </h2>
                     <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest mt-1">
@@ -679,7 +679,7 @@ function PaymentStep({
                         {paymentOption === "cod" && <CheckCircle2 className="w-6 h-6 text-primary" />}
                     </div>
                     <div className="flex flex-col mt-2">
-                        <span className="font-black italic text-sm uppercase tracking-widest leading-tight">Cash on Delivery</span>
+                        <span className="font-black  text-sm uppercase tracking-widest leading-tight">Cash on Delivery</span>
                         <span className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground mt-1">Pay by Cash or M-PESA at your door</span>
                     </div>
                 </button>
@@ -704,7 +704,7 @@ function PaymentStep({
                         {paymentOption === "online" && <CheckCircle2 className="w-6 h-6 text-primary" />}
                     </div>
                     <div className="flex flex-col mt-2">
-                        <span className="font-black italic text-sm uppercase tracking-widest leading-tight">Pay Now...</span>
+                        <span className="font-black  text-sm uppercase tracking-widest leading-tight">Pay Now...</span>
                         <span className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground mt-1">Manual M-PESA Verification</span>
                     </div>
                 </button>
@@ -727,7 +727,7 @@ function PaymentStep({
                                             <Smartphone className="text-primary w-5 h-5" />
                                         </div>
                                         <div className="flex flex-col">
-                                            <span className="text-[10px] font-black uppercase text-primary tracking-widest italic">M-PESA DETAILS</span>
+                                            <span className="text-[10px] font-black uppercase text-primary tracking-widest ">M-PESA DETAILS</span>
                                             <span className="text-[8px] font-bold text-muted-foreground uppercase tracking-widest">Follow steps to pay</span>
                                         </div>
                                     </div>
@@ -756,7 +756,7 @@ function PaymentStep({
 
                                 <div className="flex flex-col gap-4">
                                     <div className="flex flex-col gap-2">
-                                        <label className="text-[9px] font-black uppercase tracking-widest text-muted-foreground ml-3 italic">
+                                        <label className="text-[9px] font-black uppercase tracking-widest text-muted-foreground ml-3 ">
                                             Enter Transaction Code *
                                         </label>
                                         <input
@@ -788,7 +788,7 @@ function PaymentStep({
                     >
                         <AlertCircle className="w-5 h-5 text-amber-500 mt-0.5 flex-shrink-0" />
                         <div className="flex flex-col gap-1">
-                            <span className="text-[10px] font-black uppercase tracking-widest text-amber-600 italic">
+                            <span className="text-[10px] font-black uppercase tracking-widest text-amber-600 ">
                                 Payment Note
                             </span>
                             <p className="text-[9px] font-medium text-amber-900/60 leading-relaxed uppercase tracking-wider">
@@ -805,7 +805,7 @@ function PaymentStep({
                     disabled={isProcessing || !paymentOption}
                     variant="premium" 
                     size="lg" 
-                    className="h-16 text-sm font-black italic tracking-[0.2em] rounded-2xl shadow-2xl group uppercase relative overflow-hidden"
+                    className="h-16 text-sm font-black  tracking-[0.2em] rounded-2xl shadow-2xl group uppercase relative overflow-hidden"
                 >
                     <span className="relative z-10 flex items-center gap-2">
                         {isProcessing ? "PROCESSING..." : !paymentOption ? "SELECT A PAYMENT OPTION" : (paymentOption === 'online' && !transactionCode) ? "ENTER TRANSACTION CODE" : "FINISH ORDER"}
@@ -826,9 +826,9 @@ function OrderSummary({ items, subtotal, discountAmount, appliedDiscount, shippi
     return (
         <div className="lg:col-span-2 flex flex-col gap-6 sticky top-24">
             <div className="bg-background border border-border rounded-[2rem] p-6 shadow-sm overflow-hidden relative">
-                <h3 className="text-lg font-black font-outfit uppercase tracking-tighter italic border-b border-border/50 pb-4 mb-6 flex items-center justify-between">
+                <h3 className="text-lg font-black font-outfit uppercase tracking-tighter  border-b border-border/50 pb-4 mb-6 flex items-center justify-between">
                     Your Order
-                    <span className="text-[9px] bg-muted border border-border px-2 py-0.5 rounded-md font-black not-italic">
+                    <span className="text-[9px] bg-muted border border-border px-2 py-0.5 rounded-md font-black not-">
                         {totalItems()} ITEMS
                     </span>
                 </h3>
@@ -840,11 +840,11 @@ function OrderSummary({ items, subtotal, discountAmount, appliedDiscount, shippi
                                 <Image src={item.image} alt={item.name} fill className="object-contain p-1" />
                             </div>
                             <div className="flex flex-col flex-1 gap-0.5">
-                                <span className="text-[11px] font-black font-outfit uppercase italic leading-tight">
+                                <span className="text-[11px] font-black font-outfit uppercase  leading-tight">
                                     {item.name}
                                 </span>
                                 <div className="flex items-center justify-between mt-1">
-                                    <span className="text-[10px] font-black italic bg-muted-foreground/10 px-1.5 py-0.5 rounded uppercase">
+                                    <span className="text-[10px] font-black  bg-muted-foreground/10 px-1.5 py-0.5 rounded uppercase">
                                         QTY: {item.quantity}
                                     </span>
                                     <span className="text-sm font-black text-foreground font-outfit tracking-tighter">
@@ -878,8 +878,8 @@ function OrderSummary({ items, subtotal, discountAmount, appliedDiscount, shippi
                     </div>
                     <div className="flex justify-between items-end pt-1">
                         <div className="flex flex-col">
-                            <span className="text-[8px] font-black uppercase tracking-widest text-primary italic">Total</span>
-                            <span className="text-3xl font-black font-outfit tracking-tighter text-foreground uppercase italic leading-none">
+                            <span className="text-[8px] font-black uppercase tracking-widest text-primary ">Total</span>
+                            <span className="text-3xl font-black font-outfit tracking-tighter text-foreground uppercase  leading-none">
                                 KSh {Math.round(finalTotal).toLocaleString()}
                             </span>
                         </div>

@@ -24,6 +24,8 @@ interface CartStore {
         type: 'PERCENTAGE' | 'FIXED'
         value: number
     } | null
+    isCartOpen: boolean
+    setCartOpen: (val: boolean) => void
     
     // Core Actions
     addItem: (product: any, userId?: string) => Promise<void>
@@ -46,6 +48,8 @@ export const useCart = create<CartStore>()(
         (set, get) => ({
             items: [],
             discount: null,
+            isCartOpen: false,
+            setCartOpen: (val) => set({ isCartOpen: val }),
             
             addItem: async (product, userId) => {
                 const pId = product.id.toString()

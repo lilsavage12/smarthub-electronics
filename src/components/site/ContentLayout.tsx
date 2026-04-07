@@ -29,21 +29,21 @@ export const ContentLayout = ({
                 <div className="flex flex-col gap-8">
                     <div className="flex flex-col gap-4">
                         {badge && (
-                            <span className="text-[10px] font-black uppercase tracking-[0.4em] text-primary italic">
+                            <span className="text-[10px] font-black uppercase tracking-[0.4em] text-primary ">
                                 {badge}
                             </span>
                         )}
-                        <h1 className="text-5xl md:text-8xl font-black italic tracking-tighter uppercase leading-none text-foreground">
+                        <h1 className="text-5xl md:text-8xl font-black  tracking-tighter uppercase leading-none text-foreground">
                             {title}
                         </h1>
                     </div>
                     
                     <div className="flex flex-col gap-4">
-                        <p className="text-muted-foreground text-lg md:text-xl font-bold uppercase tracking-tight italic opacity-70 max-w-2xl leading-tight">
+                        <p className="text-muted-foreground text-lg md:text-xl font-bold uppercase tracking-tight  opacity-70 max-w-2xl leading-tight">
                             {description}
                         </p>
                         {updatedAt && (
-                            <span className="text-[10px] font-black uppercase tracking-[0.2em] opacity-40 italic">
+                            <span className="text-[10px] font-black uppercase tracking-[0.2em] opacity-40 ">
                                 Last Updated: {updatedAt}
                             </span>
                         )}
@@ -52,7 +52,7 @@ export const ContentLayout = ({
 
                 {/* Content Area */}
                 <div className="prose prose-invert prose-slate max-w-none">
-                    <div className="text-muted-foreground leading-relaxed text-lg font-medium space-y-12 uppercase tracking-tight italic opacity-90">
+                    <div className="text-muted-foreground leading-relaxed text-lg font-medium space-y-12 uppercase tracking-tight  opacity-90">
                         {children}
                     </div>
                 </div>

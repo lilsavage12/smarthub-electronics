@@ -32,7 +32,6 @@ function ProductsContent() {
         storage: string[],
         os: string[],
         network: string[],
-        condition: string[],
         camera: string[]
     }>({
         brands: [],
@@ -46,7 +45,6 @@ function ProductsContent() {
         storage: [],
         os: [],
         network: [],
-        condition: [],
         camera: []
     })
     const [searchQuery, setSearchQuery] = useState(urlSearch || "")
@@ -124,12 +122,12 @@ function ProductsContent() {
                 
                 <div className="container relative z-10 px-6 max-w-7xl mx-auto flex flex-col md:flex-row md:items-center justify-between gap-8 py-10 md:py-0">
                     <div className="flex flex-col gap-4">
-                        <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground italic">
+                        <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground ">
                             <Link href="/" className="hover:text-primary transition-colors">STOREFRONT</Link>
                             <ChevronRight size={10} />
-                            <span className="text-primary italic">Catalog</span>
+                            <span className="text-primary ">Catalog</span>
                         </div>
-                        <h1 className="text-4xl md:text-6xl font-black italic tracking-tighter uppercase leading-none">
+                        <h1 className="text-4xl md:text-6xl font-black  tracking-tighter uppercase leading-none">
                             The <span className="text-primary font-black">Digital</span> Collection
                         </h1>
                         <p className="text-[11px] md:text-xs font-black uppercase tracking-[0.2em] text-muted-foreground opacity-60 max-w-md leading-relaxed">
@@ -139,12 +137,12 @@ function ProductsContent() {
 
                     <div className="flex items-center gap-8 border-l border-border pl-8 py-2">
                         <div className="flex flex-col">
-                            <span className="text-2xl font-black italic tracking-tighter leading-none">{allProducts.length}</span>
-                            <span className="text-[9px] font-black uppercase text-muted-foreground tracking-widest mt-1.5 opacity-40 italic">PRODUCTS AVAILABLE</span>
+                            <span className="text-2xl font-black  tracking-tighter leading-none">{allProducts.length}</span>
+                            <span className="text-[9px] font-black uppercase text-muted-foreground tracking-widest mt-1.5 opacity-40 ">PRODUCTS AVAILABLE</span>
                         </div>
                         <div className="flex flex-col">
-                            <span className="text-2xl font-black italic tracking-tighter leading-none text-emerald-500">{allProducts.filter(p => !p.stock || p.stock > 0).length}</span>
-                            <span className="text-[9px] font-black uppercase text-muted-foreground tracking-widest mt-1.5 opacity-40 italic">IN STOCK</span>
+                            <span className="text-2xl font-black  tracking-tighter leading-none text-emerald-500">{allProducts.filter(p => !p.stock || p.stock > 0).length}</span>
+                            <span className="text-[9px] font-black uppercase text-muted-foreground tracking-widest mt-1.5 opacity-40 ">IN STOCK</span>
                         </div>
                     </div>
                 </div>
@@ -159,7 +157,7 @@ function ProductsContent() {
                         <input
                             type="text"
                             placeholder="SEARCH PRODUCTS..."
-                            className="h-14 md:h-20 w-full bg-muted/20 border-border border rounded-2xl md:rounded-[2rem] pl-16 pr-8 text-xs md:text-sm font-black uppercase tracking-widest outline-none transition-all focus:ring-4 focus:ring-primary/5 focus:border-primary/20 placeholder:opacity-20 italic"
+                            className="h-14 md:h-20 w-full bg-muted/20 border-border border rounded-2xl md:rounded-[2rem] pl-16 pr-8 text-xs md:text-sm font-black uppercase tracking-widest outline-none transition-all focus:ring-4 focus:ring-primary/5 focus:border-primary/20 placeholder:opacity-20 "
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                         />
@@ -228,7 +226,7 @@ function ProductsContent() {
                     <div className="flex-1 flex flex-col gap-12">
                         <div className="flex items-center justify-between border-b border-border pb-6">
                             <div className="flex flex-col">
-                                <h3 className="text-xl font-black italic tracking-tight uppercase leading-none">Product Catalog</h3>
+                                <h3 className="text-xl font-black  tracking-tight uppercase leading-none">Product Catalog</h3>
                                 <span className="text-[10px] font-black uppercase text-muted-foreground tracking-[0.3em] mt-2 opacity-50 px-0.5">CONNECTING TO STORE...</span>
                             </div>
                             <span className="text-[10px] font-black uppercase tracking-[0.3em] text-primary">{filteredProducts.length} PRODUCTS ONLINE</span>
@@ -264,7 +262,7 @@ function ProductsContent() {
                             <div className="flex justify-center pt-20">
                                 <Button 
                                     variant="outline" 
-                                    className="h-20 lg:h-24 px-12 lg:px-24 rounded-[2.5rem] lg:rounded-[3rem] border-primary/20 bg-card font-black italic tracking-[0.3em] uppercase text-xs hover:bg-muted transition-all gap-4 shadow-2xl shadow-primary/5 hover:border-primary group"
+                                    className="h-20 lg:h-24 px-12 lg:px-24 rounded-[2.5rem] lg:rounded-[3rem] border-primary/20 bg-card font-black  tracking-[0.3em] uppercase text-xs hover:bg-muted transition-all gap-4 shadow-2xl shadow-primary/5 hover:border-primary group"
                                     onClick={() => setDisplayLimit(prev => prev + 12)}
                                 >
                                     <Sparkles size={20} className="text-primary group-hover:rotate-12 transition-transform" />
@@ -280,9 +278,9 @@ function ProductsContent() {
                                 <div className="bg-muted/30 p-20 rounded-[4rem] mb-12 border border-border/50">
                                     <Smartphone size={80} className="text-muted-foreground/20 animate-pulse" />
                                 </div>
-                                <h2 className="text-4xl font-black font-outfit uppercase italic mb-6">No Products Found</h2>
+                                <h2 className="text-4xl font-black font-outfit uppercase  mb-6">No Products Found</h2>
                                 <p className="text-muted-foreground max-w-sm mb-12 font-black uppercase text-[10px] tracking-widest opacity-40 leading-relaxed">The current filters returned no results. Please adjust your search parameters.</p>
-                                <Button className="h-16 px-16 rounded-2xl bg-primary text-white font-black italic tracking-widest uppercase shadow-2xl shadow-primary/20" onClick={() => setActiveFilters({ brands: [], categories: [], minPrice: 0, maxPrice: 3000, rating: 0, inStock: false, onSale: false, ram: [], storage: [], os: [], network: [], condition: [], camera: [] })}>
+                                <Button className="h-16 px-16 rounded-2xl bg-primary text-white font-black  tracking-widest uppercase shadow-2xl shadow-primary/20" onClick={() => setActiveFilters({ brands: [], categories: [], minPrice: 0, maxPrice: 3000, rating: 0, inStock: false, onSale: false, ram: [], storage: [], os: [], network: [], camera: [] })}>
                                     CLEAR FILTERS
                                 </Button>
                             </div>
@@ -311,8 +309,8 @@ function ProductsContent() {
                         >
                             <div className="flex items-center justify-between mb-12">
                                 <div className="flex flex-col gap-1">
-                                    <h3 className="text-2xl font-black italic tracking-tight uppercase leading-none">Filters</h3>
-                                    <span className="text-[10px] font-black uppercase text-muted-foreground tracking-widest italic opacity-40">Mobile Store Navigation</span>
+                                    <h3 className="text-2xl font-black  tracking-tight uppercase leading-none">Filters</h3>
+                                    <span className="text-[10px] font-black uppercase text-muted-foreground tracking-widest  opacity-40">Mobile Store Navigation</span>
                                 </div>
                                 <button onClick={() => setIsSidebarOpen(false)} className="rounded-2xl h-14 w-14 bg-muted/50 border border-border flex items-center justify-center">
                                     <Tags className="w-6 h-6 text-foreground" />
@@ -342,7 +340,7 @@ function ProductsContent() {
                                 {item.icon}
                             </div>
                             <div className="flex flex-col">
-                                <h4 className="text-sm font-black italic uppercase tracking-widest leading-none">{item.title}</h4>
+                                <h4 className="text-sm font-black  uppercase tracking-widest leading-none">{item.title}</h4>
                                 <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mt-2 opacity-50">{item.sub}</p>
                             </div>
                         </div>

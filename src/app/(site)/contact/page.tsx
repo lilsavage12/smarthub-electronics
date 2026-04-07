@@ -2,9 +2,9 @@
 
 import React, { useState } from "react"
 import { motion } from "framer-motion"
-import { 
-    Mail, Phone, MapPin, Send, 
-    Clock, CheckCircle2, ShieldCheck, 
+import {
+    Mail, Phone, MapPin, Send,
+    Clock, CheckCircle2, ShieldCheck,
     Globe, Twitter, Instagram, Facebook,
     AlertCircle, MessageSquare
 } from "lucide-react"
@@ -50,7 +50,7 @@ export default function ContactPage() {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
-        
+
         // Basic validation
         if (!formData.name || !formData.email || !formData.subject || !formData.message) {
             toast.error("Please fill in all required fields")
@@ -91,9 +91,9 @@ export default function ContactPage() {
     return (
         <div className="container mx-auto px-6 max-w-7xl">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-20 items-start">
-                
+
                 {/* Left Section: Contact Information */}
-                <motion.div 
+                <motion.div
                     initial={{ opacity: 0, x: -30 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ duration: 0.8 }}
@@ -101,7 +101,7 @@ export default function ContactPage() {
                 >
                     <div className="flex flex-col gap-6">
                         <span className="text-primary font-black uppercase tracking-[0.4em] text-[10px] leading-none">Customer Relations</span>
-                        <h1 className="text-5xl lg:text-7xl font-black italic tracking-tighter uppercase leading-[0.85] text-foreground">
+                        <h1 className="text-5xl lg:text-7xl font-black  tracking-tighter uppercase leading-[0.85] text-foreground">
                             Do you have <br />
                             <span className="text-primary">some questions?</span>
                         </h1>
@@ -111,7 +111,7 @@ export default function ContactPage() {
                     </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
-                        <a 
+                        <a
                             href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(settings.address)}`}
                             target="_blank"
                             rel="noopener noreferrer"
@@ -126,7 +126,7 @@ export default function ContactPage() {
                             </div>
                         </a>
 
-                        <a 
+                        <a
                             href={`mailto:${settings.email}`}
                             className="flex flex-col items-center text-center gap-4 p-8 rounded-[2rem] bg-muted/30 border border-border/50 hover:border-primary/20 transition-all group cursor-pointer"
                         >
@@ -135,11 +135,11 @@ export default function ContactPage() {
                             </div>
                             <div className="flex flex-col gap-1">
                                 <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Email Support</span>
-                                <p className="text-xs font-bold text-foreground italic">{settings.email}</p>
+                                <p className="text-xs font-bold text-foreground ">{settings.email}</p>
                             </div>
                         </a>
 
-                        <a 
+                        <a
                             href={`tel:${settings.phone.replace(/\s+/g, '')}`}
                             className="flex flex-col items-center text-center gap-4 p-8 rounded-[2rem] bg-muted/30 border border-border/50 hover:border-primary/20 transition-all group cursor-pointer"
                         >
@@ -165,59 +165,49 @@ export default function ContactPage() {
                         </div>
                     </div>
 
-                    {/* Social Channels */}
-                    <div className="flex items-center gap-6 mt-4">
-                        <span className="text-[9px] font-black uppercase tracking-[0.3em] text-muted-foreground">Social Channels</span>
-                        <div className="flex items-center gap-4">
-                            {[Twitter, Instagram, Facebook, Globe].map((Icon, i) => (
-                                <button key={i} className="p-3 rounded-xl bg-card border border-border text-muted-foreground hover:text-primary transition-all">
-                                    <Icon size={18} />
-                                </button>
-                            ))}
-                        </div>
-                    </div>
+
                 </motion.div>
 
                 {/* Right Section: Contact Form */}
-                <motion.div 
+                <motion.div
                     initial={{ opacity: 0, x: 30 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ duration: 0.8, delay: 0.2 }}
                     className="relative"
                 >
                     <div className="absolute inset-0 bg-primary/5 blur-[120px] rounded-full translate-x-12 translate-y-12 -z-10" />
-                    
+
                     <div className="p-10 lg:p-16 rounded-[3.5rem] bg-card border border-border shadow-2xl flex flex-col gap-10">
                         <div className="flex flex-col gap-2">
                             <div className="flex items-center gap-3 text-primary mb-2">
                                 <MessageSquare size={16} />
                                 <span className="text-[10px] font-black uppercase tracking-[0.4em]">Message Support</span>
                             </div>
-                            <h2 className="text-3xl font-black italic tracking-tighter uppercase leading-none">Send a Message</h2>
+                            <h2 className="text-3xl font-black  tracking-tighter uppercase leading-none">Send a Message</h2>
                         </div>
 
                         <form onSubmit={handleSubmit} className="flex flex-col gap-6">
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                                 <div className="flex flex-col gap-2">
                                     <label htmlFor="name" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-2">Full Name</label>
-                                    <Input 
+                                    <Input
                                         id="name"
                                         name="name"
                                         value={formData.name}
                                         onChange={handleChange}
-                                        placeholder="E.G. ALEX DRIVER" 
+                                        placeholder="E.G. ALEX DRIVER"
                                         className="h-14 rounded-2xl bg-muted/50 border-border/50 text-xs font-bold uppercase placeholder:text-muted-foreground/30 px-6 focus:ring-primary/20"
                                     />
                                 </div>
                                 <div className="flex flex-col gap-2">
                                     <label htmlFor="email" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-2">Email Address</label>
-                                    <Input 
+                                    <Input
                                         id="email"
                                         type="email"
                                         name="email"
                                         value={formData.email}
                                         onChange={handleChange}
-                                        placeholder="SUPPORT@SMARTHUB.ELECTRONICS" 
+                                        placeholder="SUPPORT@SMARTHUB.ELECTRONICS"
                                         className="h-14 rounded-2xl bg-muted/50 border-border/50 text-xs font-bold uppercase placeholder:text-muted-foreground/30 px-6 focus:ring-primary/20"
                                     />
                                 </div>
@@ -225,32 +215,32 @@ export default function ContactPage() {
 
                             <div className="flex flex-col gap-2">
                                 <label htmlFor="subject" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-2">Subject</label>
-                                <Input 
+                                <Input
                                     id="subject"
                                     name="subject"
                                     value={formData.subject}
                                     onChange={handleChange}
-                                    placeholder="TECHNICAL SUPPORT / SALES OVERVIEW" 
+                                    placeholder="TECHNICAL SUPPORT / SALES OVERVIEW"
                                     className="h-14 rounded-2xl bg-muted/50 border-border/50 text-xs font-bold uppercase placeholder:text-muted-foreground/30 px-6 focus:ring-primary/20"
                                 />
                             </div>
 
                             <div className="flex flex-col gap-2">
                                 <label htmlFor="message" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-2">Message</label>
-                                <Textarea 
-                                   id="message"
+                                <Textarea
+                                    id="message"
                                     name="message"
                                     value={formData.message}
                                     onChange={handleChange}
-                                    placeholder="ENTER YOUR MESSAGE OR QUESTIONS..." 
+                                    placeholder="ENTER YOUR MESSAGE OR QUESTIONS..."
                                     className="min-h-[200px] rounded-3xl bg-muted/50 border-border/50 p-6 text-xs font-bold uppercase placeholder:text-muted-foreground/30 focus:ring-primary/20 resize-none leading-relaxed"
                                 />
                             </div>
 
-                            <Button 
+                            <Button
                                 type="submit"
                                 disabled={isSubmitting}
-                                className="h-16 rounded-2xl bg-foreground text-background hover:bg-primary hover:text-white transition-all duration-500 font-black italic uppercase tracking-widest text-xs group"
+                                className="h-16 rounded-2xl bg-foreground text-background hover:bg-primary hover:text-white transition-all duration-500 font-black  uppercase tracking-widest text-xs group"
                             >
                                 <span className="flex items-center gap-3">
                                     {isSubmitting ? (

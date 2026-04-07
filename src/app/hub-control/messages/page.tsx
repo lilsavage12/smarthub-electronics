@@ -112,9 +112,9 @@ export default function MessagesManager() {
             {/* Header */}
             <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
                 <div className="flex flex-col gap-1">
-                    <h1 className="text-4xl font-black tracking-tight text-foreground italic uppercase leading-none">Inquiry Management</h1>
+                    <h1 className="text-4xl font-black tracking-tight text-foreground  uppercase leading-none">Inquiry Management</h1>
                     <p className="text-muted-foreground font-black uppercase text-[10px] tracking-widest leading-none mt-2">
-                        Received <span className="text-primary italic">{messages.length}</span> customer communications
+                        Received <span className="text-primary ">{messages.length}</span> customer communications
                         {unreadCount > 0 && <span className="ml-2 text-red-500">• {unreadCount} PENDING ACTION</span>}
                     </p>
                 </div>
@@ -182,14 +182,14 @@ export default function MessagesManager() {
                                                     <User size={18} />
                                                 </div>
                                                 <div className="flex flex-col gap-1">
-                                                    <span className="text-[11px] font-black uppercase italic tracking-tighter text-foreground group-hover:text-primary transition-colors">{msg.name}</span>
+                                                    <span className="text-[11px] font-black uppercase  tracking-tighter text-foreground group-hover:text-primary transition-colors">{msg.name}</span>
                                                     <span className="text-[8px] font-bold text-muted-foreground uppercase tracking-widest leading-none">{msg.email}</span>
                                                 </div>
                                             </div>
                                         </td>
                                         <td className="px-8 py-6">
                                             <div className="flex flex-col gap-1 max-w-xs">
-                                                <span className="text-[10px] font-black uppercase italic tracking-tight text-foreground line-clamp-1">{msg.subject}</span>
+                                                <span className="text-[10px] font-black uppercase  tracking-tight text-foreground line-clamp-1">{msg.subject}</span>
                                                 <p className="text-[10px] font-medium text-muted-foreground truncate leading-none mt-1 opacity-60">
                                                     {msg.message}
                                                 </p>
@@ -264,15 +264,15 @@ export default function MessagesManager() {
                                             <User size={28} />
                                         </div>
                                         <div className="flex flex-col">
-                                            <h3 className="text-xl font-black italic tracking-tighter uppercase leading-none">{selectedMessage.name}</h3>
-                                            <span className="text-[10px] font-black uppercase tracking-widest text-primary mt-1 italic">{selectedMessage.email}</span>
+                                            <h3 className="text-xl font-black  tracking-tighter uppercase leading-none">{selectedMessage.name}</h3>
+                                            <span className="text-[10px] font-black uppercase tracking-widest text-primary mt-1 ">{selectedMessage.email}</span>
                                         </div>
                                     </div>
                                 </div>
 
                                 <div className="flex flex-col gap-2 relative z-10">
                                     <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground opacity-60">Subject Line</span>
-                                    <h2 className="text-2xl font-black italic uppercase tracking-tighter leading-tight text-foreground">
+                                    <h2 className="text-2xl font-black  uppercase tracking-tighter leading-tight text-foreground">
                                         {selectedMessage.subject}
                                     </h2>
                                 </div>
@@ -284,7 +284,7 @@ export default function MessagesManager() {
                                         <CornerUpRight size={16} />
                                         <span className="text-[10px] font-black uppercase tracking-widest">Message Content</span>
                                     </div>
-                                    <div className="p-8 rounded-[2rem] bg-muted/30 border border-border/50 text-[11px] font-bold text-foreground leading-relaxed uppercase italic">
+                                    <div className="p-8 rounded-[2rem] bg-muted/30 border border-border/50 text-[11px] font-bold text-foreground leading-relaxed uppercase ">
                                         "{selectedMessage.message}"
                                     </div>
                                 </div>

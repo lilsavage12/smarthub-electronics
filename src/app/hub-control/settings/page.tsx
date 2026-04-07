@@ -94,9 +94,9 @@ export default function AdminSettingsPage() {
     return (
         <div className="flex flex-col gap-12 max-w-[1400px] mx-auto p-4 md:p-8">
             <div className="flex flex-col gap-4">
-                <h1 className="text-5xl md:text-6xl font-black italic tracking-tighter uppercase leading-none">Settings</h1>
+                <h1 className="text-5xl md:text-6xl font-black  tracking-tighter uppercase leading-none">Settings</h1>
                 <p className="text-[10px] font-black uppercase text-muted-foreground tracking-[0.3em] opacity-60">
-                    Manage your <span className="text-foreground">Account</span> and <span className="text-primary italic">Team Access</span> preferences.
+                    Manage your <span className="text-foreground">Account</span> and <span className="text-primary ">Team Access</span> preferences.
                 </p>
             </div>
 
@@ -146,7 +146,7 @@ export default function AdminSettingsPage() {
                                     
                                     <div className="flex flex-col gap-10 relative z-10">
                                         <div className="flex flex-col gap-2">
-                                            <h2 className="text-3xl lg:text-4xl font-black italic tracking-tighter uppercase leading-none">Add New Staff</h2>
+                                            <h2 className="text-3xl lg:text-4xl font-black  tracking-tighter uppercase leading-none">Add New Staff</h2>
                                             <span className="text-[10px] font-black uppercase text-muted-foreground tracking-widest opacity-60">
                                                 Invite another administrator to manage the website.
                                             </span>
@@ -161,13 +161,13 @@ export default function AdminSettingsPage() {
                                                     value={email}
                                                     onChange={(e) => setEmail(e.target.value)}
                                                     placeholder="EMAIL@ADDRESS.COM"
-                                                    className="h-16 pl-16 pr-8 bg-muted/30 border-border rounded-2xl font-black italic text-xs uppercase focus:ring-4 focus:ring-primary/5 transition-all text-foreground"
+                                                    className="h-16 pl-16 pr-8 bg-muted/30 border-border rounded-2xl font-black  text-xs uppercase focus:ring-4 focus:ring-primary/5 transition-all text-foreground"
                                                 />
                                             </div>
                                             <Button 
                                                 type="submit"
                                                 disabled={inviting}
-                                                className="h-16 px-12 rounded-2xl bg-primary text-white font-black italic uppercase tracking-widest text-[10px] shadow-2xl shadow-primary/20 hover:scale-105 transition-all gap-3"
+                                                className="h-16 px-12 rounded-2xl bg-primary text-white font-black  uppercase tracking-widest text-[10px] shadow-2xl shadow-primary/20 hover:scale-105 transition-all gap-3"
                                             >
                                                 {inviting ? <Loader2 className="animate-spin" size={16} /> : <Send size={16} />} 
                                                 Send Invite
@@ -192,7 +192,7 @@ export default function AdminSettingsPage() {
                                                             <Mail size={18} />
                                                         </div>
                                                         <div className="flex flex-col">
-                                                            <span className="text-[11px] font-black italic uppercase tracking-widest text-foreground">{invite.email}</span>
+                                                            <span className="text-[11px] font-black  uppercase tracking-widest text-foreground">{invite.email}</span>
                                                             <div className="flex items-center gap-2 mt-1">
                                                                 <span className="text-[8px] font-bold text-muted-foreground uppercase tracking-widest">Pending Onboarding • Role: {invite.role}</span>
                                                                 <button 
@@ -225,7 +225,7 @@ export default function AdminSettingsPage() {
                                         <Card className="rounded-[2.5rem] border-dashed border-2 border-border bg-muted/5 p-16 flex items-center justify-center">
                                             <div className="flex flex-col items-center gap-4 opacity-30">
                                                 <Activity size={40} className="text-muted-foreground" />
-                                                <span className="text-[10px] font-black uppercase tracking-[0.4em] italic text-muted-foreground">No Pending Invites</span>
+                                                <span className="text-[10px] font-black uppercase tracking-[0.4em]  text-muted-foreground">No Pending Invites</span>
                                             </div>
                                         </Card>
                                     )}
@@ -243,27 +243,27 @@ export default function AdminSettingsPage() {
                             >
                                 <Card className="rounded-[3rem] border-border bg-card p-10 lg:p-16 shadow-2xl shadow-black/5 flex flex-col gap-12">
                                     <div className="flex items-center gap-8">
-                                        <div className="w-24 h-24 rounded-3xl bg-primary text-white flex items-center justify-center font-black text-4xl shadow-2xl shadow-primary/20 italic uppercase">
+                                        <div className="w-24 h-24 rounded-3xl bg-primary text-white flex items-center justify-center font-black text-4xl shadow-2xl shadow-primary/20  uppercase">
                                             {user?.displayName?.[0] || user?.email?.[0] || "A"}
                                         </div>
                                         <div className="flex flex-col">
-                                            <h3 className="text-3xl font-black italic tracking-tighter uppercase leading-none">{user?.displayName || "Administrator"}</h3>
+                                            <h3 className="text-3xl font-black  tracking-tighter uppercase leading-none">{user?.displayName || "Administrator"}</h3>
                                             <span className="text-[10px] font-black uppercase tracking-widest text-primary mt-2">USER ID: {user?.id.substring(0, 8) || "MASTER-ADMIN"}</span>
                                         </div>
                                     </div>
 
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                                         <div className="flex flex-col gap-4">
-                                            <label className="text-[10px] font-black uppercase tracking-widest opacity-40 italic ml-2">Display Name</label>
-                                            <Input defaultValue={user?.displayName || ""} className="h-14 rounded-2xl bg-muted/30 border-border px-6 font-black italic uppercase text-xs" />
+                                            <label className="text-[10px] font-black uppercase tracking-widest opacity-40  ml-2">Display Name</label>
+                                            <Input defaultValue={user?.displayName || ""} className="h-14 rounded-2xl bg-muted/30 border-border px-6 font-black  uppercase text-xs" />
                                         </div>
                                         <div className="flex flex-col gap-4">
-                                            <label className="text-[10px] font-black uppercase tracking-widest opacity-40 italic ml-2">Interface Language</label>
-                                            <Input defaultValue="ENGLISH (SIMPLE)" disabled className="h-14 rounded-2xl bg-muted/30 border-border px-6 font-black italic uppercase text-xs opacity-50" />
+                                            <label className="text-[10px] font-black uppercase tracking-widest opacity-40  ml-2">Interface Language</label>
+                                            <Input defaultValue="ENGLISH (SIMPLE)" disabled className="h-14 rounded-2xl bg-muted/30 border-border px-6 font-black  uppercase text-xs opacity-50" />
                                         </div>
                                     </div>
 
-                                    <Button className="h-16 rounded-2xl bg-foreground text-background font-black italic uppercase tracking-widest text-[10px] hover:bg-primary hover:text-white transition-all shadow-xl shadow-black/5">
+                                    <Button className="h-16 rounded-2xl bg-foreground text-background font-black  uppercase tracking-widest text-[10px] hover:bg-primary hover:text-white transition-all shadow-xl shadow-black/5">
                                         Update Profile
                                     </Button>
                                 </Card>

@@ -3,6 +3,8 @@ import { Smartphone } from "lucide-react"
 import { ProductRegistry } from "@/components/products/ProductRegistry"
 import { supabaseAdmin } from "@/lib/supabase"
 
+export const revalidate = 600
+
 export default async function ProductsPage() {
     // Parallel fetch from Supabase
     const [
@@ -53,7 +55,7 @@ export default async function ProductsPage() {
     }
 
     return (
-        <Suspense fallback={<div className="min-h-screen bg-background flex flex-col items-center justify-center gap-10"><Smartphone className="w-12 h-12 text-primary animate-pulse" /><span className="text-[10px] font-black uppercase tracking-[0.4em] italic">Loading Catalog</span></div>}>
+        <Suspense fallback={<div className="min-h-screen bg-background flex flex-col items-center justify-center gap-10"><Smartphone className="w-12 h-12 text-primary animate-pulse" /><span className="text-[10px] font-black uppercase tracking-[0.4em] ">Loading Catalog</span></div>}>
             <ProductRegistry initialProducts={enrichedProducts} cmsData={cmsData} />
         </Suspense>
     )

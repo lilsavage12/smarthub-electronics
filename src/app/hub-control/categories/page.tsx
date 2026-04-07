@@ -59,13 +59,13 @@ export default function CategoriesPage() {
             {/* Header */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                 <div className="flex flex-col gap-1">
-                    <h1 className="text-3xl font-black tracking-tight text-foreground italic uppercase">Product Categories</h1>
+                    <h1 className="text-3xl font-black tracking-tight text-foreground  uppercase">Product Categories</h1>
                     <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mt-2">Organize your products by type or brand.</p>
                 </div>
                 <div className="flex items-center gap-3">
                     <Button
                         onClick={() => setIsAddModalOpen(true)}
-                        className="h-12 px-6 rounded-xl bg-primary text-primary-foreground font-black italic uppercase tracking-widest text-[10px] gap-2 shadow-xl shadow-primary/20 hover:opacity-90 transition-all"
+                        className="h-12 px-6 rounded-xl bg-primary text-primary-foreground font-black  uppercase tracking-widest text-[10px] gap-2 shadow-xl shadow-primary/20 hover:opacity-90 transition-all"
                     >
                         <Plus size={20} />
                         ADD CATEGORY
@@ -87,7 +87,7 @@ export default function CategoriesPage() {
                         </div>
                         <div className="flex flex-col relative z-10">
                             <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground opacity-60 leading-none mb-1">{stat.label}</span>
-                            <span className="text-3xl font-black italic tracking-tighter text-foreground leading-none">{stat.value}</span>
+                            <span className="text-3xl font-black  tracking-tighter text-foreground leading-none">{stat.value}</span>
                         </div>
                     </Card>
                 ))}
@@ -140,8 +140,8 @@ export default function CategoriesPage() {
                                 <div className="p-6 pt-4 flex flex-col gap-4">
                                     <div className="flex items-end justify-between">
                                         <div className="flex flex-col gap-1">
-                                            <h3 className="text-xl font-black italic tracking-tighter text-foreground uppercase">{cat.name}</h3>
-                                            <span className="text-[8px] font-bold text-muted-foreground uppercase tracking-widest opacity-60 italic">{cat.count} PRODUCT{cat.count !== 1 ? 'S' : ''} IN CATEGORY</span>
+                                            <h3 className="text-xl font-black  tracking-tighter text-foreground uppercase">{cat.name}</h3>
+                                            <span className="text-[8px] font-bold text-muted-foreground uppercase tracking-widest opacity-60 ">{cat.count} PRODUCT{cat.count !== 1 ? 'S' : ''} IN CATEGORY</span>
                                         </div>
                                         <div className="flex items-center gap-2">
                                             <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-primary rounded-lg transition-all">
@@ -158,7 +158,7 @@ export default function CategoriesPage() {
                                     <Button
                                         variant="outline"
                                         onClick={() => router.push(`/hub-control/products?category=${cat.name}`)}
-                                        className="h-10 w-full rounded-xl font-black italic tracking-widest uppercase text-[9px] gap-2 group-hover:bg-primary group-hover:text-primary-foreground transition-all border-border shadow-sm group-hover:shadow-lg group-hover:shadow-primary/20"
+                                        className="h-10 w-full rounded-xl font-black  tracking-widest uppercase text-[9px] gap-2 group-hover:bg-primary group-hover:text-primary-foreground transition-all border-border shadow-sm group-hover:shadow-lg group-hover:shadow-primary/20"
                                     >
                                         VIEW CATEGORY PRODUCTS
                                         <ArrowRight size={12} className="group-hover:translate-x-1 transition-transform" />
@@ -196,7 +196,7 @@ export default function CategoriesPage() {
                                     <div className="bg-primary p-3 rounded-2xl text-primary-foreground shadow-lg shadow-primary/20">
                                         <Layers size={22} />
                                     </div>
-                                    <h2 className="text-2xl font-black italic tracking-tighter text-foreground uppercase">Create Category</h2>
+                                    <h2 className="text-2xl font-black  tracking-tighter text-foreground uppercase">Create Category</h2>
                                 </div>
                                 <button onClick={() => setIsAddModalOpen(false)} className="p-2 hover:bg-muted rounded-xl transition-all">
                                     <X size={24} className="text-muted-foreground" />
@@ -208,7 +208,7 @@ export default function CategoriesPage() {
                                     <label className="text-[9px] font-black uppercase tracking-widest text-muted-foreground ml-4 opacity-60">Category Name</label>
                                     <input
                                         type="text"
-                                        className="h-14 bg-muted border border-border/50 rounded-2xl px-6 outline-none focus:border-primary/20 transition-all font-black uppercase italic tracking-widest text-[10px] text-foreground placeholder:text-muted-foreground/30"
+                                        className="h-14 bg-muted border border-border/50 rounded-2xl px-6 outline-none focus:border-primary/20 transition-all font-black uppercase  tracking-widest text-[10px] text-foreground placeholder:text-muted-foreground/30"
                                         placeholder="e.g. Foldables / Google"
                                     />
                                 </div>
@@ -243,7 +243,7 @@ export default function CategoriesPage() {
 
                             <div className="p-8 border-t border-border bg-muted/30 flex justify-end gap-4">
                                 <Button variant="ghost" onClick={() => setIsAddModalOpen(false)} className="rounded-xl font-black uppercase text-[10px] tracking-widest">Abandon</Button>
-                                <Button className="h-12 px-8 rounded-xl bg-primary text-primary-foreground font-black italic uppercase tracking-widest text-[10px] shadow-xl shadow-primary/20 hover:opacity-90 transition-all">
+                                <Button className="h-12 px-8 rounded-xl bg-primary text-primary-foreground font-black  uppercase tracking-widest text-[10px] shadow-xl shadow-primary/20 hover:opacity-90 transition-all">
                                     SAVE CATEGORY
                                 </Button>
                             </div>

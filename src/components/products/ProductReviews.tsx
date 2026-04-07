@@ -95,14 +95,14 @@ export function ProductReviews({ productId }: ProductReviewsProps) {
             <div className="flex flex-col md:flex-row items-center justify-between gap-6 bg-muted/20 p-6 rounded-2xl border border-border/50">
                 <div className="flex flex-col gap-2">
                     <div className="flex flex-col">
-                        <h3 className="text-xl font-black font-outfit uppercase italic tracking-tighter">Customer <span className="text-primary italic">Reviews</span></h3>
+                        <h3 className="text-xl font-black font-outfit uppercase  tracking-tighter">Customer <span className="text-primary ">Reviews</span></h3>
                         <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mt-1">{reviews.length} reviews from customers</span>
                     </div>
                 </div>
                 {!showForm && (
                     <Button
                         onClick={() => setShowForm(true)}
-                        className="rounded-xl h-12 px-6 text-xs font-black italic uppercase tracking-wider shadow-lg hover:scale-105 transition-transform"
+                        className="rounded-xl h-12 px-6 text-xs font-black  uppercase tracking-wider shadow-lg hover:scale-105 transition-transform"
                         variant="premium"
                     >
                         Write a Review
@@ -121,7 +121,7 @@ export function ProductReviews({ productId }: ProductReviewsProps) {
                         onSubmit={handleSubmit}
                     >
                         <div className="flex items-center justify-between">
-                            <h3 className="text-xl font-black font-outfit uppercase italic tracking-tighter">Write a <span className="text-primary italic">Review</span></h3>
+                            <h3 className="text-xl font-black font-outfit uppercase  tracking-tighter">Write a <span className="text-primary ">Review</span></h3>
                             <button type="button" onClick={() => setShowForm(false)} className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground hover:text-foreground">Cancel</button>
                         </div>
 
@@ -148,7 +148,7 @@ export function ProductReviews({ productId }: ProductReviewsProps) {
 
                         <Button
                             type="submit"
-                            className="h-14 rounded-xl text-xs font-black italic uppercase tracking-widest"
+                            className="h-14 rounded-xl text-xs font-black  uppercase tracking-widest"
                             disabled={isSubmitting}
                         >
                             {isSubmitting ? "Sending..." : "Submit Review"}

@@ -26,18 +26,18 @@ export const InformationManifest = ({
 
             <div className="max-w-4xl mx-auto space-y-20 relative z-10">
                 <div className="flex flex-col gap-6">
-                    <h1 className="text-5xl md:text-8xl font-black italic tracking-tighter uppercase leading-none text-foreground">
+                    <h1 className="text-5xl md:text-8xl font-black  tracking-tighter uppercase leading-none text-foreground">
                         {title}
                     </h1>
                     
-                    <p className="text-muted-foreground text-lg md:text-xl font-bold uppercase tracking-tight italic opacity-70 max-w-2xl leading-tight">
+                    <p className="text-muted-foreground text-lg md:text-xl font-bold uppercase tracking-tight  opacity-70 max-w-2xl leading-tight">
                         {description}
                     </p>
                 </div>
 
                 {/* Content Narrative */}
                 <div className="prose prose-invert prose-slate max-w-none">
-                    <div className="text-muted-foreground leading-relaxed text-lg font-medium space-y-12 uppercase tracking-tight italic opacity-90">
+                    <div className="text-muted-foreground leading-relaxed text-lg font-medium space-y-12 uppercase tracking-tight  opacity-90">
                         {children}
                     </div>
                 </div>

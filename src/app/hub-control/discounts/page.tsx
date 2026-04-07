@@ -178,13 +178,13 @@ export default function DiscountsPage() {
         <div className="flex flex-col gap-6 max-w-6xl mx-auto mb-20 animate-in fade-in duration-700">
             <div className="flex flex-col md:flex-row md:items-end justify-between gap-8 mb-8">
                 <div className="flex flex-col gap-1">
-                    <h1 className="text-4xl font-black tracking-tighter text-foreground uppercase italic leading-none">Discount <span className="text-primary">Manager</span></h1>
+                    <h1 className="text-4xl font-black tracking-tighter text-foreground uppercase  leading-none">Discount <span className="text-primary">Manager</span></h1>
                     <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-[0.2em] mt-1">Manage your store's promotional codes and discount rules.</p>
                 </div>
                 <div className="flex items-center gap-4">
                     <Button
                         onClick={handleNewCode}
-                        className="h-14 px-8 rounded-2xl bg-primary text-white font-black italic uppercase tracking-widest text-[9px] gap-3 shadow-[0_20px_40px_rgba(var(--primary-rgb),0.2)] hover:scale-105 transition-all active:scale-95 border border-primary/20"
+                        className="h-14 px-8 rounded-2xl bg-primary text-white font-black  uppercase tracking-widest text-[9px] gap-3 shadow-[0_20px_40px_rgba(var(--primary-rgb),0.2)] hover:scale-105 transition-all active:scale-95 border border-primary/20"
                     >
                         <Plus size={18} /> CREATE DISCOUNT
                     </Button>
@@ -195,7 +195,7 @@ export default function DiscountsPage() {
                 <div className="mb-8">
                     <Card className="rounded-2xl border-border shadow-sm overflow-hidden bg-card">
                         <CardHeader className="p-5 border-b border-border">
-                            <CardTitle className="text-sm font-black italic tracking-tighter uppercase text-foreground">Promo Codes</CardTitle>
+                            <CardTitle className="text-sm font-black  tracking-tighter uppercase text-foreground">Promo Codes</CardTitle>
                         </CardHeader>
                         <CardContent className="p-0">
                             <div className="overflow-x-auto">
@@ -214,14 +214,14 @@ export default function DiscountsPage() {
                                             <tr key={i} className="hover:bg-muted/50 transition-all duration-500 group border-b border-border last:border-0 h-16">
                                                 <td className="px-6 py-4">
                                                     <div className="flex flex-col gap-0.5">
-                                                         <span className="text-[10px] font-black italic tracking-[0.1em] text-foreground uppercase group-hover:text-primary transition-colors">{disc.code}</span>
+                                                         <span className="text-[10px] font-black  tracking-[0.1em] text-foreground uppercase group-hover:text-primary transition-colors">{disc.code}</span>
                                                         <span className="text-[8px] font-bold text-muted-foreground uppercase leading-none opacity-80">{disc.campaign || "No Display Name"}</span>
                                                     </div>
                                                 </td>
                                                 <td className="px-6 py-4">
                                                     <div className="flex flex-col gap-0.5">
-                                                         <span className="text-xs font-black italic text-foreground tracking-tight">{disc.value}</span>
-                                                        <span className="text-[8px] font-bold text-muted-foreground uppercase tracking-widest opacity-80 italic">{disc.type}</span>
+                                                         <span className="text-xs font-black  text-foreground tracking-tight">{disc.value}</span>
+                                                        <span className="text-[8px] font-bold text-muted-foreground uppercase tracking-widest opacity-80 ">{disc.type}</span>
                                                     </div>
                                                 </td>
                                                 <td className="px-6 py-4">
@@ -282,14 +282,14 @@ export default function DiscountsPage() {
                                             <Tag size={24} />
                                         </div>
                                         <div className="flex flex-col">
-                                             <h2 className="text-xl font-black italic uppercase tracking-tighter text-foreground">Discount <span className="text-primary">Editor</span></h2>
+                                             <h2 className="text-xl font-black  uppercase tracking-tighter text-foreground">Discount <span className="text-primary">Editor</span></h2>
                                             <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.3em]">Configure criteria and rewards</span>
                                         </div>
                                     </div>
                                     <div className="flex items-center gap-3">
                                         <Button 
                                             onClick={handleSubmitCode} 
-                                            className="h-12 px-8 rounded-xl bg-primary text-white font-black italic uppercase tracking-widest text-[9px] gap-3 shadow-2xl shadow-primary/20 hover:scale-[1.02] transition-all"
+                                            className="h-12 px-8 rounded-xl bg-primary text-white font-black  uppercase tracking-widest text-[9px] gap-3 shadow-2xl shadow-primary/20 hover:scale-[1.02] transition-all"
                                         >
                                             <Save size={16} /> {isEditCodeOpen ? "SAVE" : "CREATE"}
                                         </Button>
@@ -305,17 +305,17 @@ export default function DiscountsPage() {
                                 <div className="flex-1 overflow-y-auto p-8 md:p-12 flex flex-col gap-12 custom-scrollbar">
                                     <div className="grid grid-cols-2 gap-8">
                                          <div className="flex flex-col gap-3">
-                                            <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest ml-1 italic">Discount Code</label>
+                                            <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest ml-1 ">Discount Code</label>
                                             <input
                                                 type="text"
                                                 placeholder="e.g. Summer26"
-                                                className="h-16 border border-border bg-muted/30 rounded-2xl px-8 text-sm font-black italic tracking-widest focus:border-primary/30 outline-none transition-all"
+                                                className="h-16 border border-border bg-muted/30 rounded-2xl px-8 text-sm font-black  tracking-widest focus:border-primary/30 outline-none transition-all"
                                                 value={newDiscount.code}
                                                 onChange={(e) => setNewDiscount({ ...newDiscount, code: e.target.value })}
                                             />
                                         </div>
                                          <div className="flex flex-col gap-3">
-                                            <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest ml-1 italic">Display Name</label>
+                                            <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest ml-1 ">Display Name</label>
                                             <input
                                                 type="text"
                                                 placeholder="e.g. Summer Sale 2026"
@@ -328,7 +328,7 @@ export default function DiscountsPage() {
 
                                     <div className="grid grid-cols-2 gap-8">
                                          <div className="flex flex-col gap-3">
-                                            <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest ml-1 italic">Discount Type</label>
+                                            <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest ml-1 ">Discount Type</label>
                                             <select
                                                 className="h-16 border border-border bg-muted/30 rounded-2xl px-6 text-[10px] font-black uppercase tracking-widest outline-none focus:border-primary/30 transition-all cursor-pointer"
                                                 value={newDiscount.type}
@@ -340,7 +340,7 @@ export default function DiscountsPage() {
                                             </select>
                                         </div>
                                          <div className="flex flex-col gap-3">
-                                            <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest ml-1 italic">Discount Value</label>
+                                            <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest ml-1 ">Discount Value</label>
                                             <input
                                                 type="text"
                                                 placeholder={newDiscount.type === "Percentage" ? "e.g. 15%" : "KSh 1000"}
@@ -354,7 +354,7 @@ export default function DiscountsPage() {
 
                                     <div className="grid grid-cols-2 gap-8">
                                          <div className="flex flex-col gap-3">
-                                            <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest ml-1 italic">Usage Limit</label>
+                                            <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest ml-1 ">Usage Limit</label>
                                             <input
                                                 type="number"
                                                 placeholder="e.g. 1000"
@@ -364,7 +364,7 @@ export default function DiscountsPage() {
                                             />
                                         </div>
                                          <div className="flex flex-col gap-3">
-                                            <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest ml-1 italic">Min. Purchase</label>
+                                            <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest ml-1 ">Min. Purchase</label>
                                             <input
                                                 type="number"
                                                 placeholder="e.g. 500"
@@ -377,7 +377,7 @@ export default function DiscountsPage() {
 
                                     <div className="grid grid-cols-2 gap-8">
                                          <div className="flex flex-col gap-3">
-                                            <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest ml-1 italic">Start Date</label>
+                                            <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest ml-1 ">Start Date</label>
                                             <input
                                                 type="date"
                                                 className="h-16 border border-border bg-muted/30 rounded-2xl px-8 text-[10px] font-black uppercase tracking-widest focus:border-primary/30 outline-none transition-all"
@@ -387,7 +387,7 @@ export default function DiscountsPage() {
                                         </div>
                                         <div className="flex flex-col gap-3">
                                              <div className="flex items-center justify-between px-1">
-                                                <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest italic">End Date</label>
+                                                <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest ">End Date</label>
                                                 <button 
                                                     onClick={() => setNewDiscount({ ...newDiscount, endDate: newDiscount.endDate === "NEVER" ? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0] : "NEVER" })}
                                                     className={cn("text-[8px] font-black uppercase tracking-widest px-2 py-1 rounded border transition-all", newDiscount.endDate === "NEVER" ? "bg-primary text-white border-primary" : "text-muted-foreground border-border")}
@@ -407,13 +407,13 @@ export default function DiscountsPage() {
 
                                     <div className="flex items-center justify-between p-8 bg-muted/20 border border-border rounded-[2rem] shadow-inner">
                                          <div className="flex flex-col gap-1">
-                                            <span className="text-sm font-black italic uppercase tracking-tighter text-foreground">Discount Status</span>
-                                            <span className="text-[8px] font-bold text-muted-foreground uppercase tracking-widest italic">Global Visibility</span>
+                                            <span className="text-sm font-black  uppercase tracking-tighter text-foreground">Discount Status</span>
+                                            <span className="text-[8px] font-bold text-muted-foreground uppercase tracking-widest ">Global Visibility</span>
                                         </div>
                                          <button 
                                             onClick={() => setNewDiscount({ ...newDiscount, isActive: !newDiscount.isActive })}
                                             className={cn(
-                                                "h-12 px-10 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all italic shadow-md",
+                                                "h-12 px-10 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all  shadow-md",
                                                 newDiscount.isActive ? "bg-success text-success-foreground shadow-success/20" : "bg-muted text-muted-foreground"
                                             )}
                                         >

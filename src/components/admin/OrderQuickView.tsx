@@ -324,7 +324,7 @@ export const OrderQuickView: React.FC<OrderQuickViewProps> = ({
                                         <span className="text-[10px] font-black uppercase tracking-widest">Customer Information</span>
                                     </div>
                                     <div className="flex flex-col relative z-10">
-                                        <span className="text-lg font-black italic uppercase tracking-tighter text-foreground">{order.customerName}</span>
+                                        <span className="text-lg font-black  uppercase tracking-tighter text-foreground">{order.customerName}</span>
                                         <div className="flex flex-col sm:flex-row sm:items-center gap-4 mt-3">
                                             <a href={`mailto:${order.customerEmail}`} className="text-[11px] font-bold text-muted-foreground hover:text-primary flex items-center gap-2 transition-colors">
                                                 <Mail size={12} className="text-primary/50" /> {order.customerEmail}
@@ -385,19 +385,19 @@ export const OrderQuickView: React.FC<OrderQuickViewProps> = ({
                                             <MapPin size={16} />
                                             Shipping Details
                                         </div>
-                                        <div className="p-5 rounded-2xl bg-muted/30 border border-border/50 text-xs flex flex-col gap-2 italic">
-                                            <p className="font-bold text-foreground not-italic">{order.customerName}</p>
-                                            <p className="text-muted-foreground leading-relaxed not-italic">
+                                        <div className="p-5 rounded-2xl bg-muted/30 border border-border/50 text-xs flex flex-col gap-2 ">
+                                            <p className="font-bold text-foreground not-">{order.customerName}</p>
+                                            <p className="text-muted-foreground leading-relaxed not-">
                                                 <span className="font-black text-foreground">{order.city}</span> - <span className="font-bold">{order.area || 'General'} Area</span><br />
                                                 <span className="opacity-70">{order.address}</span>
                                             </p>
                                             {order.notes && (
                                                 <div className="mt-4 pt-4 border-t border-border/30 flex flex-col gap-2">
-                                                    <span className="text-[9px] font-black uppercase text-primary tracking-widest italic flex items-center gap-2">
+                                                    <span className="text-[9px] font-black uppercase text-primary tracking-widest  flex items-center gap-2">
                                                         <Clock size={12} />
                                                         DELIVERY NOTE
                                                     </span>
-                                                    <p className="not-italic text-foreground font-black tracking-tight leading-relaxed bg-primary/5 p-3 rounded-xl border border-primary/10">
+                                                    <p className="not- text-foreground font-black tracking-tight leading-relaxed bg-primary/5 p-3 rounded-xl border border-primary/10">
                                                         "{order.notes}"
                                                     </p>
                                                 </div>
@@ -431,12 +431,12 @@ export const OrderQuickView: React.FC<OrderQuickViewProps> = ({
                                             </div>
                                             {order.transactionCode && (
                                                 <div className="flex flex-col gap-2 p-3 rounded-xl bg-primary/5 border border-primary/20 mt-2">
-                                                    <span className="text-[10px] font-black uppercase text-primary tracking-widest italic">VERIFICATION CODE</span>
+                                                    <span className="text-[10px] font-black uppercase text-primary tracking-widest ">VERIFICATION CODE</span>
                                                     <span className="text-sm font-black tracking-widest text-foreground select-all">{order.transactionCode}</span>
                                                 </div>
                                             )}
                                             <div className="pt-2 border-t border-border/30 flex items-center justify-between">
-                                                <span className="text-muted-foreground font-bold italic">Total Amount</span>
+                                                <span className="text-muted-foreground font-bold ">Total Amount</span>
                                                 <span className="text-lg font-black text-foreground">KSh {Math.round(order.totalAmount || 0).toLocaleString()}</span>
                                             </div>
                                         </div>

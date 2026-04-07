@@ -90,11 +90,11 @@ export default function DealsPage() {
                     <div className="absolute inset-0 bg-gradient-to-t from-background via-background/40 to-transparent" />
                     <div className="absolute bottom-12 left-12 max-w-2xl">
                         <div className="flex items-center gap-3 mb-4">
-                            <span className="px-4 py-1.5 rounded-full bg-primary text-white text-[10px] font-black uppercase tracking-[0.2em] italic">
+                            <span className="px-4 py-1.5 rounded-full bg-primary text-white text-[10px] font-black uppercase tracking-[0.2em] ">
                                 {activePromo.category.replace('_', ' ')}
                             </span>
                         </div>
-                        <h1 className="text-5xl md:text-7xl font-black font-outfit uppercase italic tracking-tighter text-white leading-[0.8] mb-4 drop-shadow-2xl">
+                        <h1 className="text-5xl md:text-7xl font-black font-outfit uppercase  tracking-tighter text-white leading-[0.8] mb-4 drop-shadow-2xl">
                             {activePromo.title}
                         </h1>
                         <p className="text-lg font-medium text-white/80 leading-relaxed drop-shadow-md">
@@ -111,8 +111,8 @@ export default function DealsPage() {
                             {iconMap[category]}
                         </div>
                         <div className="flex flex-col gap-1">
-                            <span className="text-[10px] font-black uppercase tracking-[0.3em] text-primary italic">Live Operational Status</span>
-                            <h2 className="text-4xl font-black font-outfit uppercase italic tracking-tighter leading-none">
+                            <span className="text-[10px] font-black uppercase tracking-[0.3em] text-primary ">Live Operational Status</span>
+                            <h2 className="text-4xl font-black font-outfit uppercase  tracking-tighter leading-none">
                                 {titleMap[category] || "ACTIVE DEALS"}
                             </h2>
                         </div>
@@ -142,10 +142,10 @@ export default function DealsPage() {
                 {dealProducts.length === 0 && (
                     <div className="flex flex-col items-center justify-center py-32 text-center bg-muted/20 rounded-[4rem] border border-dashed border-border mt-12">
                         <Box size={64} className="text-muted-foreground/30 mb-8" />
-                        <h3 className="text-2xl font-black font-outfit uppercase italic mb-4">No active deals found</h3>
+                        <h3 className="text-2xl font-black font-outfit uppercase  mb-4">No active deals found</h3>
                         <p className="text-muted-foreground max-w-md font-medium">Check back soon for new synchronizations in this sector.</p>
                         <Button 
-                            className="mt-8 h-14 px-8 rounded-2xl bg-primary text-white font-black italic uppercase tracking-widest"
+                            className="mt-8 h-14 px-8 rounded-2xl bg-primary text-white font-black  uppercase tracking-widest"
                             onClick={() => router.push("/products")}
                         >
                             BROWSE PRODUCTS
@@ -159,17 +159,17 @@ export default function DealsPage() {
                 <div className="max-w-7xl mx-auto px-6 grid grid-cols-1 md:grid-cols-3 gap-12">
                    <div className="flex flex-col gap-4">
                         <ShieldCheck className="text-primary" size={32} />
-                        <h4 className="text-xl font-black font-outfit uppercase italic tracking-tighter">Verified Hardware</h4>
+                        <h4 className="text-xl font-black font-outfit uppercase  tracking-tighter">Verified Hardware</h4>
                         <p className="text-sm font-medium text-muted-foreground leading-relaxed">Every item in this sale undergoes a full quality check before being listed.</p>
                    </div>
                    <div className="flex flex-col gap-4">
                         <Clock className="text-amber-500" size={32} />
-                        <h4 className="text-xl font-black font-outfit uppercase italic tracking-tighter">Limited Windows</h4>
+                        <h4 className="text-xl font-black font-outfit uppercase  tracking-tighter">Limited Windows</h4>
                         <p className="text-sm font-medium text-muted-foreground leading-relaxed">Sale limits are strict. Once the sale period ends, prices return to their original values.</p>
                    </div>
                    <div className="flex flex-col gap-4">
                         <Zap className="text-purple-500" size={32} />
-                        <h4 className="text-xl font-black font-outfit uppercase italic tracking-tighter">Instant Activation</h4>
+                        <h4 className="text-xl font-black font-outfit uppercase  tracking-tighter">Instant Activation</h4>
                         <p className="text-sm font-medium text-muted-foreground leading-relaxed">Add any deal unit to your cart to instantly hard-lock the promotional pricing for your session.</p>
                    </div>
                 </div>

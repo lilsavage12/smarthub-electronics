@@ -39,7 +39,7 @@ export default async function DynamicPolicyPage({ params }: PageProps) {
             <div className="max-w-4xl mx-auto space-y-12">
                 {/* Header Section */}
                 <div className="flex flex-col gap-4 border-b border-border pb-12">
-                    <h1 className="text-5xl md:text-7xl font-black italic tracking-tighter uppercase leading-none text-foreground">
+                    <h1 className="text-5xl md:text-7xl font-black  tracking-tighter uppercase leading-none text-foreground">
                         {page.title}
                     </h1>
                 </div>
@@ -47,7 +47,7 @@ export default async function DynamicPolicyPage({ params }: PageProps) {
                 {/* Content Narrative */}
                 <div className="prose prose-invert prose-slate max-w-none">
                     <div 
-                        className="text-muted-foreground leading-relaxed text-lg font-medium space-y-8 uppercase tracking-tight italic opacity-90"
+                        className="text-muted-foreground leading-relaxed text-lg font-medium space-y-8 uppercase tracking-tight  opacity-90"
                         dangerouslySetInnerHTML={{ __html: page.content.replace(/\n/g, '<br />') }}
                     />
                 </div>

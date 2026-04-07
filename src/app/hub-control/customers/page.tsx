@@ -73,12 +73,12 @@ export default function CustomersPage() {
             {/* Header */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                 <div className="flex flex-col gap-1">
-                    <h1 className="text-3xl font-black tracking-tight text-foreground italic uppercase">Customer Directory</h1>
+                    <h1 className="text-3xl font-black tracking-tight text-foreground  uppercase">Customer Directory</h1>
                     <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest leading-none">Manage your global customer base and membership tiers.</p>
                 </div>
                 <div className="flex items-center gap-3">
                     <Link href="/hub-control/analytics">
-                        <Button variant="outline" className="h-12 px-6 rounded-2xl border-border font-black italic uppercase tracking-widest text-[10px] gap-2 text-primary hover:bg-primary/5 transition-all">
+                        <Button variant="outline" className="h-12 px-6 rounded-2xl border-border font-black  uppercase tracking-widest text-[10px] gap-2 text-primary hover:bg-primary/5 transition-all">
                             <TrendingUp size={18} />
                             CUSTOMER ANALYTICS
                         </Button>
@@ -86,7 +86,7 @@ export default function CustomersPage() {
                     <Button
                         onClick={handleExportCRM}
                         variant="outline"
-                        className="h-12 px-6 rounded-2xl border-border font-black italic uppercase tracking-widest text-[10px] gap-2"
+                        className="h-12 px-6 rounded-2xl border-border font-black  uppercase tracking-widest text-[10px] gap-2"
                     >
                         <Download size={18} />
                         EXPORT CRM
@@ -110,8 +110,8 @@ export default function CustomersPage() {
                                 <div className="p-2 bg-muted rounded-lg group-hover:bg-primary/20 transition-colors text-primary">{stat.icon}</div>
                             </div>
                             <div className="flex flex-col">
-                                <span className="text-3xl font-black italic tracking-tighter text-foreground leading-none uppercase">{stat.value}</span>
-                                <span className="text-[9px] font-black text-muted-foreground uppercase mt-2 opacity-60 italic leading-none tracking-widest">{stat.sub}</span>
+                                <span className="text-3xl font-black  tracking-tighter text-foreground leading-none uppercase">{stat.value}</span>
+                                <span className="text-[9px] font-black text-muted-foreground uppercase mt-2 opacity-60  leading-none tracking-widest">{stat.sub}</span>
                             </div>
                         </div>
                     </Card>
@@ -156,8 +156,8 @@ export default function CustomersPage() {
                                                 {customer.displayName?.[0] || 'U'}
                                             </div>
                                             <div className="flex flex-col">
-                                                <span className="text-sm font-black text-foreground italic uppercase tracking-tight leading-none group-hover:text-primary transition-colors">{customer.displayName || 'Anonymous User'}</span>
-                                                <span className="text-[10px] font-black italic text-primary uppercase tracking-widest mt-1 opacity-70 italic">{customer.id}</span>
+                                                <span className="text-sm font-black text-foreground  uppercase tracking-tight leading-none group-hover:text-primary transition-colors">{customer.displayName || 'Anonymous User'}</span>
+                                                <span className="text-[10px] font-black  text-primary uppercase tracking-widest mt-1 opacity-70 ">{customer.id}</span>
                                             </div>
                                         </div>
                                     </td>
@@ -180,10 +180,10 @@ export default function CustomersPage() {
                                     </td>
                                     <td className="px-8 py-6">
                                         <div className="flex flex-col">
-                                            <span className="text-sm font-black italic text-foreground tracking-tighter leading-none group-hover:text-primary transition-colors">
+                                            <span className="text-sm font-black  text-foreground tracking-tighter leading-none group-hover:text-primary transition-colors">
                                                 {new Date(customer.createdAt).toLocaleDateString()}
                                             </span>
-                                            <span className="text-[9px] font-black text-muted-foreground uppercase tracking-widest mt-1 italic opacity-60 leading-none">JOINED</span>
+                                            <span className="text-[9px] font-black text-muted-foreground uppercase tracking-widest mt-1  opacity-60 leading-none">JOINED</span>
                                         </div>
                                     </td>
                                     <td className="px-8 py-6 text-right">

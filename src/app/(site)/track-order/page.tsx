@@ -144,8 +144,8 @@ export default function TrackOrderPage() {
                     >
                         Order Logistics System
                     </motion.div>
-                    <h1 className="text-5xl md:text-7xl font-black font-outfit uppercase tracking-tighter italic leading-none">
-                        Track Your <span className="text-primary italic">Order</span>
+                    <h1 className="text-5xl md:text-7xl font-black font-outfit uppercase tracking-tighter  leading-none">
+                        Track Your <span className="text-primary ">Order</span>
                     </h1>
                     <p className="text-muted-foreground max-w-xl text-xs font-bold uppercase tracking-widest leading-relaxed opacity-60">
                         Enter your order reference number to monitor your package status in real-time.
@@ -169,7 +169,7 @@ export default function TrackOrderPage() {
                         <Button
                             type="submit"
                             disabled={isSearching}
-                            className="h-16 px-12 rounded-[2rem] text-xs font-black italic tracking-widest bg-primary hover:bg-primary/90 text-white shadow-xl shadow-primary/20"
+                            className="h-16 px-12 rounded-[2rem] text-xs font-black  tracking-widest bg-primary hover:bg-primary/90 text-white shadow-xl shadow-primary/20"
                         >
                             {isSearching ? "TRACKING..." : "TRACK ORDER"}
                             {!isSearching && <ArrowRight className="ml-2 w-4 h-4" />}
@@ -199,9 +199,9 @@ export default function TrackOrderPage() {
                                                         <span className="w-1 h-1 rounded-full bg-emerald-500 animate-pulse" />
                                                         Live Updates
                                                     </Badge>
-                                                    <span className="text-[10px] font-black italic uppercase text-primary tracking-widest">Order #{trackData.orderNumber}</span>
+                                                    <span className="text-[10px] font-black  uppercase text-primary tracking-widest">Order #{trackData.orderNumber}</span>
                                                 </div>
-                                                <h3 className="text-4xl font-black font-outfit uppercase tracking-tighter italic">Tracking Status</h3>
+                                                <h3 className="text-4xl font-black font-outfit uppercase tracking-tighter ">Tracking Status</h3>
                                             </div>
                                             <div className="flex items-center gap-4 bg-muted/30 p-4 rounded-[2rem] border border-border group hover:border-primary/30 transition-colors">
                                                 <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center group-hover:scale-110 transition-transform">
@@ -302,7 +302,7 @@ export default function TrackOrderPage() {
                                                     <div className="flex flex-col gap-2 pt-2">
                                                         <div className="flex items-center gap-3">
                                                             <span className={cn(
-                                                                "text-sm font-black uppercase italic tracking-widest transition-all duration-500",
+                                                                "text-sm font-black uppercase  tracking-widest transition-all duration-500",
                                                                 status === 'done' ? "text-foreground" : "text-muted-foreground opacity-20"
                                                             )}>
                                                                 {stage.label}
@@ -323,7 +323,7 @@ export default function TrackOrderPage() {
                                                                     Logged: {new Date(trackData.history.find((h: any) => h.status === stage.key).timestamp).toLocaleString()}
                                                                 </span>
                                                                 {trackData.history.find((h: any) => h.status === stage.key).message && (
-                                                                    <p className="text-[10px] font-medium text-foreground/70 italic border-l-2 border-primary/20 pl-3 py-1 mt-1">
+                                                                    <p className="text-[10px] font-medium text-foreground/70  border-l-2 border-primary/20 pl-3 py-1 mt-1">
                                                                         "{trackData.history.find((h: any) => h.status === stage.key).message}"
                                                                     </p>
                                                                 )}
@@ -339,7 +339,7 @@ export default function TrackOrderPage() {
                                 {/* Delivery History Table */}
                                 <Card className="rounded-[3rem] p-10 border-border bg-card shadow-sm">
                                     <div className="flex items-center justify-between mb-8">
-                                        <h4 className="text-[10px] font-black uppercase italic tracking-widest text-primary flex items-center gap-2">
+                                        <h4 className="text-[10px] font-black uppercase  tracking-widest text-primary flex items-center gap-2">
                                             <Activity size={14} />
                                             Logistics History
                                         </h4>
@@ -354,12 +354,12 @@ export default function TrackOrderPage() {
                                                             <span className="text-[10px] font-black uppercase tracking-widest">{h.status}</span>
                                                             <span className="text-[8px] font-bold text-muted-foreground uppercase">{new Date(h.timestamp).toLocaleString()}</span>
                                                         </div>
-                                                        <p className="text-[10px] font-medium text-muted-foreground italic leading-relaxed">{h.message}</p>
+                                                        <p className="text-[10px] font-medium text-muted-foreground  leading-relaxed">{h.message}</p>
                                                     </div>
                                                 </div>
                                             ))
                                         ) : (
-                                            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest opacity-40 italic">No additional history found.</p>
+                                            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest opacity-40 ">No additional history found.</p>
                                         )}
                                     </div>
                                 </Card>
@@ -371,7 +371,7 @@ export default function TrackOrderPage() {
                                 <Card className="p-10 rounded-[3rem] border-border bg-card flex flex-col gap-8 shadow-sm">
                                     <div className="flex flex-col gap-1 relative z-10">
                                         <span className="text-[9px] font-black uppercase text-primary tracking-widest">ORDER INFORMATION</span>
-                                        <h4 className="text-2xl font-black italic uppercase tracking-tighter">Delivery Details</h4>
+                                        <h4 className="text-2xl font-black  uppercase tracking-tighter">Delivery Details</h4>
                                     </div>
 
                                     <div className="space-y-8 relative z-10">
@@ -382,7 +382,7 @@ export default function TrackOrderPage() {
                                                     <ShieldCheck className="text-emerald-500" size={16} />
                                                 </div>
                                                 <div className="flex flex-col">
-                                                    <span className="text-xs font-black italic uppercase">{trackData.customerName}</span>
+                                                    <span className="text-xs font-black  uppercase">{trackData.customerName}</span>
                                                     <span className="text-[8px] font-bold text-muted-foreground uppercase opacity-60">Verified Identity</span>
                                                 </div>
                                             </div>
@@ -400,7 +400,7 @@ export default function TrackOrderPage() {
                                             <span className="text-[9px] font-black uppercase text-muted-foreground opacity-40 tracking-widest">Shipping Carrier</span>
                                             <div className="flex items-center gap-3">
                                                 <Globe className="text-muted-foreground" size={14} />
-                                                <span className="text-xs font-black italic uppercase">{trackData.courier || 'SmartHub Logistics'}</span>
+                                                <span className="text-xs font-black  uppercase">{trackData.courier || 'SmartHub Logistics'}</span>
                                             </div>
                                         </div>
 
@@ -440,7 +440,7 @@ export default function TrackOrderPage() {
                                                 <Calendar size={12} />
                                                 ESTIMATED DELIVERY
                                             </span>
-                                            <span className="text-lg font-black text-emerald-600 italic tracking-tight">
+                                            <span className="text-lg font-black text-emerald-600  tracking-tight">
                                                 {trackData.estimatedDelivery ? new Date(trackData.estimatedDelivery).toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) : 'TBD (Processing)'}
                                             </span>
                                             {trackData.estimatedDelivery && new Date(trackData.estimatedDelivery) > new Date() && (
@@ -451,7 +451,7 @@ export default function TrackOrderPage() {
                                         </div>
                                     </div>
 
-                                    <Button className="w-full h-16 rounded-[2rem] bg-slate-950 border-none hover:bg-slate-900 text-white text-[10px] font-black italic uppercase tracking-widest gap-3 shadow-2xl mt-4 group">
+                                    <Button className="w-full h-16 rounded-[2rem] bg-slate-950 border-none hover:bg-slate-900 text-white text-[10px] font-black  uppercase tracking-widest gap-3 shadow-2xl mt-4 group">
                                         <MessageSquare size={16} className="group-hover:rotate-12 transition-transform" />
                                         SUPPORT COMMS
                                     </Button>
@@ -465,7 +465,7 @@ export default function TrackOrderPage() {
                                         </div>
                                         <span className="text-[10px] font-black uppercase tracking-widest">Active Protection</span>
                                     </div>
-                                    <p className="text-[10px] font-bold text-muted-foreground leading-relaxed uppercase tracking-widest italic opacity-70">
+                                    <p className="text-[10px] font-bold text-muted-foreground leading-relaxed uppercase tracking-widest  opacity-70">
                                         Our logistics chain is fully secured. Each product is tracked and insured for professional liability coverage.
                                     </p>
                                 </Card>
@@ -487,8 +487,8 @@ export default function TrackOrderPage() {
                                         {React.cloneElement(feat.icon as React.ReactElement<any>, { size: 32 })}
                                     </div>
                                     <div className="flex flex-col gap-2">
-                                        <h4 className="text-sm font-black uppercase italic tracking-widest">{feat.title}</h4>
-                                        <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest opacity-60 leading-relaxed italic">{feat.desc}</p>
+                                        <h4 className="text-sm font-black uppercase  tracking-widest">{feat.title}</h4>
+                                        <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest opacity-60 leading-relaxed ">{feat.desc}</p>
                                     </div>
                                 </div>
                             ))}

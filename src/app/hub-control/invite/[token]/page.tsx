@@ -122,7 +122,7 @@ export default function AdminInvite() {
                     <Zap className="w-10 h-10 text-destructive" />
                 </div>
                 <div className="flex flex-col gap-3">
-                    <h1 className="text-4xl font-black font-outfit uppercase italic tracking-tighter text-foreground">Token <span className="text-destructive">Expired</span></h1>
+                    <h1 className="text-4xl font-black font-outfit uppercase  tracking-tighter text-foreground">Token <span className="text-destructive">Expired</span></h1>
                     <p className="text-xs font-bold text-muted-foreground uppercase leading-relaxed tracking-widest px-4">This administrative link is no longer valid or has already been used.</p>
                 </div>
                 <Button 
@@ -162,15 +162,15 @@ export default function AdminInvite() {
                         </div>
 
                         <div className="text-center flex flex-col gap-3">
-                            <h1 className="text-4xl md:text-5xl font-black font-outfit uppercase tracking-tighter italic leading-none text-foreground">
-                                Account <span className="text-primary italic">Setup</span>
+                            <h1 className="text-4xl md:text-5xl font-black font-outfit uppercase tracking-tighter  leading-none text-foreground">
+                                Account <span className="text-primary ">Setup</span>
                             </h1>
                             <p className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.4em] mt-1 opacity-70">Administrative Onboarding Matrix</p>
                         </div>
 
                         <form onSubmit={handleSignUp} className="w-full flex flex-col gap-8">
                             <div className="flex flex-col gap-4">
-                                <label className="text-[11px] font-black uppercase tracking-widest text-foreground ml-2 italic">Authorized Identity</label>
+                                <label className="text-[11px] font-black uppercase tracking-widest text-foreground ml-2 ">Authorized Identity</label>
                                 <div className="relative group/email">
                                     <div className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-primary">
                                         <Mail size={20} />
@@ -179,13 +179,13 @@ export default function AdminInvite() {
                                         type="email"
                                         disabled
                                         value={email}
-                                        className="w-full bg-muted/30 border border-border rounded-[1.5rem] h-16 pl-16 pr-6 outline-none text-xs font-black uppercase tracking-widest text-foreground opacity-60 italic"
+                                        className="w-full bg-muted/30 border border-border rounded-[1.5rem] h-16 pl-16 pr-6 outline-none text-xs font-black uppercase tracking-widest text-foreground opacity-60 "
                                     />
                                 </div>
                             </div>
 
                             <div className="flex flex-col gap-4">
-                                <label className="text-[11px] font-black uppercase tracking-widest text-foreground ml-2 italic">Full Identity</label>
+                                <label className="text-[11px] font-black uppercase tracking-widest text-foreground ml-2 ">Full Identity</label>
                                 <div className="relative group/identity">
                                     <div className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-primary transition-transform group-focus-within/identity:scale-110">
                                         <ShieldCheck size={20} />
@@ -196,13 +196,13 @@ export default function AdminInvite() {
                                         value={displayName}
                                         onChange={(e) => setDisplayName(e.target.value)}
                                         placeholder="YOUR FULL NAME"
-                                        className="w-full bg-muted/40 border border-border rounded-[1.5rem] h-16 pl-16 pr-6 outline-none focus:border-primary/40 focus:ring-4 focus:ring-primary/5 transition-all text-xs font-black italic uppercase tracking-[0.2em] text-foreground"
+                                        className="w-full bg-muted/40 border border-border rounded-[1.5rem] h-16 pl-16 pr-6 outline-none focus:border-primary/40 focus:ring-4 focus:ring-primary/5 transition-all text-xs font-black  uppercase tracking-[0.2em] text-foreground"
                                     />
                                 </div>
                             </div>
 
                             <div className="flex flex-col gap-4">
-                                <label className="text-[11px] font-black uppercase tracking-widest text-foreground ml-2 italic">Access Credentials</label>
+                                <label className="text-[11px] font-black uppercase tracking-widest text-foreground ml-2 ">Access Credentials</label>
                                 <div className="space-y-4">
                                     <div className="relative group/input">
                                         <div className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground group-focus-within/input:text-primary transition-colors">
@@ -236,7 +236,7 @@ export default function AdminInvite() {
                             <Button
                                 type="submit"
                                 disabled={isProcessing}
-                                className="h-20 rounded-[1.5rem] bg-primary text-white text-[11px] font-black italic uppercase tracking-[0.25em] shadow-2xl shadow-primary/20 group hover:scale-[1.02] transition-all relative overflow-hidden"
+                                className="h-20 rounded-[1.5rem] bg-primary text-white text-[11px] font-black  uppercase tracking-[0.25em] shadow-2xl shadow-primary/20 group hover:scale-[1.02] transition-all relative overflow-hidden"
                             >
                                 <div className="relative z-10 flex items-center justify-center gap-3">
                                     {isProcessing ? "INITIALIZING..." : "SYNCHRONIZE ACCOUNT"}
@@ -246,7 +246,7 @@ export default function AdminInvite() {
                         </form>
 
                         <div className="pt-8 border-t border-border/50 w-full text-center">
-                            <p className="text-[9px] text-muted-foreground uppercase font-black tracking-widest opacity-30 italic italic">SmartHub Enterprise • Security Stage 02</p>
+                            <p className="text-[9px] text-muted-foreground uppercase font-black tracking-widest opacity-30  ">SmartHub Enterprise • Security Stage 02</p>
                         </div>
                     </div>
                 </div>

@@ -21,17 +21,19 @@ export function DynamicProductSection({
     products, 
     type, 
     source, 
-    limit = 8,
+    limit = 12,
     sort = "newest"
 }: DynamicProductSectionProps) {
     if (!products || products.length === 0) return null
 
     // 1. Filter products by source
     let filtered = products.filter(p => {
+        const pSource = (source || "").toLowerCase()
         if (type === "category") {
-            return p.category === source
+            const cat = (p.category || "").toLowerCase()
+            return cat === pSource || cat === `${pSource}s` || `${cat}s` === pSource
         } else {
-            return p.brand === source
+            return (p.brand || "").toLowerCase() === pSource
         }
     })
 
@@ -55,6 +57,8 @@ export function DynamicProductSection({
     // JS is safer for "2 rows" across different screens if we want to be exact.
     
     const displayProducts = sorted.slice(0, limit)
+    if (displayProducts.length === 0) return null
+    
     const hasMore = sorted.length > limit
 
     const seeAllLink = type === "category" 
@@ -62,17 +66,17 @@ export function DynamicProductSection({
         : `/products?brand=${encodeURIComponent(source)}`
 
     return (
-        <section className="py-16 lg:py-24 relative overflow-hidden">
-            <div className="container mx-auto px-4 md:px-8 flex flex-col gap-10">
-                <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 border-b border-border/10 pb-8">
-                    <div className="flex flex-col gap-4">
-                        <div className="flex items-center gap-3">
+        <section suppressHydrationWarning className="py-4 lg:py-8 relative overflow-hidden">
+            <div suppressHydrationWarning className="container mx-auto px-4 md:px-8 flex flex-col gap-10">
+                <div suppressHydrationWarning className="flex flex-col md:flex-row md:items-end justify-between gap-6 border-b border-border/10 pb-8">
+                    <div suppressHydrationWarning className="flex flex-col gap-4">
+                        <div suppressHydrationWarning className="flex items-center gap-3">
                             <div className="w-8 h-px bg-primary/40" />
-                            <span className="text-[10px] font-black uppercase tracking-[0.4em] text-primary italic leading-none">
+                            <span className="text-[10px] font-black uppercase tracking-[0.4em] text-primary  leading-none">
                                 Feature {type === 'brand' ? 'Spotlight' : 'Collection'} 
                             </span>
                         </div>
-                        <h2 className="text-4xl md:text-5xl font-black italic tracking-tighter uppercase leading-none text-foreground">
+                        <h2 className="text-4xl md:text-5xl font-black  tracking-tighter uppercase leading-none text-foreground">
                             {title}
                         </h2>
                     </div>
@@ -86,7 +90,7 @@ export function DynamicProductSection({
                     </Link>
                 </div>
 
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 lg:gap-8">
+                <div suppressHydrationWarning className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 lg:gap-8">
                     {displayProducts.map((product, idx) => (
                         <motion.div
                             key={product.id || idx}

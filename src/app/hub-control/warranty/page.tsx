@@ -29,11 +29,11 @@ export default function WarrantyPage() {
             {/* Header */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                 <div className="flex flex-col gap-1">
-                    <h1 className="text-3xl font-black tracking-tight text-foreground italic uppercase">Warranty & Returns</h1>
+                    <h1 className="text-3xl font-black tracking-tight text-foreground  uppercase">Warranty & Returns</h1>
                     <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mt-2">Managing product returns, warranty status, and replacement logistics.</p>
                 </div>
                 <div className="flex items-center gap-3">
-                    <Button className="h-12 px-6 rounded-xl bg-primary text-primary-foreground font-black italic uppercase tracking-widest text-[10px] gap-2 shadow-xl shadow-primary/20 hover:opacity-90 transition-all">
+                    <Button className="h-12 px-6 rounded-xl bg-primary text-primary-foreground font-black  uppercase tracking-widest text-[10px] gap-2 shadow-xl shadow-primary/20 hover:opacity-90 transition-all">
                         <Plus size={20} />
                         INITIATE RETURN
                     </Button>
@@ -56,8 +56,8 @@ export default function WarrantyPage() {
                                 <div className="p-2 bg-muted group-hover:bg-primary/10 rounded-lg group-hover:text-primary transition-colors">{stat.icon}</div>
                             </div>
                             <div className="flex flex-col">
-                                <span className="text-3xl font-black italic tracking-tighter text-foreground leading-none">{stat.value}</span>
-                                <span className="text-[9px] font-black text-muted-foreground uppercase mt-2 opacity-60 italic">{stat.sub}</span>
+                                <span className="text-3xl font-black  tracking-tighter text-foreground leading-none">{stat.value}</span>
+                                <span className="text-[9px] font-black text-muted-foreground uppercase mt-2 opacity-60 ">{stat.sub}</span>
                             </div>
                         </div>
                     </Card>
@@ -100,8 +100,8 @@ export default function WarrantyPage() {
                 <Card className="lg:col-span-2 rounded-[2.5rem] border-border shadow-sm overflow-hidden bg-card transition-colors h-full">
                     <CardHeader className="p-8 border-b border-border">
                         <div className="flex flex-col gap-1">
-                            <CardTitle className="text-xl font-black italic tracking-tight uppercase">Returns & Service Hub</CardTitle>
-                            <span className="text-[10px] text-muted-foreground font-black uppercase tracking-widest italic">Product return and service flow management</span>
+                            <CardTitle className="text-xl font-black  tracking-tight uppercase">Returns & Service Hub</CardTitle>
+                            <span className="text-[10px] text-muted-foreground font-black uppercase tracking-widest ">Product return and service flow management</span>
                         </div>
                     </CardHeader>
                     <CardContent className="p-0">
@@ -121,20 +121,20 @@ export default function WarrantyPage() {
                                         <tr key={i} className="hover:bg-slate-50/30 transition-colors group">
                                             <td className="px-8 py-6">
                                                 <div className="flex flex-col gap-1">
-                                                    <span className="text-xs font-black italic tracking-widest text-foreground uppercase group-hover:text-primary transition-colors">{rma.id}</span>
+                                                    <span className="text-xs font-black  tracking-widest text-foreground uppercase group-hover:text-primary transition-colors">{rma.id}</span>
                                                     <span className="text-[9px] font-black text-muted-foreground uppercase leading-none opacity-60">{rma.date}</span>
                                                 </div>
                                             </td>
                                             <td className="px-8 py-6">
                                                 <div className="flex flex-col">
-                                                    <span className="text-sm font-black italic text-foreground uppercase tracking-tight leading-none">{rma.model}</span>
+                                                    <span className="text-sm font-black  text-foreground uppercase tracking-tight leading-none">{rma.model}</span>
                                                     <span className="text-[9px] font-black text-muted-foreground uppercase tracking-widest leading-none mt-2 opacity-60">{rma.variant}</span>
                                                 </div>
                                             </td>
                                             <td className="px-8 py-6">
                                                 <div className="flex flex-col gap-1">
                                                     <span className="text-xs font-black uppercase text-foreground opacity-80">{rma.type}</span>
-                                                    <span className="text-[9px] font-black text-muted-foreground uppercase tracking-widest italic opacity-60">{rma.warranty}</span>
+                                                    <span className="text-[9px] font-black text-muted-foreground uppercase tracking-widest  opacity-60">{rma.warranty}</span>
                                                 </div>
                                             </td>
                                             <td className="px-8 py-6">
@@ -155,7 +155,7 @@ export default function WarrantyPage() {
                             </table>
                         </div>
                         <div className="p-8 border-t border-border flex justify-center bg-muted/20">
-                            <Button variant="link" className="text-[10px] font-black italic text-primary uppercase tracking-widest gap-2">
+                            <Button variant="link" className="text-[10px] font-black  text-primary uppercase tracking-widest gap-2">
                                 VIEW HISTORICAL SERVICE RECORDS
                                 <ArrowRight size={14} />
                             </Button>
@@ -168,7 +168,7 @@ export default function WarrantyPage() {
                     <Card className="rounded-[2.5rem] border-border shadow-sm overflow-hidden bg-card transition-colors h-full">
                         <CardHeader className="p-8 border-b border-border bg-primary text-primary-foreground">
                             <div className="flex flex-col gap-1">
-                                <CardTitle className="text-lg font-black italic uppercase tracking-tighter">Warranty Verification</CardTitle>
+                                <CardTitle className="text-lg font-black  uppercase tracking-tighter">Warranty Verification</CardTitle>
                                 <span className="text-[10px] font-black tracking-widest uppercase opacity-60">VERIFICATION SYSTEM</span>
                             </div>
                         </CardHeader>
@@ -185,7 +185,7 @@ export default function WarrantyPage() {
                                         />
                                     </div>
                                 </div>
-                                <Button className="h-14 w-full rounded-2xl bg-primary text-primary-foreground font-black italic tracking-widest uppercase shadow-xl shadow-primary/20 hover:opacity-90 transition-all">
+                                <Button className="h-14 w-full rounded-2xl bg-primary text-primary-foreground font-black  tracking-widest uppercase shadow-xl shadow-primary/20 hover:opacity-90 transition-all">
                                     VERIFY WARRANTY
                                 </Button>
                             </div>
@@ -195,8 +195,8 @@ export default function WarrantyPage() {
                                     <Clock size={40} className="text-primary stroke-[1.5px] animate-pulse" />
                                 </div>
                                 <div className="flex flex-col gap-2">
-                                    <h4 className="text-sm font-black italic uppercase tracking-tight text-foreground leading-none">Awaiting Device Input</h4>
-                                    <p className="text-[9px] font-black text-muted-foreground leading-relaxed uppercase opacity-60 tracking-widest italic">Enter device identifier to retrieve warranty status and history.</p>
+                                    <h4 className="text-sm font-black  uppercase tracking-tight text-foreground leading-none">Awaiting Device Input</h4>
+                                    <p className="text-[9px] font-black text-muted-foreground leading-relaxed uppercase opacity-60 tracking-widest ">Enter device identifier to retrieve warranty status and history.</p>
                                 </div>
                             </div>
                         </CardContent>
@@ -204,7 +204,7 @@ export default function WarrantyPage() {
 
                     <Card className="rounded-[2.5rem] border-border shadow-sm overflow-hidden bg-card transition-colors h-full">
                         <CardHeader className="p-8 border-b border-border">
-                            <CardTitle className="text-lg font-black italic uppercase tracking-tight">Defect Rate Analysis</CardTitle>
+                            <CardTitle className="text-lg font-black  uppercase tracking-tight">Defect Rate Analysis</CardTitle>
                         </CardHeader>
                         <CardContent className="p-8 flex flex-col gap-8">
                             <div className="flex flex-col gap-6">
@@ -217,7 +217,7 @@ export default function WarrantyPage() {
                                     <div key={i} className="flex flex-col gap-2">
                                         <div className="flex items-center justify-between">
                                             <span className="text-[10px] font-black uppercase tracking-widest text-foreground opacity-80">{part.part}</span>
-                                            <span className="text-[10px] font-black italic text-primary">{part.rate}%</span>
+                                            <span className="text-[10px] font-black  text-primary">{part.rate}%</span>
                                         </div>
                                         <div className="h-2 w-full bg-muted rounded-full overflow-hidden">
                                             <motion.div
@@ -233,7 +233,7 @@ export default function WarrantyPage() {
                                 <Zap className="text-primary mt-1" size={18} fill="currentColor" />
                                 <div className="flex flex-col gap-1">
                                     <span className="text-[10px] font-black uppercase text-foreground leading-none">Critical Insight</span>
-                                    <p className="text-[9px] font-black leading-relaxed text-muted-foreground uppercase italic opacity-60 mt-1">"Panel defects are concentrated in Batch SH-AP16-256T. Recommend pre-shipment stress check."</p>
+                                    <p className="text-[9px] font-black leading-relaxed text-muted-foreground uppercase  opacity-60 mt-1">"Panel defects are concentrated in Batch SH-AP16-256T. Recommend pre-shipment stress check."</p>
                                 </div>
                             </div>
                         </CardContent>

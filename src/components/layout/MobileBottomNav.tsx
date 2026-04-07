@@ -27,7 +27,7 @@ export const MobileBottomNav = () => {
         { name: "Wishlist", icon: Heart, href: "/wishlist", badge: wishlistCount },
         { 
             name: "Theme", 
-            icon: theme === "light" ? Moon : Sun, 
+            icon: !mounted ? Sun : (theme === "light" ? Moon : Sun), 
             isToggle: true,
             onClick: () => setTheme(theme === "light" ? "dark" : "light") 
         },
@@ -50,7 +50,7 @@ export const MobileBottomNav = () => {
                         )}>
                             <Icon className={cn("w-5 h-5", isActive && "fill-primary/20", item.isToggle && "animate-in fade-in zoom-in duration-300 rotate-0 scale-100 transition-all")} />
                         </div>
-                        <span className="text-[9px] font-black uppercase tracking-widest italic">{item.name}</span>
+                        <span className="text-[9px] font-black uppercase tracking-widest ">{item.name}</span>
                         
                         {item.badge !== undefined && item.badge > 0 && (
                             <span className="absolute top-0 right-0 bg-primary text-primary-foreground text-[8px] font-black w-4 h-4 flex items-center justify-center rounded-full border border-background shadow-lg scale-110">
@@ -59,7 +59,7 @@ export const MobileBottomNav = () => {
                         )}
                         
                         {isActive && (
-                            <div className="absolute -bottom-1 w-1 h-1 bg-primary rounded-full" />
+                            <div suppressHydrationWarning className="absolute -bottom-1 w-1 h-1 bg-primary rounded-full" />
                         )}
                     </div>
                 )

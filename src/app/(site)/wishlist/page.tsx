@@ -36,7 +36,7 @@ export default function WishlistPage() {
                 <div className="bg-muted p-12 rounded-[4rem] group hover:scale-105 transition-transform duration-500 border border-border">
                     <Heart className="w-24 h-24 text-red-500/20 animate-pulse" />
                 </div>
-                <h1 className="text-4xl font-black font-outfit uppercase tracking-tighter italic">Wishlist is Empty</h1>
+                <h1 className="text-4xl font-black font-outfit uppercase tracking-tighter ">Wishlist is Empty</h1>
                 <p className="text-muted-foreground text-lg leading-relaxed">Your future favorites are waiting to be added to your collection. Explore our catalog and save what you love.</p>
                 <Link href="/products">
                     <Button variant="outline" size="lg" className="px-12 h-16 text-lg rounded-2xl shadow-xl group border-2">
@@ -54,9 +54,9 @@ export default function WishlistPage() {
                 <motion.h1 
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
-                    className="text-4xl md:text-5xl font-black font-outfit uppercase tracking-tighter italic"
+                    className="text-4xl md:text-5xl font-black font-outfit uppercase tracking-tighter "
                 >
-                    Saved <span className="text-primary italic">Collection</span>
+                    Saved <span className="text-primary ">Collection</span>
                 </motion.h1>
                 <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">{items.length} ITEMS SAVED</p>
             </div>

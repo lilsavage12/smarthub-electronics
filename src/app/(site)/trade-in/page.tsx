@@ -38,7 +38,7 @@ export default function TradeInPage() {
                     <Zap className="w-4 h-4 text-primary" />
                     <span className="text-xs font-black uppercase tracking-widest text-primary">Device Trade-In</span>
                 </div>
-                <h1 className="text-5xl md:text-7xl font-black font-outfit uppercase tracking-tighter italic leading-none">Turn Old Tech <br /><span className="text-primary italic">Into New Credit</span></h1>
+                <h1 className="text-5xl md:text-7xl font-black font-outfit uppercase tracking-tighter  leading-none">Turn Old Tech <br /><span className="text-primary ">Into New Credit</span></h1>
                 <p className="text-xl text-muted-foreground leading-relaxed">Upgrade to the latest flagship with ease. Simply tell us about your current device and get instant credit towards your next purchase.</p>
             </div>
 
@@ -73,7 +73,7 @@ export default function TradeInPage() {
                                 className="flex flex-col gap-8 h-full"
                             >
                                 <div className="flex flex-col gap-3">
-                                    <h2 className="text-3xl font-black font-outfit uppercase italic tracking-tighter italic">Identify Your Device</h2>
+                                    <h2 className="text-3xl font-black font-outfit uppercase  tracking-tighter ">Identify Your Device</h2>
                                     <p className="text-muted-foreground">Select the brand and exact model of the smartphone you wish to trade.</p>
                                 </div>
 
@@ -104,14 +104,14 @@ export default function TradeInPage() {
                                                 onClick={() => setSelectedModel(m)}
                                                 className={cn("text-left px-6 py-4 rounded-2xl border-2 transition-all flex items-center justify-between group", selectedModel === m ? "bg-primary/10 text-primary border-primary shadow-md" : "bg-background/20 border-transparent text-muted-foreground hover:bg-background/50")}
                                             >
-                                                <span className="font-bold italic uppercase">{m}</span>
+                                                <span className="font-bold  uppercase">{m}</span>
                                                 <ChevronRight className={cn("w-4 h-4 transition-transform", selectedModel === m ? "translate-x-0" : "-translate-x-2 opacity-0 group-hover:opacity-100 group-hover:translate-x-0")} />
                                             </button>
                                         ))}
                                     </div>
                                 </div>
 
-                                <Button onClick={handleNextStep} variant="premium" className="h-16 mt-auto rounded-2xl text-lg font-black italic tracking-widest">
+                                <Button onClick={handleNextStep} variant="premium" className="h-16 mt-auto rounded-2xl text-lg font-black  tracking-widest">
                                     CHECK CONDITION
                                 </Button>
                             </motion.div>
@@ -126,7 +126,7 @@ export default function TradeInPage() {
                                 className="flex flex-col gap-8 h-full"
                             >
                                 <div className="flex flex-col gap-3">
-                                    <h2 className="text-3xl font-black font-outfit uppercase italic tracking-tighter italic">Device Condition</h2>
+                                    <h2 className="text-3xl font-black font-outfit uppercase  tracking-tighter ">Device Condition</h2>
                                     <p className="text-muted-foreground">Be honest about the physical state of your device for an accurate voucher.</p>
                                 </div>
 
@@ -146,10 +146,10 @@ export default function TradeInPage() {
                                                 {c.icon}
                                             </div>
                                             <div className="flex flex-col gap-1">
-                                                <span className="font-black uppercase italic text-lg">{c.title}</span>
+                                                <span className="font-black uppercase  text-lg">{c.title}</span>
                                                 <p className="text-xs font-bold text-muted-foreground opacity-70 uppercase tracking-wider">{c.desc}</p>
                                             </div>
-                                            {condition === c.title && <div className="ml-auto text-primary px-3 py-1 rounded-full border border-primary text-[10px] font-black italic">SELECTED</div>}
+                                            {condition === c.title && <div className="ml-auto text-primary px-3 py-1 rounded-full border border-primary text-[10px] font-black ">SELECTED</div>}
                                         </button>
                                     ))}
                                 </div>
@@ -160,8 +160,8 @@ export default function TradeInPage() {
                                 </div>
 
                                 <div className="flex gap-4 mt-auto">
-                                    <Button onClick={() => setStep(1)} variant="outline" className="h-16 flex-1 rounded-2xl border-2 font-black italic tracking-widest text-muted-foreground">BACK</Button>
-                                    <Button onClick={handleNextStep} variant="premium" className="h-16 flex-[2] rounded-2xl text-lg font-black italic tracking-widest">GET ESTIMATE</Button>
+                                    <Button onClick={() => setStep(1)} variant="outline" className="h-16 flex-1 rounded-2xl border-2 font-black  tracking-widest text-muted-foreground">BACK</Button>
+                                    <Button onClick={handleNextStep} variant="premium" className="h-16 flex-[2] rounded-2xl text-lg font-black  tracking-widest">GET ESTIMATE</Button>
                                 </div>
                             </motion.div>
                         )}
@@ -175,8 +175,8 @@ export default function TradeInPage() {
                             >
                                 <div className="relative">
                                     <div className="h-64 w-64 bg-primary/10 rounded-full flex flex-col items-center justify-center border-4 border-dashed border-primary/20 animate-pulse relative">
-                                        <span className="text-xs font-black text-primary uppercase tracking-[0.3em] mb-2 italic">Estimated Value</span>
-                                        <span className="text-7xl font-black text-foreground font-outfit italic tracking-tighter">${estimates[condition]}</span>
+                                        <span className="text-xs font-black text-primary uppercase tracking-[0.3em] mb-2 ">Estimated Value</span>
+                                        <span className="text-7xl font-black text-foreground font-outfit  tracking-tighter">${estimates[condition]}</span>
                                         <Zap className="absolute top-4 right-4 text-primary w-8 h-8 fill-primary" />
                                     </div>
                                     <div className="absolute inset-0 bg-primary/10 blur-[120px] -z-1" />
@@ -187,12 +187,12 @@ export default function TradeInPage() {
                                         <ShieldCheck className="w-4 h-4" />
                                         Device Value Estimated
                                     </div>
-                                    <h3 className="text-3xl font-black uppercase italic tracking-tighter">{selectedModel} • {condition}</h3>
+                                    <h3 className="text-3xl font-black uppercase  tracking-tighter">{selectedModel} • {condition}</h3>
                                     <p className="text-muted-foreground max-w-sm">This credit can be applied immediately toward your next purchase or saved for later.</p>
                                 </div>
 
                                 <div className="flex flex-col gap-4 w-full mt-4">
-                                    <Button variant="premium" className="h-20 text-xl font-black italic tracking-widest rounded-[2rem] shadow-2xl">APPLY CREDIT AT CHECKOUT</Button>
+                                    <Button variant="premium" className="h-20 text-xl font-black  tracking-widest rounded-[2rem] shadow-2xl">APPLY CREDIT AT CHECKOUT</Button>
                                     <div className="flex gap-4">
                                         <Button variant="outline" onClick={resetTradeIn} className="h-14 flex-1 rounded-2xl border-2 font-black uppercase tracking-widest text-xs">Start New</Button>
                                         <Button variant="outline" className="h-14 flex-1 rounded-2xl border-2 font-black uppercase tracking-widest text-xs">Download Report (PDF)</Button>
@@ -206,7 +206,7 @@ export default function TradeInPage() {
                 {/* FAQ Section */}
                 <div className="mt-24 grid grid-cols-1 md:grid-cols-2 gap-12">
                     <div className="flex flex-col gap-6">
-                        <h2 className="text-3xl font-black font-outfit italic uppercase tracking-tighter">Why Trade-In?</h2>
+                        <h2 className="text-3xl font-black font-outfit  uppercase tracking-tighter">Why Trade-In?</h2>
                         <ul className="flex flex-col gap-6">
                             {[
                                 { icon: <Zap />, title: "Instant Credit", text: "No waiting for shipping or bank transfers. Apply it immediately." },
@@ -216,7 +216,7 @@ export default function TradeInPage() {
                                 <li key={i} className="flex gap-4 items-start">
                                     <div className="bg-primary/10 p-2 rounded-lg text-primary">{item.icon}</div>
                                     <div className="flex flex-col gap-1">
-                                        <span className="font-bold uppercase italic text-sm">{item.title}</span>
+                                        <span className="font-bold uppercase  text-sm">{item.title}</span>
                                         <p className="text-xs text-muted-foreground leading-relaxed font-medium uppercase tracking-wider">{item.text}</p>
                                     </div>
                                 </li>
@@ -225,7 +225,7 @@ export default function TradeInPage() {
                     </div>
 
                     <div className="bg-background border border-border rounded-[2rem] p-8 flex flex-col gap-6 shadow-sm">
-                        <h3 className="font-black italic uppercase tracking-tighter text-xl">Recent Estimates</h3>
+                        <h3 className="font-black  uppercase tracking-tighter text-xl">Recent Estimates</h3>
                         <div className="flex flex-col gap-4">
                             {[
                                 { name: "iPhone 14 Pro", val: "$540", time: "2m ago" },

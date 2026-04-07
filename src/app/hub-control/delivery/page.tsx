@@ -130,7 +130,7 @@ export default function DeliveryZonesPage() {
                 <div className="flex items-center gap-4 relative z-10 w-full justify-between overflow-x-auto no-scrollbar">
                     <div className="flex items-center gap-3">
                         <div className="flex flex-col">
-                            <h2 className="text-sm font-black font-outfit uppercase tracking-tighter italic leading-none">
+                            <h2 className="text-sm font-black font-outfit uppercase tracking-tighter  leading-none">
                                 Delivery <span className="text-primary">Fees</span>
                             </h2>
                             <span className="text-[8px] font-black uppercase tracking-widest text-muted-foreground mt-1 opacity-60">
@@ -145,7 +145,7 @@ export default function DeliveryZonesPage() {
                             <select
                                 value={sortBy}
                                 onChange={(e) => setSortBy(e.target.value as any)}
-                                className="bg-muted/50 border-none rounded-2xl h-14 px-6 text-[10px] font-black uppercase tracking-widest focus:ring-1 focus:ring-primary/20 transition-all outline-none italic appearance-none cursor-pointer"
+                                className="bg-muted/50 border-none rounded-2xl h-14 px-6 text-[10px] font-black uppercase tracking-widest focus:ring-1 focus:ring-primary/20 transition-all outline-none  appearance-none cursor-pointer"
                             >
                                 <option value="city">SORT BY: CITY</option>
                                 <option value="fee">SORT BY: FEE</option>
@@ -156,7 +156,7 @@ export default function DeliveryZonesPage() {
                         <select
                             value={cityFilter}
                             onChange={(e) => setCityFilter(e.target.value)}
-                            className="bg-muted/50 border-none rounded-2xl h-14 px-6 text-[10px] font-black uppercase tracking-widest focus:ring-1 focus:ring-primary/20 transition-all outline-none italic appearance-none cursor-pointer"
+                            className="bg-muted/50 border-none rounded-2xl h-14 px-6 text-[10px] font-black uppercase tracking-widest focus:ring-1 focus:ring-primary/20 transition-all outline-none  appearance-none cursor-pointer"
                         >
                             <option value="all">ALL CITIES</option>
                             {uniqueCities.map(city => (
@@ -172,14 +172,14 @@ export default function DeliveryZonesPage() {
                                 placeholder="FIND AREA..."
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
-                                className="bg-muted/50 border-none rounded-2xl h-14 pl-12 pr-6 text-[10px] font-black uppercase tracking-widest focus:ring-1 focus:ring-primary/20 transition-all outline-none md:w-48 italic"
+                                className="bg-muted/50 border-none rounded-2xl h-14 pl-12 pr-6 text-[10px] font-black uppercase tracking-widest focus:ring-1 focus:ring-primary/20 transition-all outline-none md:w-48 "
                             />
                         </div>
 
                         {/* Add Button */}
                         <Button 
                             onClick={() => setIsAddOpen(true)}
-                            className="h-14 px-8 rounded-2xl bg-primary shadow-lg shadow-primary/20 text-[10px] font-black uppercase tracking-widest gap-2 italic"
+                            className="h-14 px-8 rounded-2xl bg-primary shadow-lg shadow-primary/20 text-[10px] font-black uppercase tracking-widest gap-2 "
                         >
                             <Plus size={18} />
                             Add New
@@ -195,10 +195,10 @@ export default function DeliveryZonesPage() {
                     <table className="w-full text-left border-collapse">
                         <thead>
                             <tr className="bg-muted/30">
-                                <th className="p-6 text-[10px] font-black uppercase tracking-[0.2em] italic text-muted-foreground border-b border-border">City</th>
-                                <th className="p-6 text-[10px] font-black uppercase tracking-[0.2em] italic text-muted-foreground border-b border-border">Area</th>
-                                <th className="p-6 text-[10px] font-black uppercase tracking-[0.2em] italic text-muted-foreground border-b border-border">Delivery fee</th>
-                                <th className="p-6 text-right text-[10px] font-black uppercase tracking-[0.2em] italic text-muted-foreground border-b border-border">Actions</th>
+                                <th className="p-6 text-[10px] font-black uppercase tracking-[0.2em]  text-muted-foreground border-b border-border">City</th>
+                                <th className="p-6 text-[10px] font-black uppercase tracking-[0.2em]  text-muted-foreground border-b border-border">Area</th>
+                                <th className="p-6 text-[10px] font-black uppercase tracking-[0.2em]  text-muted-foreground border-b border-border">Delivery fee</th>
+                                <th className="p-6 text-right text-[10px] font-black uppercase tracking-[0.2em]  text-muted-foreground border-b border-border">Actions</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-border/50">
@@ -265,10 +265,10 @@ export default function DeliveryZonesPage() {
                                             ) : (
                                                 <div className="flex flex-col">
                                                     <span className={cn(
-                                                        "text-md font-black italic font-outfit tracking-tighter leading-none",
+                                                        "text-md font-black  font-outfit tracking-tighter leading-none",
                                                         Number(zone.fee) === 0 ? "text-emerald-500" : "text-foreground"
                                                     )}>
-                                                        {Number(zone.fee) === 0 ? "FREE" : `KSH ${Number(zone.fee).toLocaleString()}`}
+                                                        {Number(zone.fee) === 0 ? "FREE" : `KSH ${Math.round(Number(zone.fee)).toLocaleString()}`}
                                                     </span>
                                                 </div>
                                             )}
@@ -347,8 +347,8 @@ export default function DeliveryZonesPage() {
                         >
                             <div className="p-10 flex flex-col gap-10">
                                 <div className="flex flex-col gap-2">
-                                    <h2 className="text-3xl font-black font-outfit uppercase tracking-tighter italic leading-none">Create <span className="text-primary italic">Distribution</span> Zone</h2>
-                                    <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground italic opacity-60">Expand your logistics network.</p>
+                                    <h2 className="text-3xl font-black font-outfit uppercase tracking-tighter  leading-none">Create <span className="text-primary ">Distribution</span> Zone</h2>
+                                    <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground  opacity-60">Expand your logistics network.</p>
                                 </div>
 
                                 <form onSubmit={handleAdd} className="flex flex-col gap-8">
@@ -367,7 +367,7 @@ export default function DeliveryZonesPage() {
                                                             setNewZone({ ...newZone, city: e.target.value })
                                                         }
                                                     }}
-                                                    className="w-full h-14 bg-muted/30 border border-border rounded-2xl px-6 text-[11px] font-black uppercase tracking-widest outline-none focus:border-primary transition-all appearance-none cursor-pointer italic"
+                                                    className="w-full h-14 bg-muted/30 border border-border rounded-2xl px-6 text-[11px] font-black uppercase tracking-widest outline-none focus:border-primary transition-all appearance-none cursor-pointer "
                                                 >
                                                     <option value="">SELECT CITY</option>
                                                     {uniqueCities.map(city => (
@@ -430,7 +430,7 @@ export default function DeliveryZonesPage() {
                                         <Button 
                                             disabled={isSubmitting}
                                             type="submit"
-                                            className="h-16 rounded-2xl bg-primary text-xs font-black italic tracking-[0.2em] shadow-xl shadow-primary/20 gap-3"
+                                            className="h-16 rounded-2xl bg-primary text-xs font-black  tracking-[0.2em] shadow-xl shadow-primary/20 gap-3"
                                         >
                                             {isSubmitting ? 'SYNCING...' : 'CONFIRM ZONE'}
                                             <ChevronRight size={18} />

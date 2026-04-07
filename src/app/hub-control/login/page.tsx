@@ -131,16 +131,16 @@ export default function AdminLogin() {
                 animate={{ opacity: 1, y: 0 }}
                 className="w-full max-w-sm z-10"
             >
-                <div className="bg-card/40 backdrop-blur-xl border border-border rounded-2xl p-8 shadow-2xl relative overflow-hidden group transition-all duration-500">
-                    <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-1000" />
+                <div suppressHydrationWarning className="bg-card/40 backdrop-blur-xl border border-border rounded-2xl p-8 shadow-2xl relative overflow-hidden group transition-all duration-500">
+                    <div suppressHydrationWarning className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-1000" />
 
-                    <div className="relative z-10 flex flex-col items-center gap-6">
-                        <div className="bg-primary/10 p-3 rounded-xl border border-primary/20">
+                    <div suppressHydrationWarning className="relative z-10 flex flex-col items-center gap-6">
+                        <div suppressHydrationWarning className="bg-primary/10 p-3 rounded-xl border border-primary/20">
                             <ShieldCheck className="w-8 h-8 text-primary" />
                         </div>
 
-                        <div className="text-center flex flex-col gap-1.5">
-                            <h1 className="text-2xl font-black font-outfit uppercase tracking-tighter italic text-foreground">Admin <span className="text-primary italic">Login</span></h1>
+                        <div suppressHydrationWarning className="text-center flex flex-col gap-1.5">
+                            <h1 className="text-2xl font-black font-outfit uppercase tracking-tighter  text-foreground">Admin <span className="text-primary ">Login</span></h1>
                             <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-[0.2em]">Sign in to your dashboard</p>
                         </div>
 
@@ -201,7 +201,7 @@ export default function AdminLogin() {
                                 type="submit"
                                 disabled={isAuthenticating}
                                 variant="premium"
-                                className="h-14 rounded-xl text-[10px] font-black italic tracking-[0.2em] shadow-xl group relative overflow-hidden"
+                                className="h-14 rounded-xl text-[10px] font-black  tracking-[0.2em] shadow-xl group relative overflow-hidden"
                             >
                                 <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:animate-shimmer" />
                                 {isAuthenticating ? "AUTHENTICATING..." : "SIGN IN"}

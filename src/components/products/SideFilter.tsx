@@ -50,7 +50,7 @@ export const SideFilter = ({ brands = [], activeFilters, setActiveFilters, count
         <button
             onClick={onClick}
             className={cn(
-                "flex items-center justify-between text-[11px] font-black uppercase tracking-widest py-3 px-4 rounded-xl transition-all border w-full text-left italic",
+                "flex items-center justify-between text-[11px] font-black uppercase tracking-widest py-3 px-4 rounded-xl transition-all border w-full text-left ",
                 active 
                     ? "bg-primary text-white border-primary shadow-lg shadow-primary/20" 
                     : "bg-muted/30 border-transparent text-muted-foreground hover:bg-muted"
@@ -78,7 +78,7 @@ export const SideFilter = ({ brands = [], activeFilters, setActiveFilters, count
             {!isMobile && (
                 <div className="flex items-center justify-between border-b border-border pb-6 opacity-80">
                     <div className="flex flex-col">
-                        <h3 className="font-black flex items-center gap-3 text-xs uppercase tracking-[0.2em] italic text-primary">
+                        <h3 className="font-black flex items-center gap-3 text-xs uppercase tracking-[0.2em]  text-primary">
                             <SlidersHorizontal className="w-4 h-4" />
                             Filters
                         </h3>
@@ -95,7 +95,7 @@ export const SideFilter = ({ brands = [], activeFilters, setActiveFilters, count
             {/* Section: Dynamic Brands */}
             <div className="flex flex-col gap-5" suppressHydrationWarning>
                 <button
-                    className="flex items-center justify-between font-black text-[10px] tracking-widest uppercase italic group"
+                    className="flex items-center justify-between font-black text-[10px] tracking-widest uppercase  group"
                     onClick={() => toggleSection("brand")}
                 >
                     <div suppressHydrationWarning className="flex items-center gap-2">
@@ -130,7 +130,7 @@ export const SideFilter = ({ brands = [], activeFilters, setActiveFilters, count
             {/* Section: Categories */}
             <div className="flex flex-col gap-5" suppressHydrationWarning>
                 <button
-                    className="flex items-center justify-between font-black text-[10px] tracking-widest uppercase italic"
+                    className="flex items-center justify-between font-black text-[10px] tracking-widest uppercase "
                     onClick={() => toggleSection("category")}
                 >
                     <div suppressHydrationWarning className="flex items-center gap-2">
@@ -157,7 +157,7 @@ export const SideFilter = ({ brands = [], activeFilters, setActiveFilters, count
             {/* Section: Price Orchestration */}
             <div className="flex flex-col gap-5">
                 <button
-                    className="flex items-center justify-between font-black text-[10px] tracking-widest uppercase italic"
+                    className="flex items-center justify-between font-black text-[10px] tracking-widest uppercase "
                     onClick={() => toggleSection("price")}
                 >
                     <div className="flex items-center gap-2">
@@ -176,7 +176,7 @@ export const SideFilter = ({ brands = [], activeFilters, setActiveFilters, count
                                     onChange={(e) => setActiveFilters({ ...activeFilters, minPrice: parseInt(e.target.value) || 0 })}
                                     className="h-12 bg-muted/20 border border-border/50 rounded-xl px-4 text-[10px] font-black w-full outline-none focus:border-primary transition-all pr-10"
                                 />
-                                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[8px] font-black opacity-30 italic">KSh</span>
+                                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[8px] font-black opacity-30 ">KSh</span>
                             </div>
                         </div>
                         <div className="flex flex-col gap-2">
@@ -188,7 +188,7 @@ export const SideFilter = ({ brands = [], activeFilters, setActiveFilters, count
                                     onChange={(e) => setActiveFilters({ ...activeFilters, maxPrice: parseInt(e.target.value) || 0 })}
                                     className="h-12 bg-muted/20 border border-border/50 rounded-xl px-4 text-[10px] font-black w-full outline-none focus:border-primary transition-all pr-10"
                                 />
-                                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[8px] font-black opacity-30 italic">KSh</span>
+                                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[8px] font-black opacity-30 ">KSh</span>
                             </div>
                         </div>
                     </div>

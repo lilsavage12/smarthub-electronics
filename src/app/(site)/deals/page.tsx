@@ -67,20 +67,20 @@ export default function DealsPage() {
                 
                 <div className="max-w-7xl mx-auto flex flex-col md:flex-row md:items-end justify-between gap-12 relative z-10">
                     <div className="flex flex-col gap-6">
-                        <div className="flex items-center gap-3 text-[10px] font-black text-rose-500 uppercase tracking-[0.3em] italic">
+                        <div className="flex items-center gap-3 text-[10px] font-black text-rose-500 uppercase tracking-[0.3em] ">
                             <Zap className="w-4 h-4 animate-pulse fill-rose-500" /> Authorized Hardware Liquidation
                         </div>
-                        <h1 className="text-5xl md:text-7xl font-black tracking-tighter text-white uppercase italic leading-none">
+                        <h1 className="text-5xl md:text-7xl font-black tracking-tighter text-white uppercase  leading-none">
                             Flash <span className="text-rose-500">Deals</span>
                         </h1>
-                        <p className="text-sm md:text-base font-bold text-white/40 uppercase tracking-widest italic max-w-xl">
+                        <p className="text-sm md:text-base font-bold text-white/40 uppercase tracking-widest  max-w-xl">
                             Real-time promotional sales. Great deals on top quality electronics.
                         </p>
                     </div>
 
                     {/* Prominent Timer */}
                     <div className="flex flex-col gap-4">
-                        <span className="text-[10px] font-black text-white/30 uppercase tracking-[0.3em] italic md:text-right">Global Reset Terminal</span>
+                        <span className="text-[10px] font-black text-white/30 uppercase tracking-[0.3em]  md:text-right">Global Reset Terminal</span>
                         <div className="flex items-center gap-3">
                             {[
                                 { label: 'HOURS', value: timeLeft.h },
@@ -125,7 +125,7 @@ export default function DealsPage() {
                         </div>
                         
                         <div className="flex items-center gap-4">
-                            <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest opacity-40 italic">Managed Fleet: {filtered.length} Assets Found</span>
+                            <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest opacity-40 ">Managed Fleet: {filtered.length} Assets Found</span>
                         </div>
                     </div>
 
@@ -152,11 +152,11 @@ export default function DealsPage() {
                                 <TrendingUp size={40} />
                             </div>
                             <div className="flex flex-col items-center text-center gap-2">
-                                <h3 className="text-xl font-black uppercase tracking-tighter italic">No Active Deals Synchronized</h3>
+                                <h3 className="text-xl font-black uppercase tracking-tighter ">No Active Deals Synchronized</h3>
                                 <p className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em] opacity-40">Check back for the next high-velocity drop.</p>
                             </div>
                             <Link href="/products">
-                                <Button className="h-14 px-10 rounded-2xl font-black italic tracking-widest uppercase text-xs">SCAN FULL CATALOG</Button>
+                                <Button className="h-14 px-10 rounded-2xl font-black  tracking-widest uppercase text-xs">SCAN FULL CATALOG</Button>
                             </Link>
                         </div>
                     )}

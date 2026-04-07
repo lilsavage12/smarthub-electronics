@@ -31,12 +31,12 @@ export default async function SitemapPage() {
             <div className="container mx-auto px-6 max-w-7xl">
                 {/* Header Section */}
                 <div className="flex flex-col gap-4 mb-20 border-b border-border/50 pb-12">
-                    <div className="flex items-center gap-3 text-primary font-black uppercase tracking-[0.4em] text-[10px] italic">
+                    <div className="flex items-center gap-3 text-primary font-black uppercase tracking-[0.4em] text-[10px] ">
                         <Map size={16} />
                         Directory
                     </div>
-                    <h1 className="text-5xl md:text-7xl font-black font-outfit uppercase tracking-tighter italic leading-none">
-                        Site <span className="text-primary italic">Map</span>
+                    <h1 className="text-5xl md:text-7xl font-black font-outfit uppercase tracking-tighter  leading-none">
+                        Site <span className="text-primary ">Map</span>
                     </h1>
                     <p className="text-muted-foreground text-sm font-medium uppercase tracking-widest max-w-2xl leading-relaxed">
                         Navigate through our entire digital catalog. Find every product, collection, and resource across the SmartHub ecosystem.
@@ -47,7 +47,7 @@ export default async function SitemapPage() {
                     {/* Left Sidebar: Core Navigation */}
                     <div className="lg:col-span-1 flex flex-col gap-8">
                         <div className="flex flex-col gap-4 p-8 bg-card border border-border rounded-[2.5rem] shadow-sm">
-                            <h2 className="text-xs font-black uppercase tracking-widest text-primary italic border-b border-border/50 pb-4">Core Directory</h2>
+                            <h2 className="text-xs font-black uppercase tracking-widest text-primary  border-b border-border/50 pb-4">Core Directory</h2>
                             <div className="flex flex-col gap-2 pt-2">
                                 {staticLinks.map((link) => (
                                     <Link 
@@ -66,11 +66,11 @@ export default async function SitemapPage() {
                         </div>
 
                         {/* XML Link */}
-                        <div className="p-8 bg-primary/5 border border-primary/20 rounded-[2.5rem] flex flex-col gap-4 italic group hover:bg-primary/10 transition-all cursor-pointer">
+                        <div className="p-8 bg-primary/5 border border-primary/20 rounded-[2.5rem] flex flex-col gap-4  group hover:bg-primary/10 transition-all cursor-pointer">
                             <Link href="/sitemap.xml" className="flex flex-col gap-2">
                                 <span className="text-[10px] font-black uppercase tracking-widest text-primary">Crawler Feed</span>
                                 <span className="text-sm font-black text-foreground">Sitemap.xml</span>
-                                <p className="text-[10px] text-muted-foreground not-italic font-medium leading-relaxed">Raw XML data for search engine bots and automated crawlers.</p>
+                                <p className="text-[10px] text-muted-foreground not- font-medium leading-relaxed">Raw XML data for search engine bots and automated crawlers.</p>
                             </Link>
                         </div>
                     </div>
@@ -81,7 +81,7 @@ export default async function SitemapPage() {
                             {categories.map((category) => (
                                 <div key={category} className="flex flex-col gap-6">
                                     <div className="flex items-center justify-between border-b border-border/50 pb-4 px-2">
-                                        <h3 className="text-xl font-black font-outfit uppercase italic tracking-tight">{category}</h3>
+                                        <h3 className="text-xl font-black font-outfit uppercase  tracking-tight">{category}</h3>
                                         <span className="text-[10px] font-black text-muted-foreground opacity-50 uppercase tracking-widest">
                                             {(products || []).filter(p => p.category === category).length} Items
                                         </span>

@@ -25,7 +25,7 @@ export default async function PrivacyPolicyPage() {
                 icon={ShieldCheck}
             >
                 <div 
-                    className="prose prose-invert max-w-none text-muted-foreground leading-relaxed text-lg font-medium space-y-8 uppercase tracking-tight italic opacity-90"
+                    className="prose prose-invert max-w-none text-muted-foreground leading-relaxed text-lg font-medium space-y-8 uppercase tracking-tight  opacity-90"
                     dangerouslySetInnerHTML={{ __html: pageData.content.replace(/\n/g, '<br />') }}
                 />
             </ContentLayout>
@@ -35,14 +35,14 @@ export default async function PrivacyPolicyPage() {
     return (
         <ContentLayout 
             badge="Privacy Policy" 
-            title={<>PRIVACY <span className='text-emerald-500 italic'>POLICY</span></>} 
+            title={<>PRIVACY <span className='text-emerald-500 '>POLICY</span></>} 
             description="We care about your privacy. Here is how we protect your personal information."
             updatedAt="LAST UPDATED: MARCH 2024"
             icon={ShieldCheck}
         >
             <section className="flex flex-col gap-12">
                 <div className="flex flex-col gap-8">
-                    <h2 className="text-3xl md:text-5xl font-black italic tracking-tighter uppercase leading-none text-foreground flex items-center gap-4">
+                    <h2 className="text-3xl md:text-5xl font-black  tracking-tighter uppercase leading-none text-foreground flex items-center gap-4">
                         How We Protect Your Data
                     </h2>
                     <p className="text-lg font-medium text-muted-foreground leading-relaxed">
@@ -56,15 +56,15 @@ export default async function PrivacyPolicyPage() {
                         ].map((card, i) => (
                             <div key={i} className="p-8 rounded-[2.5rem] bg-muted/20 border border-border flex flex-col gap-4">
                                 <card.icon size={24} className="text-primary" />
-                                <span className="text-sm font-black italic uppercase tracking-widest">{card.label}</span>
-                                <span className="text-[12px] font-bold opacity-50 tracking-tight leading-tight uppercase italic">{card.sub}</span>
+                                <span className="text-sm font-black  uppercase tracking-widest">{card.label}</span>
+                                <span className="text-[12px] font-bold opacity-50 tracking-tight leading-tight uppercase ">{card.sub}</span>
                             </div>
                         ))}
                     </div>
                 </div>
 
                 <div className="flex flex-col gap-8">
-                    <h2 className="text-3xl md:text-5xl font-black italic tracking-tighter uppercase leading-none text-foreground flex items-center gap-4">
+                    <h2 className="text-3xl md:text-5xl font-black  tracking-tighter uppercase leading-none text-foreground flex items-center gap-4">
                         Our Cookie Policy
                     </h2>
                     <p className="text-lg font-medium text-muted-foreground leading-relaxed">
@@ -73,7 +73,7 @@ export default async function PrivacyPolicyPage() {
                 </div>
 
                 <div className="flex flex-col gap-8">
-                    <h2 className="text-3xl md:text-5xl font-black italic tracking-tighter uppercase leading-none text-foreground flex items-center gap-4">
+                    <h2 className="text-3xl md:text-5xl font-black  tracking-tighter uppercase leading-none text-foreground flex items-center gap-4">
                         Your Rights
                     </h2>
                     <p className="text-lg font-medium text-muted-foreground leading-relaxed">

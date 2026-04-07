@@ -84,7 +84,7 @@ export default function CartPage() {
                 <div className="bg-muted p-12 rounded-[4rem] group hover:scale-105 transition-transform duration-500 border border-border" suppressHydrationWarning>
                     <ShoppingCart className="w-24 h-24 text-muted-foreground/30 animate-pulse" />
                 </div>
-                <h1 className="text-4xl font-black font-outfit uppercase tracking-tighter italic" suppressHydrationWarning>Your Cart is Empty</h1>
+                <h1 className="text-4xl font-black font-outfit uppercase tracking-tighter " suppressHydrationWarning>Your Cart is Empty</h1>
                 <p className="text-muted-foreground text-lg leading-relaxed" suppressHydrationWarning>It looks like you haven't added any items to your cart yet. Start exploring our latest deals.</p>
                 <Link href="/products" suppressHydrationWarning>
                     <Button variant="premium" size="lg" className="px-12 h-16 text-lg rounded-2xl shadow-xl group" suppressHydrationWarning>
@@ -104,7 +104,7 @@ export default function CartPage() {
                     Back to Store
                 </Link>
                 <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
-                    <h1 className="text-3xl md:text-4xl font-black font-outfit uppercase tracking-tighter italic leading-none">Your <span className="text-primary italic">Cart</span></h1>
+                    <h1 className="text-3xl md:text-4xl font-black font-outfit uppercase tracking-tighter  leading-none">Your <span className="text-primary ">Cart</span></h1>
 
                 </div>
             </div>
@@ -128,7 +128,7 @@ export default function CartPage() {
 
                                 <div className="flex-1 flex flex-col gap-1 w-full text-center md:text-left">
                                     <div className="flex items-center justify-between">
-                                        <h3 className="text-base font-black font-outfit uppercase italic leading-tight hover:text-primary transition-colors cursor-pointer">{item.name}</h3>
+                                        <h3 className="text-base font-black font-outfit uppercase  leading-tight hover:text-primary transition-colors cursor-pointer">{item.name}</h3>
                                         <button onClick={() => removeItem(item.id, user?.id)} className="text-muted-foreground hover:text-red-500 p-1.5 transition-colors">
                                             <Trash2 className="w-4 h-4" />
                                         </button>
@@ -182,43 +182,17 @@ export default function CartPage() {
 
                 {/* Order Summary Summary */}
                 <div className="flex flex-col gap-5 sticky top-24">
-                    <div className="flex flex-col gap-6 p-6 bg-muted border border-border rounded-[2rem] shadow-sm">
-                        <h2 className="text-lg font-black font-outfit uppercase tracking-tighter italic">Order Summary</h2>
+                    <div className="flex flex-col gap-6 p-10 bg-muted/40 border border-border rounded-[2.5rem] shadow-sm">
+                        <div className="flex flex-col gap-4">
+                            <div className="flex justify-between items-end">
+                                <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-1 leading-none">Subtotal</span>
+                                <span className="text-2xl font-black text-foreground font-outfit tracking-tighter leading-none ">KSh {Math.round(finalTotal).toLocaleString()}</span>
+                            </div>
+                        </div>
 
                         <div className="flex flex-col gap-3">
-                            <div className="flex justify-between items-center text-[9px] font-black text-muted-foreground uppercase tracking-widest">
-                                <span>Subtotal</span>
-                                <span className={cn(activeDiscount && "line-through opacity-50")}>KSh {Math.round(rawTotal).toLocaleString()}</span>
-                            </div>
-                            {activeDiscount && (
-                                <div className="flex justify-between items-center text-[9px] font-black uppercase tracking-widest text-emerald-500">
-                                    <span className="flex items-center gap-1">
-                                        <Zap size={10} fill="currentColor" />
-                                        {activeDiscount.name || 'Discount'} ({activeDiscount.code})
-                                    </span>
-                                    <span>-KSh {Math.round(discountAmount).toLocaleString()}</span>
-                                </div>
-                            )}
-                            <div className="flex justify-between items-center text-[9px] font-black text-muted-foreground uppercase tracking-widest">
-                                <span>Shipping</span>
-                                <span className="text-teal-500">FREE</span>
-                            </div>
-                        </div>
-
-                        <div className="flex flex-col gap-3 border-t border-border/50 pt-3">
-                            <div className="flex justify-between items-end">
-                                <span className="text-[8px] font-black uppercase tracking-widest text-muted-foreground mb-1 leading-none">Total Amount</span>
-                                <span className="text-3xl font-black text-foreground font-outfit tracking-tighter leading-none">KSh {Math.round(finalTotal).toLocaleString()}</span>
-                            </div>
-                        </div>
-
-                        <div className="flex flex-col gap-3 mt-2">
-                            <div className="flex items-center gap-2.5 p-2.5 bg-teal-500/5 rounded-xl border border-teal-500/10">
-                                <ShieldCheck className="w-4 h-4 text-teal-500 flex-shrink-0" />
-                                <span className="text-[8px] font-black uppercase tracking-widest text-teal-700/70 leading-tight">Your payment is safe and secure</span>
-                            </div>
                             <Link href="/checkout" className="w-full">
-                                <Button variant="premium" size="lg" className="w-full h-14 rounded-xl text-xs-fluid font-black italic tracking-widest uppercase shadow-xl shadow-primary/20">
+                                <Button variant="premium" size="lg" className="w-full h-14 rounded-xl text-xs-fluid font-black  tracking-widest uppercase shadow-xl shadow-primary/20">
                                     CHECKOUT NOW
                                 </Button>
                             </Link>

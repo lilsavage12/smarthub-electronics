@@ -201,14 +201,14 @@ export default function DocumentTemplates() {
             {/* Page Header */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                 <div className="flex flex-col gap-1">
-                    <h1 className="text-3xl font-black tracking-tight text-foreground italic uppercase">Document Templates</h1>
+                    <h1 className="text-3xl font-black tracking-tight text-foreground  uppercase">Document Templates</h1>
                     <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest opacity-60">Customize and preview your business documents.</p>
                 </div>
                 <div className="flex items-center gap-3">
                     <Button 
                         onClick={handleSave} 
                         disabled={saving}
-                        className="h-12 px-8 rounded-xl font-black italic tracking-widest uppercase text-[10px] gap-2 shadow-xl shadow-primary/20"
+                        className="h-12 px-8 rounded-xl font-black  tracking-widest uppercase text-[10px] gap-2 shadow-xl shadow-primary/20"
                     >
                         <Save size={18} />
                         {saving ? 'SAVING...' : 'SAVE CHANGES'}
@@ -425,7 +425,7 @@ export default function DocumentTemplates() {
                                     style={{ backgroundColor: current.headerBgColor, color: '#fff' }}
                                 >
                                     <div className="flex flex-col gap-1">
-                                        <h2 className="text-2xl font-black italic tracking-tighter uppercase">{current.storeName}</h2>
+                                        <h2 className="text-2xl font-black  tracking-tighter uppercase">{current.storeName}</h2>
                                         <p className="text-[8px] opacity-70 tracking-widest">{current.storeAddress}</p>
                                         <p className="text-[8px] opacity-70 tracking-widest">{current.storeContact}</p>
                                     </div>
@@ -472,8 +472,8 @@ export default function DocumentTemplates() {
                                             <tr key={i} className="hover:bg-slate-50">
                                                 <td className="p-4 font-bold">{item.name}</td>
                                                 <td className="p-4 text-center font-bold">{item.qty}</td>
-                                                <td className="p-4 text-center font-medium">${item.price.toLocaleString()}</td>
-                                                <td className="p-4 text-right font-black">${(item.qty * item.price).toLocaleString()}</td>
+                                                <td className="p-4 text-center font-medium">${Math.round(item.price).toLocaleString()}</td>
+                                                <td className="p-4 text-right font-black">${Math.round(item.qty * item.price).toLocaleString()}</td>
                                             </tr>
                                         ))}
                                     </tbody>
@@ -484,25 +484,25 @@ export default function DocumentTemplates() {
                             <div className="mt-10 flex flex-col items-end gap-2 border-t pt-8">
                                 <div className="flex justify-between w-64 text-slate-500 font-bold text-[9px] uppercase tracking-widest">
                                     <span>Subtotal</span>
-                                    <span>${(SAMPLE_DATA.total - SAMPLE_DATA.tax).toLocaleString()}</span>
+                                    <span>${Math.round(SAMPLE_DATA.total - SAMPLE_DATA.tax).toLocaleString()}</span>
                                 </div>
                                 <div className="flex justify-between w-64 text-slate-500 font-bold text-[9px] uppercase tracking-widest">
                                     <span>Tax (10%)</span>
-                                    <span>${SAMPLE_DATA.tax.toLocaleString()}</span>
+                                    <span>${Math.round(SAMPLE_DATA.tax).toLocaleString()}</span>
                                 </div>
                                 <div 
-                                    className="flex justify-between w-64 mt-4 p-4 rounded-xl text-white font-black italic shadow-lg"
+                                    className="flex justify-between w-64 mt-4 p-4 rounded-xl text-white font-black  shadow-lg"
                                     style={{ backgroundColor: current.primaryColor }}
                                 >
                                     <span className="uppercase text-[9px] mt-1">Total Amount</span>
-                                    <span className="text-xl">${SAMPLE_DATA.total.toLocaleString()}</span>
+                                    <span className="text-xl">${Math.round(SAMPLE_DATA.total).toLocaleString()}</span>
                                 </div>
                             </div>
 
                             {/* Footer */}
                             {current.sectionVisibility.footerMessage && (
                                 <div className="mt-auto pt-10 border-t border-slate-100 flex flex-col items-center gap-4 opacity-70">
-                                    <p className="text-center italic text-[9px] font-bold max-w-sm">{current.footerText}</p>
+                                    <p className="text-center  text-[9px] font-bold max-w-sm">{current.footerText}</p>
                                     <div className="flex gap-10">
                                         <div className="flex flex-col items-center">
                                             <div className="w-16 h-[1px] bg-slate-200 mb-2" />
