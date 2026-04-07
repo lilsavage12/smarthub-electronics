@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef } from "react"
 import Link from "next/link"
 import {
     Smartphone, ChevronRight, ChevronLeft, Star,
-    Sparkles, Mail, Truck, ShieldCheck, Activity, Box, ArrowRight, TrendingUp, Tag, Clock, MapPin, Zap
+    Sparkles, Mail, Truck, ShieldCheck, Activity, Box, ArrowRight, TrendingUp, Tag, Clock, MapPin, Zap, Percent
 } from "lucide-react"
 import Image from "next/image"
 import { Button } from "@/components/ui/button"
@@ -77,11 +77,11 @@ export function ClientHome({
     }
 
     const {
-        newArrivals, featuredProducts, visibleProducts
+        newArrivals, featuredProducts, visibleProducts, flashDeals
     } = React.useMemo(() => {
         const visible = allProducts
         if (!visible.length) return {
-            newArrivals: [], featuredProducts: [], visibleProducts: []
+            newArrivals: [], featuredProducts: [], visibleProducts: [], flashDeals: []
         }
 
         const isNewArrival = (p: any) => !!p.isNew
@@ -89,6 +89,7 @@ export function ClientHome({
         return {
             newArrivals: visible.filter(isNewArrival).slice(0, 20),
             featuredProducts: visible.filter((p: any) => p.isFeatured).slice(0, 15),
+            flashDeals: visible.filter((p: any) => p.isSale || p.discount > 0).slice(0, 15),
             visibleProducts: visible
         }
     }, [allProducts])
@@ -119,26 +120,50 @@ export function ClientHome({
         const section = hpConfig?.[key]
         if (!section || !section.visible) return null
 
-        const systemTitle = key === 'newArrivals' ? (section.title || "NEW ARRIVALS") : (section.title || "BEST SELLERS")
-        const systemIcon = key === 'newArrivals' ? <Box className="w-8 h-8 text-success fill-success" /> : <Star className="w-8 h-8 text-primary fill-primary" />
-        const systemSubtitle = key === 'newArrivals' ? "Our newest arrivals." : "Curated premium electronics selected for you."
+        let systemTitle = ""
+        let systemIcon = null
+        let items: any[] = []
 
-        const items = key === 'newArrivals' ? newArrivals : featuredProducts
+        if (key === 'newArrivals') {
+            systemTitle = section.title || "NEW ARRIVALS"
+            systemIcon = <Box className="w-8 h-8 text-success fill-success" />
+            items = newArrivals
+        } else if (key === 'flashDeals') {
+            systemTitle = section.title || "DISCOUNTS"
+            systemIcon = <Percent className="w-8 h-8 text-indigo-500 fill-indigo-500" />
+            items = flashDeals
+        } else {
+            systemTitle = section.title || "BEST SELLERS"
+            systemIcon = <Star className="w-8 h-8 text-primary fill-primary" />
+            items = featuredProducts
+        }
+
         if (items.length === 0) return null
 
         return (
             <div key={key} className="flex flex-col gap-12">
                 <div className="flex items-center justify-between border-b border-border/10 pb-8">
                     <div className="flex flex-col gap-2">
-                        <h2 className="text-4xl md:text-6xl font-black  tracking-tighter uppercase leading-none text-foreground flex items-center gap-4">
+                        <h2 className="text-4xl md:text-6xl font-black tracking-tighter uppercase leading-none text-foreground flex items-center gap-4">
                             {systemIcon} {systemTitle}
                         </h2>
-                        <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest ">{systemSubtitle}</span>
                     </div>
                 </div>
-                <div suppressHydrationWarning className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-0 border-l border-t border-border/10">
-                    {items.map((p: any) => (
-                        <ProductCard key={p.id} product={p} />
+                <div suppressHydrationWarning className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-6">
+                    {items.map((p: any, idx: number) => (
+                        <motion.div
+                            key={p.id || idx}
+                            initial={{ opacity: 0, y: 15 }}
+                            whileInView={{ opacity: 1, y: 0 }}
+                            viewport={{ once: true, margin: "0px 0px -50px 0px" }}
+                            transition={{ 
+                                duration: 0.4, 
+                                delay: (idx % 5) * 0.05,
+                                ease: [0.23, 1, 0.32, 1]
+                            }}
+                        >
+                            <ProductCard key={p.id} product={p} />
+                        </motion.div>
                     ))}
                 </div>
             </div>
@@ -146,13 +171,13 @@ export function ClientHome({
     }
 
     const combinedVisibleSections = React.useMemo(() => {
-        const systemKeys = ['newArrivals', 'featured']
+        const systemKeys = ['newArrivals', 'featured', 'flashDeals']
         const system = systemKeys
             .map(key => ({
                 id: key,
                 type: 'system',
-                order: hpConfig?.[key]?.order || (key === 'newArrivals' ? 1 : 2),
-                title: hpConfig?.[key]?.title || (key === 'newArrivals' ? "NEW ARRIVALS" : "BEST SELLERS")
+                order: hpConfig?.[key]?.order ?? (key === 'newArrivals' ? 1 : key === 'featured' ? 2 : 3),
+                title: hpConfig?.[key]?.title || (key === 'newArrivals' ? "NEW ARRIVALS" : key === 'featured' ? "BEST SELLERS" : "DISCOUNTS")
             }))
             .filter(s => hpConfig?.[s.id]?.visible !== false)
 
@@ -178,7 +203,15 @@ export function ClientHome({
 
         return [...system, ...dynamicFinal.map((sec: any) => ({ ...sec, isDynamic: true, title: sec.title || (sec.source || 'Featured Collection') }))]
             .filter((sec: any) => sec.visible !== false)
-            .sort((a, b) => a.order - b.order)
+            .sort((a: any, b: any) => {
+                // 1. Group by priority (System vs Dynamic)
+                const aRef = a.isDynamic ? 1 : 0;
+                const bRef = b.isDynamic ? 1 : 0;
+                if (aRef !== bRef) return aRef - bRef;
+                
+                // 2. Sort by order within groups
+                return (a.order || 0) - (b.order || 0);
+            })
     }, [hpConfig, cmsData?.settings?.homepageSections])
 
     return (
@@ -316,56 +349,41 @@ export function ClientHome({
                     </div>
                 ))}
 
-                {/* 4. FLASH DEALS (Contextual) */}
-                {(() => {
-                    const config = hpConfig?.flashDeals || { visible: true, title: "FLASH DEALS" };
-                    if (!config.visible) return null;
-
-                    const flashDeals = allProducts.filter((p: any) => p.isSale || p.discount > 0).slice(0, 8);
-                    if (flashDeals.length === 0) return null;
-
-                    return (
-                        <div id="flash-deals" className="flex flex-col gap-8">
-                            <div className="flex items-center justify-between border-b border-border pb-6">
-                                <div className="flex items-center gap-3">
-                                    <div className="w-10 h-10 rounded-xl bg-primary text-white flex items-center justify-center shadow-lg animate-pulse">
-                                        <Zap size={20} />
-                                    </div>
-                                    <h2 className="text-2xl font-black  uppercase tracking-tighter">{config.title}</h2>
-                                </div>
-                            </div>
-                            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-4 gap-6">
-                                {flashDeals.map((product: any) => (
-                                    <ProductCard key={product.id} product={product} />
-                                ))}
-                            </div>
+                {/* 5. OUR PRODUCTS */}
+                <div className="flex flex-col gap-12 mt-20 pt-10 border-t border-border/10">
+                    <div className="flex items-center justify-between border-b border-border/10 pb-8">
+                        <div className="flex flex-col gap-2">
+                            <h2 className="text-4xl md:text-6xl font-black tracking-tighter uppercase leading-none text-foreground flex items-center gap-4">
+                                <Box className="w-8 h-8 text-primary fill-primary" /> OUR PRODUCTS
+                            </h2>
                         </div>
-                    );
-                })()}
+                        <Link 
+                            href="/products"
+                            className="group flex items-center gap-4 px-8 py-4 bg-muted/20 border border-border/40 rounded-full hover:bg-primary hover:text-white transition-all shadow-xl shadow-black/5"
+                        >
+                            <span className="text-[10px] font-black uppercase tracking-widest">Explore All</span>
+                            <ArrowRight size={14} className="group-hover:translate-x-2 transition-transform" />
+                        </Link>
+                    </div>
 
-                {/* 5. DISCOVER MORE (Contextual) */}
-                {(() => {
-                    const config = hpConfig?.discount || { visible: true, title: "DISCOVER MORE" };
-                    if (!config.visible) return null;
-
-                    return (
-                        <div id="discover-more" className="flex flex-col gap-8 pb-20">
-                            <div className="flex items-center justify-between border-b border-border pb-6">
-                                <div className="flex items-center gap-3">
-                                    <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center border border-primary/20">
-                                        <Activity size={20} />
-                                    </div>
-                                    <h2 className="text-2xl font-black  uppercase tracking-tighter">{config.title}</h2>
-                                </div>
-                            </div>
-                            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-6">
-                                {allProducts.slice(0, 15).map((product: any) => (
-                                    <ProductCard key={product.id} product={product} />
-                                ))}
-                            </div>
-                        </div>
-                    );
-                })()}
+                    <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-6">
+                        {allProducts.slice(0, 20).map((product: any, idx: number) => (
+                            <motion.div
+                                key={product.id || idx}
+                                initial={{ opacity: 0, y: 15 }}
+                                whileInView={{ opacity: 1, y: 0 }}
+                                viewport={{ once: true, margin: "0px 0px -50px 0px" }}
+                                transition={{ 
+                                    duration: 0.4, 
+                                    delay: (idx % 5) * 0.05,
+                                    ease: [0.23, 1, 0.32, 1]
+                                }}
+                            >
+                                <ProductCard key={product.id} product={product} />
+                            </motion.div>
+                        ))}
+                    </div>
+                </div>
             </div>
         </div>
     )

@@ -111,7 +111,7 @@ export default async function Home() {
         }
 
         return (
-            <Suspense fallback={<div className="min-h-screen bg-background flex flex-col items-center justify-center gap-10"><Smartphone className="w-16 h-16 text-primary animate-pulse" /><span className="text-[10px] font-black uppercase tracking-[0.4em] ">Synchronizing Storefront...</span></div>}>
+            <Suspense fallback={<div className="min-h-screen bg-background flex flex-col items-center justify-center gap-10"><Smartphone className="w-16 h-16 text-primary animate-pulse" /></div>}>
                 <ClientHome 
                     allProducts={enrichedProducts} 
                     cmsData={cmsData} 

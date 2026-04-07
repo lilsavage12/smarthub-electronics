@@ -1310,21 +1310,19 @@ export default function CMSPage() {
 
                                     {/* 1. Default Sections Configuration */}
                                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                        {['newArrivals', 'featured', 'flashDeals', 'discount'].map((key) => {
+                                        {['newArrivals', 'featured', 'flashDeals'].sort((a, b) => (data?.hpConfig?.[a]?.order || 0) - (data?.hpConfig?.[b]?.order || 0)).map((key, idx, sortedKeys) => {
                                             const section = data.hpConfig?.[key] || { visible: true, title: key.toUpperCase(), order: 0 }
                                             let isNew = key === 'newArrivals'
                                             let isFlash = key === 'flashDeals'
-                                            let isDisc = key === 'discount'
                                             let isFeat = key === 'featured'
 
                                             let icon = <Star size={16} />
                                             let badge = "Catalog Fresh"
                                             let label = "New Arrivals"
-                                            let color = "bg-amber-500 text-white"
+                                            let color = "bg-emerald-500 text-white"
 
                                             if (isNew) { icon = <Activity size={16} />; badge = "Catalog Fresh"; label = "New Arrivals"; color = "bg-emerald-500 text-white"; }
-                                            if (isFlash) { icon = <Zap size={16} />; badge = "Flash Sales"; label = "Active Deals"; color = "bg-rose-500 text-white"; }
-                                            if (isDisc) { icon = <Percent size={16} />; badge = "Discover More"; label = "Product Grid"; color = "bg-indigo-500 text-white"; }
+                                            if (isFlash) { icon = <Percent size={16} />; badge = "Discounts"; label = "Active Offers"; color = "bg-indigo-500 text-white"; }
                                             if (isFeat) { icon = <Star size={16} />; badge = "Best Sellers"; label = "Featured Items"; color = "bg-amber-500 text-white"; }
 
                                             return (
@@ -1357,62 +1355,69 @@ export default function CMSPage() {
                                                         </div>
                                                     </div>
                                                     <div className="p-5 space-y-4">
-                                                        <div className="space-y-2">
-                                                            <label className="text-[9px] font-bold uppercase text-muted-foreground tracking-widest  ml-1">Section Title</label>
-                                                            <Input
-                                                                value={section.title}
-                                                                onChange={(e) => setData({ ...data, hpConfig: { ...data.hpConfig, [key]: { ...section, title: e.target.value } } })}
-                                                                className="h-10 bg-muted/5 border-border rounded-xl font-bold  uppercase text-[10px] px-4 focus:ring-2 focus:ring-primary/5 transition-all"
-                                                            />
-                                                        </div>
-                                                        <div className="flex items-center justify-between pt-1">
-                                                            <div className="flex items-center gap-3">
-                                                                <span className="text-[9px] font-bold uppercase text-muted-foreground tracking-widest ">Priority:</span>
-                                                                <div className="flex items-center gap-1.5 bg-muted/40 p-0.5 rounded-lg border border-border">
+                                                        <div className="flex items-center justify-between pb-2">
+                                                            <div className="flex items-center gap-4">
+                                                                <span className="text-[10px] font-black uppercase text-muted-foreground tracking-widest ">Priority:</span>
+                                                                <div className="flex items-center gap-3 bg-muted/60 p-1.5 rounded-xl border border-border/60">
                                                                     <button
                                                                         onClick={async () => {
-                                                                            const newOrder = Math.max(0, section.order - 1)
-                                                                            const newConfig = { ...data.hpConfig, [key]: { ...section, order: newOrder } }
-                                                                            setData({ ...data, hpConfig: newConfig })
+                                                                            if (idx > 0) {
+                                                                                const prevKey = sortedKeys[idx - 1]
+                                                                                const currentOrder = section.order || 0
+                                                                                const prevOrder = data.hpConfig?.[prevKey]?.order || 0
 
-                                                                            // Auto-Sync
-                                                                            try {
-                                                                                await fetch("/api/config/homepage", {
-                                                                                    method: "POST",
-                                                                                    headers: { "Content-Type": "application/json" },
-                                                                                    body: JSON.stringify(newConfig)
-                                                                                })
-                                                                                toast.success("Priority Synced")
-                                                                            } catch (e) { }
+                                                                                const newConfig = { 
+                                                                                    ...data.hpConfig, 
+                                                                                    [key]: { ...section, order: prevOrder },
+                                                                                    [prevKey]: { ...data.hpConfig?.[prevKey], order: currentOrder }
+                                                                                }
+                                                                                setData({ ...data, hpConfig: newConfig })
+                                                                                try {
+                                                                                    const res = await fetch("/api/config/homepage", {
+                                                                                        method: "POST",
+                                                                                        headers: { "Content-Type": "application/json" },
+                                                                                        body: JSON.stringify(newConfig)
+                                                                                    })
+                                                                                    if (res.ok) toast.success("Section Moved Up")
+                                                                                } catch (e) { }
+                                                                            }
                                                                         }}
-                                                                        className="h-6 w-6 rounded-md hover:bg-card flex items-center justify-center text-muted-foreground hover:text-primary"
+                                                                        disabled={idx === 0}
+                                                                        className="h-8 w-8 rounded-lg hover:bg-card flex items-center justify-center text-muted-foreground hover:text-primary transition-all border border-transparent hover:border-border disabled:opacity-20"
                                                                     >
-                                                                        <MoveUp size={10} />
+                                                                        <MoveUp size={12} />
                                                                     </button>
-                                                                    <span className="text-[10px] font-bold w-4 text-center">{section.order}</span>
+                                                                    <span className="text-sm font-black w-6 text-center">{section.order}</span>
                                                                     <button
                                                                         onClick={async () => {
-                                                                            const newOrder = section.order + 1
-                                                                            const newConfig = { ...data.hpConfig, [key]: { ...section, order: newOrder } }
-                                                                            setData({ ...data, hpConfig: newConfig })
+                                                                            if (idx < sortedKeys.length - 1) {
+                                                                                const nextKey = sortedKeys[idx + 1]
+                                                                                const currentOrder = section.order || 0
+                                                                                const nextOrder = data.hpConfig?.[nextKey]?.order || 0
 
-                                                                            // Auto-Sync
-                                                                            try {
-                                                                                await fetch("/api/config/homepage", {
-                                                                                    method: "POST",
-                                                                                    headers: { "Content-Type": "application/json" },
-                                                                                    body: JSON.stringify(newConfig)
-                                                                                })
-                                                                                toast.success("Priority Synced")
-                                                                            } catch (e) { }
+                                                                                const newConfig = { 
+                                                                                    ...data.hpConfig, 
+                                                                                    [key]: { ...section, order: nextOrder },
+                                                                                    [nextKey]: { ...data.hpConfig?.[nextKey], order: currentOrder }
+                                                                                }
+                                                                                setData({ ...data, hpConfig: newConfig })
+                                                                                try {
+                                                                                    const res = await fetch("/api/config/homepage", {
+                                                                                        method: "POST",
+                                                                                        headers: { "Content-Type": "application/json" },
+                                                                                        body: JSON.stringify(newConfig)
+                                                                                    })
+                                                                                    if (res.ok) toast.success("Section Moved Down")
+                                                                                } catch (e) { }
+                                                                            }
                                                                         }}
-                                                                        className="h-6 w-6 rounded-md hover:bg-card flex items-center justify-center text-muted-foreground hover:text-primary"
+                                                                        disabled={idx === sortedKeys.length - 1}
+                                                                        className="h-8 w-8 rounded-lg hover:bg-card flex items-center justify-center text-muted-foreground hover:text-primary transition-all border border-transparent hover:border-border disabled:opacity-20"
                                                                     >
-                                                                        <MoveDown size={10} />
+                                                                        <MoveDown size={12} />
                                                                     </button>
                                                                 </div>
                                                             </div>
-                                                            <div className="px-2 py-0.5 bg-muted border border-border rounded text-[8px] font-bold text-muted-foreground uppercase">System</div>
                                                         </div>
                                                     </div>
                                                 </Card>
@@ -1466,12 +1471,6 @@ export default function CMSPage() {
                                                         <div className="flex items-center gap-4">
                                                             <div className="w-12 h-12 rounded-2xl bg-muted border border-border flex items-center justify-center text-sm font-black  shadow-inner shrink-0 group-hover:scale-110 transition-transform">
                                                                 {idx + 1}
-                                                            </div>
-                                                            <div className={cn(
-                                                                "w-14 h-14 rounded-2xl flex items-center justify-center text-xl shadow-lg border-2",
-                                                                sec.type === "brand" ? "bg-amber-500/10 border-amber-500/20 text-amber-500" : "bg-indigo-500/10 border-indigo-500/20 text-indigo-500"
-                                                            )}>
-                                                                {sec.type === "brand" ? <Tag size={24} /> : <Box size={24} />}
                                                             </div>
                                                         </div>
                                                         <div className="flex flex-col min-w-0">

@@ -70,12 +70,6 @@ export function DynamicProductSection({
             <div suppressHydrationWarning className="container mx-auto px-4 md:px-8 flex flex-col gap-10">
                 <div suppressHydrationWarning className="flex flex-col md:flex-row md:items-end justify-between gap-6 border-b border-border/10 pb-8">
                     <div suppressHydrationWarning className="flex flex-col gap-4">
-                        <div suppressHydrationWarning className="flex items-center gap-3">
-                            <div className="w-8 h-px bg-primary/40" />
-                            <span className="text-[10px] font-black uppercase tracking-[0.4em] text-primary  leading-none">
-                                Feature {type === 'brand' ? 'Spotlight' : 'Collection'} 
-                            </span>
-                        </div>
                         <h2 className="text-4xl md:text-5xl font-black  tracking-tighter uppercase leading-none text-foreground">
                             {title}
                         </h2>
@@ -94,10 +88,14 @@ export function DynamicProductSection({
                     {displayProducts.map((product, idx) => (
                         <motion.div
                             key={product.id || idx}
-                            initial={{ opacity: 0, y: 30 }}
+                            initial={{ opacity: 0, y: 15 }}
                             whileInView={{ opacity: 1, y: 0 }}
-                            viewport={{ once: true }}
-                            transition={{ delay: (idx % 4) * 0.1 }}
+                            viewport={{ once: true, margin: "0px 0px -50px 0px" }}
+                            transition={{ 
+                                duration: 0.4, 
+                                delay: (idx % 4) * 0.05,
+                                ease: [0.23, 1, 0.32, 1]
+                            }}
                         >
                             <ProductCard product={product} />
                         </motion.div>
