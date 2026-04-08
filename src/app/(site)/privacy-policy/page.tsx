@@ -4,7 +4,7 @@ import { ContentLayout } from "@/components/site/ContentLayout"
 import { ShieldCheck, Zap, Smartphone } from "lucide-react"
 
 export const metadata = {
-    title: "Privacy Policy | SmartHub Electronics",
+    title: "Privacy Policy",
     description: "Our official data handling policy and security standards."
 }
 

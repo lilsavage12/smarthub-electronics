@@ -4,7 +4,7 @@ import { ContentLayout } from "@/components/site/ContentLayout"
 import { Truck } from "lucide-react"
 
 export const metadata = {
-    title: "Shipping & Return Policy | SmartHub Electronics",
+    title: "Shipping & Return Policy",
     description: "Official delivery, logistical standards, and return policies."
 }
 

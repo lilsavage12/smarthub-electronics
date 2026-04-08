@@ -105,6 +105,11 @@ function ProductsContent() {
             if (activeFilters.onSale && !product.isSale && !product.tags?.includes("Flash")) return false
             return true
         }).sort((a, b) => {
+            // Priority 0: Forced Stock Ranking (Available=0, SoldOut=1)
+            const aS = (Number(a.stock) || 0) > 0 ? 0 : 1
+            const bS = (Number(b.stock) || 0) > 0 ? 0 : 1
+            if (aS !== bS) return aS - bS
+
             if (sortBy === "price-low") return a.price - b.price
             if (sortBy === "price-high") return b.price - a.price
             if (sortBy === "rating") return b.rating - a.rating

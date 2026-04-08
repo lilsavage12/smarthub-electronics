@@ -1,22 +1,17 @@
-
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { Smartphone, Home, ArrowLeft, Search } from 'lucide-react';
-import { Navbar } from '@/components/layout/Navbar';
-import { Footer } from '@/components/layout/Footer';
+import { Smartphone, Home, Search } from 'lucide-react';
 
 export default function NotFound() {
     return (
-        <div className="flex flex-col min-h-screen bg-background" suppressHydrationWarning>
-            <Navbar />
-            <main className="flex-1 flex flex-col items-center justify-center p-6 text-center" suppressHydrationWarning>
-                <div className="relative group mb-8" suppressHydrationWarning>
-                    <div className="absolute inset-0 bg-primary/20 blur-3xl rounded-full scale-150 animate-pulse" />
-                    <Smartphone className="w-32 h-32 lg:w-48 lg:h-48 text-primary relative z-10 transition-transform group-hover:scale-110 duration-500" />
-                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-9xl font-black  opacity-10 tracking-tighter select-none">
-                        404
-                    </div>
+        <main className="flex-1 flex flex-col items-center justify-center py-24 px-6 text-center min-h-[70vh]" suppressHydrationWarning>
+            <div className="relative group mb-8" suppressHydrationWarning>
+                <div className="absolute inset-0 bg-primary/20 blur-3xl rounded-full scale-150 animate-pulse" />
+                <Smartphone className="w-32 h-32 lg:w-48 lg:h-48 text-primary relative z-10 transition-transform group-hover:scale-110 duration-500" />
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-9xl font-black opacity-10 tracking-tighter select-none">
+                    404
                 </div>
+            </div>
 
                 <h1 className="text-4xl lg:text-7xl font-black  uppercase tracking-tighter mb-4 font-outfit" suppressHydrationWarning>
                     Connection <span className="text-primary">Lost</span>
@@ -41,7 +36,5 @@ export default function NotFound() {
                     </Link>
                 </div>
             </main>
-            <Footer />
-        </div>
     );
 }

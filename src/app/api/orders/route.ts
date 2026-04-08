@@ -29,89 +29,97 @@ export async function POST(req: Request) {
         let subtotal = 0
 
         for (const item of items) {
-            const product = products.find(p => p.id === item.productId)
-            if (!product) throw new Error(`Product ${item.productId} not found`)
+            // Re-fetch FRESH data for each item to prevent stale overrides in multi-item orders
+            const { data: product, error: freshErr } = await supabaseAdmin
+                .from('Product')
+                .select('*, variants:ProductVariant(*)')
+                .eq('id', item.productId)
+                .maybeSingle()
+
+            if (!product || freshErr) throw new Error(`Product ${item.id} not found or unavailable`)
             
-            // Capture the specific variant name and price from the request
             const itemPrice = item.price || product.price
             const itemName = item.name || product.name
             const originalPrice = item.originalPrice || product.price
 
-            // STOCK DEDUCTION LOGIC
-            // 1. Deduct from base product regardless (global availability)
-            const newProductStock = (product.stock || 0) - item.quantity
-            console.log(`Inventory: Deducting ${item.quantity} from Base Product ${product.id} stock (${product.stock} -> ${newProductStock})`)
-            
-            const { error: stockError } = await supabaseAdmin
-                .from('Product')
-                .update({ stock: Math.max(0, newProductStock) })
-                .eq('id', product.id)
-            
-            if (stockError) {
-                console.error(`Inventory: Base stock update error for ${product.id}:`, stockError)
-                // Continue though, try to update variants
-            }
-
+            // Prepare for pool-aware updates
+            let pSpecs = typeof product.specs === 'string' ? JSON.parse(product.specs || '{}') : (product.specs || {})
+            const pColors = pSpecs.productColors || []
             let matchedVariantId = null
-            
-            // 2. Identify and Deduct from Variant Stock
-            // Use storage and ram to find the variant
+
+            // 1. Validate & Deduct specifically for Variants
             if (item.ram || item.storage) {
                 const variant = (product.variants || []).find((v: any) => 
                     String(v.ram) === String(item.ram) && String(v.storage) === String(item.storage)
                 )
-                if (variant) {
-                    matchedVariantId = variant.id
-                    // Deduct from variant colors if color provided
-                    if (item.color) {
-                        let vColors = []
-                        try { vColors = typeof variant.productColors === 'string' ? JSON.parse(variant.productColors) : (variant.productColors || []) } catch { vColors = [] }
-                        
-                        const colorIdx = vColors.findIndex((c: any) => String(c.color || '').toLowerCase() === String(item.color || '').toLowerCase())
-                        if (colorIdx >= 0) {
-                            const currentStockValue = parseInt(vColors[colorIdx].stock) || 0
-                            vColors[colorIdx].stock = Math.max(0, currentStockValue - item.quantity).toString()
-                            
-                            console.log(`Inventory: Deducting from Variant ${variant.id} - Color ${item.color} (${currentStockValue} -> ${vColors[colorIdx].stock})`)
-                            
-                            const { error: variantError } = await supabaseAdmin
-                                .from('ProductVariant')
-                                .update({ productColors: JSON.stringify(vColors) })
-                                .eq('id', variant.id)
-                            
-                            if (variantError) {
-                                console.error(`Inventory: Variant stock update error for ${variant.id}:`, variantError)
-                                throw new Error(`Failed to update stock for variant ${variant.id}`)
-                            }
-                        } else {
-                            console.warn(`Inventory: Color ${item.color} not found in Variant ${variant.id}`)
-                        }
+                if (!variant) throw new Error(`Specific configuration (${item.ram}/${item.storage}) not available`)
+                matchedVariantId = variant.id
+
+                if (item.color) {
+                    let vColors = typeof variant.productColors === 'string' ? JSON.parse(variant.productColors || '[]') : (variant.productColors || [])
+                    const vcIdx = vColors.findIndex((c: any) => String(c.color || '').toLowerCase() === String(item.color || '').toLowerCase())
+                    
+                    if (vcIdx < 0) throw new Error(`Color ${item.color} not available for this variant`)
+                    const vStock = parseInt(vColors[vcIdx].stock) || 0
+                    if (vStock < item.quantity) throw new Error(`Only ${vStock} units of ${item.color} available for this model`)
+
+                    // Deduct from Variant Stock
+                    vColors[vcIdx].stock = String(vStock - item.quantity)
+                    
+                    // Deduct from Master Color Pool in Specs
+                    const poolIdx = pColors.findIndex((c: any) => String(c.color || '').toLowerCase() === String(item.color || '').toLowerCase())
+                    if (poolIdx >= 0) {
+                        const poolStock = parseInt(pColors[poolIdx].stock) || 0
+                        pColors[poolIdx].stock = String(Math.max(0, poolStock - item.quantity))
                     }
+
+                    // Save Variant Update
+                    await supabaseAdmin.from('ProductVariant').update({ productColors: JSON.stringify(vColors) }).eq('id', variant.id)
                 } else {
-                    console.warn(`Inventory: No variant found matching RAM: ${item.ram}, Storage: ${item.storage} for Product ${product.id}`)
+                    // Standard Variant (no colors)
+                    const vStock = parseInt(variant.stock) || 0
+                    if (vStock < item.quantity) throw new Error(`Insufficient stock for ${item.ram}/${item.storage}`)
+                    await supabaseAdmin.from('ProductVariant').update({ stock: vStock - item.quantity }).eq('id', variant.id)
                 }
             } else if (item.color) {
-                // Deduct from master product colors if no specific RAM/Storage variant
-                let pSpecs = product.specs || {}
-                if (typeof pSpecs === 'string') try { pSpecs = JSON.parse(pSpecs) } catch { pSpecs = {} }
+                // 2. Validate & Deduct for Base Color Model
+                const poolIdx = pColors.findIndex((c: any) => String(c.color || '').toLowerCase() === String(item.color || '').toLowerCase())
+                if (poolIdx < 0) throw new Error(`Color ${item.color} not available`)
+
+                const totalPool = parseInt(pColors[poolIdx].stock) || 0
                 
-                let pColors = pSpecs.productColors || []
-                const colorIdx = pColors.findIndex((c: any) => String(c.color || '').toLowerCase() === String(item.color || '').toLowerCase())
-                if (colorIdx >= 0) {
-                    const currentStockValue = parseInt(pColors[colorIdx].stock) || 0
-                    pColors[colorIdx].stock = Math.max(0, currentStockValue - item.quantity).toString()
-                    pSpecs.productColors = pColors
-                    
-                    console.log(`Inventory: Deducting from Master Specs - Color ${item.color} (${currentStockValue} -> ${pColors[colorIdx].stock})`)
-                    
-                    const { error: specsError } = await supabaseAdmin
-                        .from('Product')
-                        .update({ specs: JSON.stringify(pSpecs) })
-                        .eq('id', product.id)
-                    
-                    if (specsError) console.error(`Inventory: Master specs update error for ${product.id}:`, specsError)
+                // Calculate current allocation to all variants of this color
+                let currentAllocation = 0
+                product.variants?.forEach((v: any) => {
+                    const vcs = typeof v.productColors === 'string' ? JSON.parse(v.productColors || '[]') : (v.productColors || [])
+                    const vc = vcs.find((c: any) => String(c.color || '').toLowerCase() === String(item.color || '').toLowerCase())
+                    if (vc) currentAllocation += (parseInt(vc.stock) || 0)
+                })
+
+                const baseRemainder = totalPool - currentAllocation
+                if (baseRemainder < item.quantity) {
+                    throw new Error(`Only ${baseRemainder} units of ${item.color} available for the base model.`)
                 }
+
+                // Deduct from Master Pool
+                pColors[poolIdx].stock = String(totalPool - item.quantity)
+            } else {
+                // 3. Simple Standard Product (no variants, no colors)
+                if ((product.stock || 0) < item.quantity) throw new Error(`Only ${product.stock} units available`)
             }
+
+            // Sync Master Specs if updated
+            pSpecs.productColors = pColors
+            
+            // Recalculate Global Product Stock (Sum of Pools)
+            const finalProductStock = pColors.length > 0 
+                ? pColors.reduce((acc: number, c: any) => acc + (parseInt(c.stock) || 0), 0)
+                : (product.stock || 0) - item.quantity
+
+            await supabaseAdmin.from('Product').update({ 
+                specs: JSON.stringify(pSpecs),
+                stock: Math.max(0, finalProductStock)
+            }).eq('id', product.id)
 
             verifiedItems.push({
                 productId: product.id,

@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState } from "react"
+import React, { useState, useRef, useCallback } from "react"
 import { Smartphone, Filter, ChevronDown, CheckCircle2, SlidersHorizontal, RefreshCw, Star, Box, Zap, Tag, Coins, ShieldCheck } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
@@ -9,12 +9,14 @@ const RATINGS = [4, 3, 2, 1]
 const RAM_OPTIONS = ["4GB", "6GB", "8GB", "12GB", "16GB", "32GB"]
 const STORAGE_OPTIONS = ["64GB", "128GB", "256GB", "512GB", "1TB"]
 
-export const SideFilter = ({ brands = [], activeFilters, setActiveFilters, counts, isMobile = false }: { 
-    brands?: any[], 
-    activeFilters: any, 
+export const SideFilter = ({ brands = [], categories = [], activeFilters, setActiveFilters, counts, isMobile = false, maxProductPrice = 1000000 }: {
+    brands?: any[],
+    categories?: string[],
+    activeFilters: any,
     setActiveFilters: any,
     counts?: { brands: Record<string, number>, categories: Record<string, number> },
-    isMobile?: boolean
+    isMobile?: boolean,
+    maxProductPrice?: number
 }) => {
     const [expandedSections, setExpandedSections] = useState(["brand", "category", "price", "mobile"])
 
@@ -33,13 +35,13 @@ export const SideFilter = ({ brands = [], activeFilters, setActiveFilters, count
     }
 
     const resetFilters = () => {
-        setActiveFilters({ 
-            brands: [], 
-            categories: [], 
-            minPrice: 0, 
-            maxPrice: 1000000, 
-            rating: 0, 
-            inStock: false, 
+        setActiveFilters({
+            brands: [],
+            categories: [],
+            minPrice: 0,
+            maxPrice: maxProductPrice,
+            rating: 0,
+            inStock: false,
             onSale: false,
             ram: [],
             storage: [],
@@ -51,15 +53,15 @@ export const SideFilter = ({ brands = [], activeFilters, setActiveFilters, count
             onClick={onClick}
             className={cn(
                 "flex items-center justify-between text-[11px] font-black uppercase tracking-widest py-3 px-4 rounded-xl transition-all border w-full text-left ",
-                active 
-                    ? "bg-primary text-white border-primary shadow-lg shadow-primary/20" 
+                active
+                    ? "bg-primary text-white border-primary shadow-lg shadow-primary/20"
                     : "bg-muted/30 border-transparent text-muted-foreground hover:bg-muted"
             )}
         >
             <div suppressHydrationWarning className="flex items-center gap-2">
                 {children}
                 {count !== undefined && (
-                    <span className={cn("text-[9px] font-bold opacity-40 ml-1", active ? "text-white" : "text-muted-foreground")}>({count})</span>
+                    <span className={cn("text-[8px] font-bold opacity-40 ml-1", active ? "text-white" : "text-muted-foreground")}>({count})</span>
                 )}
             </div>
             {active && <CheckCircle2 className="w-3.5 h-3.5" />}
@@ -67,7 +69,7 @@ export const SideFilter = ({ brands = [], activeFilters, setActiveFilters, count
     )
 
     return (
-        <div 
+        <div
             suppressHydrationWarning
             className={cn(
                 "flex flex-col gap-10 animate-in fade-in duration-500",
@@ -83,9 +85,9 @@ export const SideFilter = ({ brands = [], activeFilters, setActiveFilters, count
                             Filters
                         </h3>
                     </div>
-                    <button 
-                      onClick={resetFilters}
-                      className="p-2 bg-muted/40 rounded-xl hover:bg-muted transition-all group"
+                    <button
+                        onClick={resetFilters}
+                        className="p-2 bg-muted/40 rounded-xl hover:bg-muted transition-all group"
                     >
                         <RefreshCw className="w-3.5 h-3.5 text-muted-foreground group-hover:rotate-180 transition-transform duration-500" />
                     </button>
@@ -114,8 +116,8 @@ export const SideFilter = ({ brands = [], activeFilters, setActiveFilters, count
                                     onClick={() => toggleArrayFilter("brands", name)}
                                     className={cn(
                                         "px-4 py-2.5 rounded-xl border text-[9px] font-black uppercase tracking-widest transition-all",
-                                        isActive 
-                                            ? "bg-primary border-primary text-white shadow-xl shadow-primary/20" 
+                                        isActive
+                                            ? "bg-primary border-primary text-white shadow-xl shadow-primary/20"
                                             : "bg-muted/10 border-border/50 text-muted-foreground hover:border-primary/40"
                                     )}
                                 >
@@ -140,10 +142,10 @@ export const SideFilter = ({ brands = [], activeFilters, setActiveFilters, count
                 </button>
                 {expandedSections.includes("category") && (
                     <div className="flex flex-col gap-2">
-                        {Object.keys(counts?.categories || {}).map((cat) => (
-                            <FilterButton 
-                                key={cat} 
-                                active={activeFilters.categories.includes(cat)} 
+                        {categories.map((cat) => (
+                            <FilterButton
+                                key={cat}
+                                active={activeFilters.categories.includes(cat)}
                                 onClick={() => toggleArrayFilter("categories", cat)}
                                 count={counts?.categories?.[cat]}
                             >
@@ -166,29 +168,87 @@ export const SideFilter = ({ brands = [], activeFilters, setActiveFilters, count
                     </div>
                 </button>
                 {expandedSections.includes("price") && (
-                    <div className="grid grid-cols-2 gap-3 mt-1" suppressHydrationWarning>
-                         <div className="flex flex-col gap-2">
-                            <span className="text-[8px] font-black text-muted-foreground uppercase opacity-40">Min</span>
-                            <div className="relative">
-                                <input 
-                                    type="number" 
-                                    value={activeFilters.minPrice}
-                                    onChange={(e) => setActiveFilters({ ...activeFilters, minPrice: parseInt(e.target.value) || 0 })}
-                                    className="h-12 bg-muted/20 border border-border/50 rounded-xl px-4 text-[10px] font-black w-full outline-none focus:border-primary transition-all pr-10"
+                    <div className="flex flex-col gap-6" suppressHydrationWarning>
+                        {/* Dual-Handle Range Slider */}
+                        <div className="flex flex-col gap-3 px-1">
+                            <div className="relative h-5 flex items-center" suppressHydrationWarning>
+                                {/* Track background */}
+                                <div className="absolute w-full h-1.5 rounded-full bg-muted" />
+                                {/* Active range fill */}
+                                <div
+                                    className="absolute h-1.5 rounded-full bg-primary"
+                                    style={{
+                                        left: `${(activeFilters.minPrice / maxProductPrice) * 100}%`,
+                                        right: `${100 - (Math.min(activeFilters.maxPrice, maxProductPrice) / maxProductPrice) * 100}%`
+                                    }}
                                 />
-                                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[8px] font-black opacity-30 ">KSh</span>
+                                {/* Min handle */}
+                                <input
+                                    type="range"
+                                    min="0"
+                                    max={maxProductPrice}
+                                    step={Math.max(1000, Math.floor(maxProductPrice / 100))}
+                                    value={activeFilters.minPrice}
+                                    onChange={(e) => {
+                                        const val = parseInt(e.target.value)
+                                        if (val < activeFilters.maxPrice) {
+                                            setActiveFilters({ ...activeFilters, minPrice: val })
+                                        }
+                                    }}
+                                    className="absolute w-full h-1.5 appearance-none bg-transparent cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-primary [&::-webkit-slider-thumb]:shadow-md [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-white [&::-webkit-slider-thumb]:cursor-grab [&::-webkit-slider-thumb]:active:cursor-grabbing"
+                                />
+                                {/* Max handle */}
+                                <input
+                                    type="range"
+                                    min="0"
+                                    max={maxProductPrice}
+                                    step={Math.max(1000, Math.floor(maxProductPrice / 100))}
+                                    value={Math.min(activeFilters.maxPrice, maxProductPrice)}
+                                    onChange={(e) => {
+                                        const val = parseInt(e.target.value)
+                                        if (val > activeFilters.minPrice) {
+                                            setActiveFilters({ ...activeFilters, maxPrice: val })
+                                        }
+                                    }}
+                                    className="absolute w-full h-1.5 appearance-none bg-transparent cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-primary [&::-webkit-slider-thumb]:shadow-md [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-white [&::-webkit-slider-thumb]:cursor-grab [&::-webkit-slider-thumb]:active:cursor-grabbing"
+                                />
+                            </div>
+                            <div className="flex justify-between text-[8px] font-black text-muted-foreground uppercase opacity-40">
+                                <span>0 KSh</span>
+                                <span>{(maxProductPrice / 1000).toFixed(0)}K KSh</span>
                             </div>
                         </div>
-                        <div className="flex flex-col gap-2">
-                            <span className="text-[8px] font-black text-muted-foreground uppercase opacity-40">Max</span>
-                            <div className="relative">
-                                <input 
-                                    type="number" 
-                                    value={activeFilters.maxPrice}
-                                    onChange={(e) => setActiveFilters({ ...activeFilters, maxPrice: parseInt(e.target.value) || 0 })}
-                                    className="h-12 bg-muted/20 border border-border/50 rounded-xl px-4 text-[10px] font-black w-full outline-none focus:border-primary transition-all pr-10"
-                                />
-                                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[8px] font-black opacity-30 ">KSh</span>
+
+                        <div className="grid grid-cols-2 gap-3 mt-1" suppressHydrationWarning>
+                            <div className="flex flex-col gap-2">
+                                <span className="text-[8px] font-black text-muted-foreground uppercase opacity-40">Min</span>
+                                <div className="relative">
+                                    <input
+                                        type="number"
+                                        value={activeFilters.minPrice}
+                                        onChange={(e) => {
+                                            const val = parseInt(e.target.value) || 0
+                                            if (val < activeFilters.maxPrice) setActiveFilters({ ...activeFilters, minPrice: val })
+                                        }}
+                                        className="h-12 bg-muted/20 border border-border/50 rounded-xl px-4 text-[10px] font-black w-full outline-none focus:border-primary transition-all pr-10"
+                                    />
+                                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[8px] font-black opacity-30 ">KSh</span>
+                                </div>
+                            </div>
+                            <div className="flex flex-col gap-2">
+                                <span className="text-[8px] font-black text-muted-foreground uppercase opacity-40">Max</span>
+                                <div className="relative">
+                                    <input
+                                        type="number"
+                                        value={activeFilters.maxPrice}
+                                        onChange={(e) => {
+                                            const val = parseInt(e.target.value) || 0
+                                            if (val > activeFilters.minPrice) setActiveFilters({ ...activeFilters, maxPrice: val })
+                                        }}
+                                        className="h-12 bg-muted/20 border border-border/50 rounded-xl px-4 text-[10px] font-black w-full outline-none focus:border-primary transition-all pr-10"
+                                    />
+                                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[8px] font-black opacity-30 ">KSh</span>
+                                </div>
                             </div>
                         </div>
                     </div>

@@ -8,7 +8,16 @@ import { notFound } from "next/navigation"
 // Enable ISR (Every 1 hour)
 export const revalidate = 3600
 
-// Optimistic static generation for the top 50 products
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<any> {
+    const { id: rawId } = await params
+    const id = rawId.includes('--') ? rawId.split('--').pop() : rawId
+    const { data: product } = await supabaseAdmin.from('Product').select('name').eq('id', id).maybeSingle()
+    
+    return {
+        title: product?.name || "Product Details",
+    }
+}
+
 export async function generateStaticParams() {
     const { data: products } = await supabaseAdmin
         .from('Product')
@@ -33,19 +42,33 @@ export default async function ProductPage({ params }: { params: Promise<{ id: st
         const { data: product, error: pErr } = await supabaseAdmin.from('Product').select('*, variants:ProductVariant(*)').eq('id', id).maybeSingle()
         if (!product || pErr) return notFound()
 
-        // 2. High-precision Related Inventory Retrieval
-        // Priority: Same Brand -> Same Category (Excluding self)
+        // 2. Enforce Visibility Rules
+        let parsedSpecs = {} as any
+        if (typeof product.specs === "string") {
+            try { parsedSpecs = JSON.parse(product.specs) } catch { parsedSpecs = {} }
+        } else { parsedSpecs = product.specs || {} }
+
+        if (parsedSpecs?.identity?.isHidden) {
+            console.log(`Access denied: Product ${id} is hidden.`)
+            return notFound()
+        }
+
+        // 2. High-precision Related Inventory Retrieval (Brand Only)
         const [
-            { data: brandRes },
-            { data: catRes },
+            { data: relatedResults },
             { data: promos }
         ] = await Promise.all([
-            supabaseAdmin.from('Product').select('*, variants:ProductVariant(*)').eq('brand', product.brand).neq('id', id).limit(12),
-            supabaseAdmin.from('Product').select('*, variants:ProductVariant(*)').eq('category', product.category).neq('brand', product.brand).neq('id', id).limit(12),
+            supabaseAdmin.from('Product').select('*, variants:ProductVariant(*)').eq('brand', product.brand).neq('id', id).limit(20),
             supabaseAdmin.from('Promotion').select('*, products:PromotionProduct(*)').eq('isActive', true)
         ])
 
-        const relatedRes = [...(brandRes || []), ...(catRes || [])].slice(0, 12)
+        // Filter out hidden related products
+        const filteredRelated = (relatedResults || []).filter(p => {
+            let s = {} as any
+            const specsStr = typeof p.specs === "string" ? p.specs : JSON.stringify(p.specs || {})
+            try { s = JSON.parse(specsStr) } catch { s = {} }
+            return !s?.identity?.isHidden
+        }).slice(0, 12)
 
         // 2. High-speed Promotion Enrichment
         const productPromos = (promos || []).filter(p => 
@@ -90,7 +113,7 @@ export default async function ProductPage({ params }: { params: Promise<{ id: st
                         <span className="text-[10px] font-black uppercase tracking-[0.4em]  opacity-50">Calibrating Product Experience...</span>
                     </div>
                 }>
-                    <ClientProductDetail product={fullProduct} relatedProducts={relatedRes || []} />
+                    <ClientProductDetail product={fullProduct} relatedProducts={filteredRelated} />
                 </Suspense>
             </div>
         )

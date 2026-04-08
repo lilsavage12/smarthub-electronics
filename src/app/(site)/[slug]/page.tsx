@@ -14,10 +14,10 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
         .eq('slug', slug)
         .maybeSingle()
 
-    if (!page) return { title: "Page Not Found | SmartHub" }
+    if (!page) return { title: "Page Not Found" }
 
     return {
-        title: `${page.seoTitle || page.title} | SmartHub`,
+        title: page.seoTitle || page.title,
         description: page.seoDescription || "Information cluster for SmartHub Electronics.",
     }
 }

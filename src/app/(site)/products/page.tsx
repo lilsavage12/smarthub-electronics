@@ -5,6 +5,11 @@ import { supabaseAdmin } from "@/lib/supabase"
 
 export const revalidate = 600
 
+export const metadata = {
+    title: "All Products",
+    description: "Explorer our full collection of smartphones and electronics."
+}
+
 export default async function ProductsPage() {
     // Parallel fetch from Supabase
     const [
@@ -37,6 +42,12 @@ export default async function ProductsPage() {
             ...p,
             promotions: [...(p.promotions || []), ...productPromos]
         }
+    }).filter(p => {
+        let specs = {} as any
+        if (typeof p.specs === "string") {
+            try { specs = JSON.parse(p.specs) } catch { specs = {} }
+        } else { specs = p.specs || {} }
+        return !specs?.identity?.isHidden
     })
 
     const cmsData = {

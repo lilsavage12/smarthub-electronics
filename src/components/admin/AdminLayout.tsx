@@ -8,7 +8,7 @@ import {
     Package, Users, Truck, CreditCard, ShieldCheck,
     Percent, BarChart3, FileText, Settings,
     ChevronLeft, ChevronRight, Bell, Search,
-    MessageSquare, Plus, User, LogOut, Shield, Menu, X, Zap, RefreshCcw,
+    MessageSquare, Plus, User, LogOut, Shield, Menu, X, Zap, RefreshCcw, Box,
     Circle, ChevronUp, Activity, Image as ImageIcon
 } from "lucide-react"
 import Link from "next/link"
@@ -238,7 +238,8 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
         },
         {
             group: "Products", items: [
-                { name: "Products", icon: <Smartphone className="w-[18px] h-[18px]" />, href: "/hub-control/products" },
+                { name: "Inventory", icon: <Smartphone className="w-[18px] h-[18px]" />, href: "/hub-control/products" },
+                { name: "Stock Manager", icon: <Box className="w-[18px] h-[18px]" />, href: "/hub-control/stock" },
                 { name: "Discounts", icon: <Percent className="w-[18px] h-[18px]" />, href: "/hub-control/discounts" },
             ]
         },

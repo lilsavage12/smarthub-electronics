@@ -13,8 +13,8 @@ const WhatsAppIcon = ({ size = 18, className }: { size?: number, className?: str
 )
 
 const TikTokIcon = ({ size = 18, className }: { size?: number, className?: string }) => (
-    <svg viewBox="0 0 24 24" width={size} height={size} fill="currentColor" className={className}>
-        <path d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.17-2.89-.6-4.13-1.47V15.5c0 1.93-.53 3.81-1.62 5.34-1.29 1.83-3.41 2.97-5.63 3.14-2.21.17-4.43-.51-6.12-1.93C3.04 20.3 1.85 18 1.87 15.65c-.01-2.24 1.09-4.47 2.87-5.83 1.6-1.24 3.65-1.85 5.67-1.74.08 1.44-.45 2.88-1.51 3.86-1.12 1.03-2.73 1.48-4.22 1.25-.01.99.11 1.99.64 2.84.58.91 1.57 1.56 2.62 1.72 1.04.16 2.11-.06 3.02-.63.9-.55 1.48-1.52 1.59-2.55V.02z" />
+    <svg viewBox="0 0 448 512" width={size} height={size} fill="currentColor" className={className}>
+        <path d="M448,209.91a210.06,210.06,0,0,1-122.77-39.25V349.38A162.55,162.55,0,1,1,185,188.31V278.2a74.62,74.62,0,1,0,52.23,71.18V0l88,0a121.18,121.18,0,0,0,1.86,22.11h0A122.18,122.18,0,0,0,448,109.67Z" />
     </svg>
 )
 
@@ -101,10 +101,10 @@ export const Footer = ({ initialSettings }: { initialSettings?: any }) => {
                             <h4 className="font-black text-xs-fluid uppercase tracking-widest  text-primary/80">{section.title}</h4>
                             <ul className="flex flex-col gap-3" suppressHydrationWarning>
                                 {section.links.map((link: any) => (
-                                    <li key={link.name}>
-                                        <Link href={link.href} className="relative group/footer text-xs-fluid font-bold text-muted-foreground hover:text-primary transition-all inline-block uppercase tracking-widest">
+                                    <li key={link.name} suppressHydrationWarning>
+                                        <Link href={link.href} className="relative group/footer text-xs-fluid font-bold text-muted-foreground hover:text-primary transition-all inline-block uppercase tracking-widest" suppressHydrationWarning>
                                             {link.name}
-                                            <div className="absolute -bottom-1 left-0 w-0 h-[1.5px] bg-primary transition-all duration-300 group-hover/footer:w-full" />
+                                            <span className="absolute -bottom-1 left-0 w-0 h-[1.5px] bg-primary transition-all duration-300 group-hover/footer:w-full" />
                                         </Link>
                                     </li>
                                 ))}
@@ -146,6 +146,7 @@ export const Footer = ({ initialSettings }: { initialSettings?: any }) => {
                                                 rel="noopener noreferrer"
                                                 className="w-10 h-10 rounded-xl bg-muted-foreground/10 border border-border/50 flex items-center justify-center text-muted-foreground hover:bg-primary hover:text-white transition-all duration-300"
                                                 title={platform}
+                                                suppressHydrationWarning
                                             >
                                                 {icon}
                                             </a>

@@ -71,6 +71,7 @@ export async function GET(req: Request) {
         const { searchParams } = new URL(req.url)
         const category = searchParams.get("category")
         const limitStr = searchParams.get("limit")
+        const showAll = searchParams.get("all") === "true"
         const limit = limitStr ? parseInt(limitStr) : 100
 
         console.log(`Supabase: Product fetch request - Category: ${category || 'ALL'}, Limit: ${limit}`)
@@ -130,7 +131,12 @@ export async function GET(req: Request) {
             }
         })
 
-        return NextResponse.json(enrichedProducts)
+        const filteredProducts = enrichedProducts.filter((p: any) => {
+            if (showAll) return true
+            return !p.specs?.identity?.isHidden
+        })
+
+        return NextResponse.json(filteredProducts)
     } catch (error: any) {
         console.error("Supabase Database Fetch Failure:", error)
         return NextResponse.json({ 

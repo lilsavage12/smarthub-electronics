@@ -43,6 +43,7 @@ export default function CheckoutPage() {
     const [saveNewAddress, setSaveNewAddress] = useState(false)
     const [isMounted, setIsMounted] = useState(false)
     const [transactionCode, setTransactionCode] = useState("")
+    const [agreedToTerms, setAgreedToTerms] = useState(false)
     
     useEffect(() => {
         setIsMounted(true)
@@ -185,6 +186,14 @@ export default function CheckoutPage() {
     const finalTotal = subtotal - discountAmount + shipping
 
     const handleCompleteOrder = async () => {
+        if (!agreedToTerms) {
+            toast.error("Please agree to the Terms and Conditions to proceed")
+            return
+        }
+        if (paymentOption === 'online' && !transactionCode) {
+            toast.error("Please enter the M-PESA Transaction Code")
+            return
+        }
         setIsProcessing(true)
         const loadingToast = toast.loading("Confirming your order...")
 
@@ -352,6 +361,8 @@ export default function CheckoutPage() {
                                 finalTotal={finalTotal}
                                 handleCompleteOrder={handleCompleteOrder}
                                 isProcessing={isProcessing}
+                                agreedToTerms={agreedToTerms}
+                                setAgreedToTerms={setAgreedToTerms}
                             />
                         )}
                     </AnimatePresence>
@@ -636,7 +647,8 @@ function PaymentStep({
     paymentOption, setPaymentOption, 
     transactionCode, setTransactionCode, 
     formData, setFormData, finalTotal, 
-    handleCompleteOrder, isProcessing 
+    handleCompleteOrder, isProcessing,
+    agreedToTerms, setAgreedToTerms
 }: any) {
     return (
         <motion.div
@@ -799,10 +811,30 @@ function PaymentStep({
                 )}
             </AnimatePresence>
 
-            <div className="flex flex-col gap-4">
+            <div className="flex flex-col gap-6">
+                <label className="flex items-center gap-3 p-4 bg-muted/20 border border-border rounded-xl cursor-pointer hover:bg-muted/30 transition-colors group">
+                    <div className="relative flex items-center">
+                        <input
+                            type="checkbox"
+                            checked={agreedToTerms}
+                            onChange={(e) => setAgreedToTerms(e.target.checked)}
+                            className="peer h-5 w-5 appearance-none rounded border-2 border-muted-foreground/30 bg-background checked:border-primary checked:bg-primary transition-all cursor-pointer"
+                        />
+                        <Check className="absolute h-3.5 w-3.5 text-white scale-0 peer-checked:scale-100 transition-transform left-0.5 top-0.5 pointer-events-none" strokeWidth={4} />
+                    </div>
+                    <div className="flex flex-col gap-1">
+                        <span className="text-[10px] font-black uppercase tracking-widest text-foreground group-hover:text-primary transition-colors">
+                            I agree to the <Link href="/terms-and-conditions" target="_blank" className="text-primary underline hover:text-primary/80">Terms and Conditions</Link>
+                        </span>
+                        <p className="text-[8px] font-bold text-muted-foreground uppercase tracking-widest leading-relaxed">
+                            By checking this box, you confirm that you have read and accepted our store policies
+                        </p>
+                    </div>
+                </label>
+
                 <Button 
                     onClick={handleCompleteOrder} 
-                    disabled={isProcessing || !paymentOption}
+                    disabled={isProcessing || !paymentOption || (paymentOption === 'online' && !transactionCode)}
                     variant="premium" 
                     size="lg" 
                     className="h-16 text-sm font-black  tracking-[0.2em] rounded-2xl shadow-2xl group uppercase relative overflow-hidden"

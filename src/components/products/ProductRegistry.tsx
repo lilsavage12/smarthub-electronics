@@ -25,13 +25,18 @@ export function ProductRegistry({ initialProducts, cmsData: initialCmsData }: Pr
     const [currentPage, setCurrentPage] = useState(1)
     const PRODUCTS_PER_PAGE = 48
 
+    const maxProductPrice = React.useMemo(() => {
+        const prices = allProducts.map(p => Number(p.price || 0)).filter(p => p > 0)
+        return prices.length > 0 ? Math.ceil(Math.max(...prices) / 1000) * 1000 : 1000000
+    }, [allProducts])
+
     // Persistent Filter State
     const [activeFilters, setActiveFilters] = useState({
         q: searchParams.get("q") || "",
         brands: [...new Set([...searchParams.getAll("brands"), ...searchParams.getAll("brand")])],
         categories: [...new Set([...searchParams.getAll("categories"), ...searchParams.getAll("category")])],
         minPrice: parseInt(searchParams.get("minPrice") || "0"),
-        maxPrice: parseInt(searchParams.get("maxPrice") || "1000000"),
+        maxPrice: parseInt(searchParams.get("maxPrice") || "9999999"),
         rating: 0,
         inStock: false,
         onSale: false
@@ -62,13 +67,17 @@ export function ProductRegistry({ initialProducts, cmsData: initialCmsData }: Pr
             const matchesPrice = p.price >= activeFilters.minPrice && p.price <= activeFilters.maxPrice
             const matchesStock = !activeFilters.inStock || p.stock > 0
 
-            const q = activeFilters.q.toLowerCase()
+            const q = (activeFilters.q || "").toLowerCase()
             const matchesSearch = !q ||
-                p.name.toLowerCase().includes(q) ||
+                (p.name || "").toLowerCase().includes(q) ||
                 (p.brand || "").toLowerCase().includes(q) ||
                 (p.category || "").toLowerCase().includes(q)
 
             return matchesBrand && matchesCategory && matchesPrice && matchesStock && matchesSearch
+        }).sort((a, b) => {
+            const aS = (Number(a.stock) || 0) > 0 ? 0 : 1
+            const bS = (Number(b.stock) || 0) > 0 ? 0 : 1
+            return aS - bS
         })
     }, [activeFilters, allProducts])
 
@@ -97,10 +106,15 @@ export function ProductRegistry({ initialProducts, cmsData: initialCmsData }: Pr
                         <SideFilter
                             brands={Array.from(new Set([
                                 ...(cmsData?.brands || []).map((b: any) => b.name),
-                                ...allProducts.map((p: any) => p.brand).filter(Boolean)
+                                ...allProducts.map((p: any) => String(p.brand || "").trim()).filter(Boolean)
+                            ])).sort()}
+                            categories={Array.from(new Set([
+                                ...(cmsData?.categories || []).map((c: any) => c.name),
+                                ...allProducts.map((p: any) => String(p.category || "Smartphones")).filter(Boolean)
                             ])).sort()}
                             activeFilters={activeFilters}
                             setActiveFilters={setActiveFilters}
+                            maxProductPrice={maxProductPrice}
                             counts={{
                                 brands: allProducts.reduce((acc: any, p: any) => { const b = (p.brand || "").toLowerCase(); acc[b] = (acc[b] || 0) + 1; return acc }, {}),
                                 categories: allProducts.reduce((acc: any, p: any) => { const c = p.category || "Smartphones"; acc[c] = (acc[c] || 0) + 1; return acc }, {})
@@ -159,10 +173,19 @@ export function ProductRegistry({ initialProducts, cmsData: initialCmsData }: Pr
                             <SideFilter
                                 brands={Array.from(new Set([
                                     ...(cmsData?.brands || []).map((b: any) => b.name),
-                                    ...allProducts.map((p: any) => p.brand).filter(Boolean)
+                                    ...allProducts.map((p: any) => String(p.brand || "")).filter(Boolean)
+                                ])).sort()}
+                                categories={Array.from(new Set([
+                                    ...(cmsData?.categories || []).map((c: any) => c.name),
+                                    ...allProducts.map((p: any) => String(p.category || "Smartphones")).filter(Boolean)
                                 ])).sort()}
                                 activeFilters={activeFilters}
                                 setActiveFilters={setActiveFilters}
+                                maxProductPrice={maxProductPrice}
+                                counts={{
+                                    brands: allProducts.reduce((acc: any, p: any) => { const b = (p.brand || "").toLowerCase(); acc[b] = (acc[b] || 0) + 1; return acc }, {}),
+                                    categories: allProducts.reduce((acc: any, p: any) => { const c = p.category || "Smartphones"; acc[c] = (acc[c] || 0) + 1; return acc }, {})
+                                }}
                                 isMobile={true}
                             />
                         </motion.div>

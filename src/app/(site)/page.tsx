@@ -66,24 +66,27 @@ export default async function Home() {
 
         // 3. Enriched Dataset Serialization with Normalization
         const enrichedProducts = (products || []).map((p: any) => {
-            let parsedSpecs = {}
-            if (typeof p.specs === "string") {
-                try { parsedSpecs = JSON.parse(p.specs) } catch { parsedSpecs = {} }
-            } else { parsedSpecs = p.specs || {} }
+            const parsedSpecs = typeof p.specs === "string" ? (JSON.parse(p.specs || "{}")) : (p.specs || {})
+            const gallery = Array.isArray(p.galleryImages) ? p.galleryImages : (typeof p.galleryImages === "string" ? JSON.parse(p.galleryImages || "[]") : [])
+            const variants = p.variants || []
+            
+            // MULTI-LAYER PRICE FALLBACK
+            const getPriceInfo = () => {
+                const dbPrice = Number(p.price || 0)
+                if (dbPrice > 0) return dbPrice
+                if (variants.length > 0) {
+                    const vPrices = variants.map((v: any) => Number(v.price || 0)).filter((v: any) => v > 0)
+                    if (vPrices.length > 0) return Math.min(...vPrices)
+                }
+                const specPrice = Number(parsedSpecs?.identity?.price || 0)
+                if (specPrice > 0) return specPrice
+                return 0
+            }
 
-            let gallery = []
-            const rawGallery = p.galleryImages || p.images
-            if (typeof rawGallery === "string") {
-                try { gallery = JSON.parse(rawGallery) } catch { gallery = [] }
-            } else { gallery = Array.isArray(rawGallery) ? rawGallery : [] }
-
-            const price = Number(p.price || 0)
+            const price = getPriceInfo()
             const dbOrig = p.originalPrice ? Number(p.originalPrice) : null
             const discount = Number(p.discount || 0)
             
-            // If discount is set, calculate original as price + discount (Amount based)
-            // If originalPrice exists and > price, use it. 
-            // Fallback to price.
             let finalOriginal = dbOrig || price
             if (discount > 0 && (!dbOrig || dbOrig <= price)) {
                 finalOriginal = price + discount
@@ -95,11 +98,18 @@ export default async function Home() {
                 brand: (p.brand || "").trim(),
                 price: price,
                 originalPrice: finalOriginal,
+                stock: Number(p.stock || 0),
                 orderCount: popularityMap.get(p.id) || 0,
                 specs: parsedSpecs,
                 galleryImages: gallery,
                 promotions: promoMap.get(p.id) || []
             }
+        }).filter((p: any) => !p.specs?.identity?.isHidden).sort((a, b) => {
+            // STOCK FIRST: Available (0) before Sold Out (1)
+            const aS = (Number(a.stock) || 0) > 0 ? 0 : 1
+            const bS = (Number(b.stock) || 0) > 0 ? 0 : 1
+            if (aS !== bS) return aS - bS
+            return new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()
         })
 
         const cmsData = {

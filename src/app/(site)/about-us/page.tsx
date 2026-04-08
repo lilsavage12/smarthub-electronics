@@ -4,7 +4,7 @@ import { ContentLayout } from "@/components/site/ContentLayout"
 import { Activity, Sparkles, Smartphone, Box } from "lucide-react"
 
 export const metadata = {
-    title: "About Us | SmartHub Electronics",
+    title: "About Us",
     description: "The mission and history of SmartHub Electronics."
 }
 

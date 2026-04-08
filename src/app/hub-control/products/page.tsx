@@ -1,12 +1,12 @@
 "use client"
 
-import React, { useState, useEffect } from "react"
+import React, { useState, useEffect, useRef } from "react"
 import {
     Plus, Search, Filter, Smartphone,
     MoreHorizontal, Edit2, Trash2, Eye,
     ArrowUpRight, Package, Smartphone as SmartphoneIcon,
     Tags, Layers, ShieldCheck, Zap, X, Image as ImageIcon,
-    ChevronDown, ChevronUp, Save, BarChart3, Shield, Download, Info, Globe, Ruler, Copy
+    ChevronDown, ChevronUp, Save, BarChart3, Shield, Download, Info, Globe, Ruler, Copy, Check
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
@@ -24,22 +24,120 @@ const OS_TYPES = ["iOS", "Android", "HarmonyOS", "Other"]
 const DISPLAY_TYPES = ["OLED", "AMOLED", "Super AMOLED", "LTPO OLED", "LCD", "IPS LCD", "IPS", "Liquid Retina"]
 const FIELD_TYPES = ["Text", "Number", "Dropdown", "Boolean", "Multi-select"]
 
+function FilterDropdown({ label, options = [], selected, onToggle, icon }: { label: string, options?: string[], selected: string[], onToggle: (val: string) => void, icon?: React.ReactNode }) {
+    const [isOpen, setIsOpen] = useState(false)
+    const containerRef = useRef<HTMLDivElement>(null)
+
+    useEffect(() => {
+        function handleClickOutside(event: MouseEvent) {
+            if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+                setIsOpen(false)
+            }
+        }
+        document.addEventListener("mousedown", handleClickOutside)
+        return () => document.removeEventListener("mousedown", handleClickOutside)
+    }, [])
+
+    return (
+        <div className="relative" ref={containerRef} suppressHydrationWarning>
+            <button
+                type="button"
+                onClick={() => setIsOpen(!isOpen)}
+                className={cn(
+                    "h-12 px-4 bg-muted rounded-xl border border-border outline-none flex items-center gap-3 transition-all hover:bg-muted/80",
+                    selected.length > 0 && "border-primary/50 bg-primary/5"
+                )}
+                suppressHydrationWarning
+            >
+                {icon && <span className="text-muted-foreground opacity-50">{icon}</span>}
+                <div className="flex flex-col items-start">
+                    <span className="text-[8px] font-black uppercase tracking-[0.2em] text-muted-foreground opacity-60 leading-none">{label}</span>
+                    <span className="text-[10px] font-black uppercase tracking-widest text-foreground leading-none mt-1">
+                        {selected.length === 0 ? "All" : selected.length === 1 ? selected[0] : `${selected.length} Selected`}
+                    </span>
+                </div>
+                <ChevronDown size={14} className={cn("text-muted-foreground transition-all duration-300", isOpen ? "rotate-180" : "rotate-0")} />
+            </button>
+
+            <AnimatePresence>
+                {isOpen && (
+                    <motion.div
+                        initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                        className="absolute top-full mt-2 left-0 z-[100] min-w-[200px] bg-card border border-border rounded-2xl shadow-2xl p-2 flex flex-col gap-1 max-h-64 overflow-y-auto no-scrollbar"
+                        suppressHydrationWarning
+                    >
+                        {options.length === 0 && (
+                            <div className="px-4 py-3 text-[10px] font-bold text-muted-foreground uppercase tracking-widest text-center opacity-50">
+                                No items found
+                            </div>
+                        )}
+                        {options.map((opt) => (
+                            <button
+                                key={opt}
+                                type="button"
+                                onClick={() => onToggle(opt)}
+                                className={cn(
+                                    "flex items-center justify-between px-4 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all",
+                                    selected.includes(opt) ? "bg-primary text-primary-foreground" : "hover:bg-muted"
+                                )}
+                            >
+                                <span>{opt}</span>
+                                {selected.includes(opt) && <Check size={12} strokeWidth={4} />}
+                            </button>
+                        ))}
+                        {selected.length > 0 && (
+                            <button
+                                type="button"
+                                onClick={(e) => {
+                                    e.stopPropagation()
+                                    options.forEach(opt => {
+                                        if (selected.includes(opt)) onToggle(opt)
+                                    })
+                                }}
+                                className="mt-1 border-t border-border pt-1 px-4 py-2 text-[8px] font-black uppercase tracking-[0.3em] text-destructive hover:bg-destructive/10 rounded-lg transition-all"
+                            >
+                                Clear All
+                            </button>
+                        )}
+                    </motion.div>
+                )}
+            </AnimatePresence>
+        </div>
+    )
+}
+
 export default function ProductsPage() {
     const [products, setProducts] = useState<any[]>([])
     const [isLoading, setIsLoading] = useState(true)
     const [isAddModalOpen, setIsAddModalOpen] = useState(false)
     const [editingProduct, setEditingProduct] = useState<any>(null)
     const [searchQuery, setSearchQuery] = useState("")
-    const [selectedBrand, setSelectedBrand] = useState("All Brands")
-    const [selectedCategory, setSelectedCategory] = useState("All Categories")
+    const [selectedBrands, setSelectedBrands] = useState<string[]>([])
+    const [selectedCategories, setSelectedCategories] = useState<string[]>([])
+    const [selectedStockStatuses, setSelectedStockStatuses] = useState<string[]>([])
+    const [selectedVisibilities, setSelectedVisibilities] = useState<string[]>([])
+    const [selectedBadges, setSelectedBadges] = useState<string[]>([])
+    const [selectedDiscounts, setSelectedDiscounts] = useState<string[]>([])
     const [activeModalTab, setActiveModalTab] = useState("Overview")
     const [expandedSections, setExpandedSections] = useState<string[]>(["basic", "images"])
-    const [dynamicCategories, setDynamicCategories] = useState(CATEGORIES)
+    const [isRefreshing, setIsRefreshing] = useState(false)
+    const [isSaving, setIsSaving] = useState(false)
     const [isCreatingNewCategory, setIsCreatingNewCategory] = useState(false)
     const [newCategoryInput, setNewCategoryInput] = useState("")
-    const [dynamicBrands, setDynamicBrands] = useState(BRANDS)
     const [isCreatingNewBrand, setIsCreatingNewBrand] = useState(false)
     const [newBrandInput, setNewBrandInput] = useState("")
+
+    const dynamicBrands = React.useMemo(() => {
+        const brandsFromItems = Array.from(new Set(products.map(p => p.brand).filter(Boolean)))
+        return Array.from(new Set([...BRANDS, ...brandsFromItems])).sort()
+    }, [products])
+
+    const dynamicCategories = React.useMemo(() => {
+        const catsFromItems = Array.from(new Set(products.map(p => p.category).filter(Boolean)))
+        return Array.from(new Set([...CATEGORIES, ...catsFromItems])).sort()
+    }, [products])
     const router = useRouter()
 
     const toggleSection = (section: string) => {
@@ -181,7 +279,7 @@ export default function ProductsPage() {
             releaseYear: s.identity?.releaseYear || "",
             productColors: mappedColors,
             stock: String(product.stock || ""),
-            price: String(product.price || ""),
+            price: (product.price != null && product.price !== 0) ? String(product.price) : "",
             discountPrice: s.identity?.discountPrice || "",
             sku: s.identity?.sku || "",
             isHidden: s.identity?.isHidden || false,
@@ -210,8 +308,6 @@ export default function ProductsPage() {
     }
 
     const [isUploading, setIsUploading] = useState(false)
-    const [isRefreshing, setIsRefreshing] = useState(false)
-    const [isSaving, setIsSaving] = useState(false)
 
     useEffect(() => {
         fetchProducts()
@@ -222,7 +318,7 @@ export default function ProductsPage() {
         setIsLoading(true)
         setIsRefreshing(true)
         try {
-            const res = await fetch("/api/products")
+            const res = await fetch("/api/products?all=true")
             const data = await res.json()
             // Deduplicate products by ID just in case the API returns duplicates
             const uniqueProducts = Array.from(new Map(data.map((item: any) => [item.id, item])).values())
@@ -450,9 +546,44 @@ export default function ProductsPage() {
         const matchesSearch = safeName.includes(safeQuery) ||
             safeBrand.includes(safeQuery) ||
             safeCategory.includes(safeQuery)
-        const matchesBrand = selectedBrand === "All Brands" || p.brand === selectedBrand
-        const matchesCategory = selectedCategory === "All Categories" || p.category === selectedCategory
-        return matchesSearch && matchesBrand && matchesCategory
+
+        const matchesBrand = selectedBrands.length === 0 || selectedBrands.includes(p.brand)
+        const matchesCategory = selectedCategories.length === 0 || selectedCategories.includes(p.category)
+
+        const matchesStock = selectedStockStatuses.length === 0 || selectedStockStatuses.some(status => {
+            if (status === "In Stock") return p.stock > 10
+            if (status === "Low Stock") return p.stock > 0 && p.stock <= 10
+            if (status === "Out of Stock") return p.stock <= 0
+            return false
+        })
+
+        const matchesVisibility = selectedVisibilities.length === 0 || selectedVisibilities.some(v => {
+            const isHidden = p.specs?.identity?.isHidden
+            if (v === "Visible Only") return !isHidden
+            if (v === "Hidden Only") return isHidden
+            return false
+        })
+
+        const matchesBadge = selectedBadges.length === 0 || selectedBadges.some(b => {
+            if (b === "New Arrival") return p.isNew
+            if (b === "Hot/Featured") return p.isFeatured
+            if (b === "On Sale") return p.isSale
+            return false
+        })
+
+        const discountPrice = p.specs?.identity?.discountPrice || p.discountPrice
+        const discountPct = p.discount || p.specs?.identity?.discountPercent
+        const hasDiscount = (discountPrice && parseFloat(discountPrice) > 0 && parseFloat(discountPrice) < p.price) || (discountPct && parseInt(discountPct) > 0)
+        const matchesDiscount = selectedDiscounts.length === 0 || selectedDiscounts.some(d => {
+            if (d === "Has Discount") return hasDiscount
+            if (d === "No Discount") return !hasDiscount
+            if (d === "10% - 20% Off") return discountPct >= 10 && discountPct <= 20
+            if (d === "20% - 40% Off") return discountPct > 20 && discountPct <= 40
+            if (d === "40%+ Off") return discountPct > 40
+            return false
+        })
+
+        return matchesSearch && matchesBrand && matchesCategory && matchesStock && matchesVisibility && matchesBadge && matchesDiscount
     })
 
 
@@ -477,15 +608,15 @@ export default function ProductsPage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                 {[
                     {
-                        label: "Inventory Models",
+                        label: "TOTAL PRODUCTS",
                         value: products.length,
-                        icon: <SmartphoneIcon className="text-primary" size={20} />,
-                        bg: "bg-primary/10",
-                        caption: "Total managed catalog"
+                        icon: <SmartphoneIcon className="text-slate-900" size={18} />,
+                        bg: "bg-slate-100",
+                        status: "ACTIVE"
                     },
                     {
-                        label: "Asset Value",
-                        value: `KSh ${new Intl.NumberFormat('en-KE').format(Math.floor(products.reduce((acc: number, p: any) => {
+                        label: "STOCK VALUE",
+                        value: `KSH ${new Intl.NumberFormat('en-KE').format(Math.floor(products.reduce((acc: number, p: any) => {
                             let val = 0;
                             const vars = p.variants || [];
                             const colors = p.specs?.productColors || [];
@@ -498,43 +629,47 @@ export default function ProductsPage() {
                             }
                             return acc + val;
                         }, 0)))}`,
-                        icon: <BarChart3 className="text-primary" size={20} />,
-                        bg: "bg-primary/10",
-                        caption: "Total valuation"
+                        icon: <BarChart3 className="text-slate-900" size={18} />,
+                        bg: "bg-slate-100",
+                        status: "LIVE"
                     },
                     {
-                        label: "New Inventory",
+                        label: "NEW ARRIVALS",
                         value: products.filter((p: any) => p.isNew).length,
-                        icon: <ShieldCheck className="text-primary" size={20} />,
-                        bg: "bg-primary/10",
-                        caption: "Latest product entries"
+                        icon: <ShieldCheck className="text-slate-900" size={18} />,
+                        bg: "bg-slate-100",
+                        status: "RECENT"
                     },
                     {
-                        label: "Critical Stock",
+                        label: "STOCK ALERTS",
                         value: products.filter((p: any) => p.stock < 10).length,
-                        icon: <Package className="text-primary" size={20} />,
-                        bg: "bg-primary/10",
-                        caption: "Items requiring restock"
+                        icon: <Package className="text-slate-900" size={18} />,
+                        bg: "bg-slate-100",
+                        status: products.filter((p: any) => p.stock < 10).length > 0 ? "CRITICAL" : "NORMAL"
                     },
                 ].map((stat, i) => (
-                    <Card key={i} className="rounded-3xl border-border bg-card/50 backdrop-blur-md p-6 flex flex-col gap-4 group hover:border-primary/40 transition-all shadow-sm relative overflow-hidden">
-                        <div className="absolute top-0 right-0 w-24 h-24 bg-primary/5 rounded-full -mr-12 -mt-12 group-hover:bg-primary/10 transition-colors" />
-                        <div className="flex items-center justify-between relative z-10">
-                            <div className={cn("p-3 rounded-2xl transition-all group-hover:scale-110", stat.bg)}>
+                    <Card key={i} className="rounded-[2rem] border-border bg-card p-6 flex flex-col gap-6 group hover:shadow-xl transition-all shadow-sm relative overflow-hidden">
+                        <div className="flex items-start justify-between relative z-10">
+                            <div className={cn("p-4 rounded-2xl transition-all shadow-sm", stat.bg)}>
                                 {stat.icon}
                             </div>
-                            <span className="text-[10px] font-bold text-muted-foreground uppercase opacity-60 tracking-wider transition-colors group-hover:text-primary/70">{stat.caption}</span>
+                            <span className={cn(
+                                "text-[10px] font-black uppercase tracking-widest",
+                                stat.status === "CRITICAL" ? "text-destructive" : "text-muted-foreground opacity-40"
+                            )}>
+                                {stat.status}
+                            </span>
                         </div>
                         <div className="flex flex-col relative z-10">
-                            <span className="text-[11px] font-bold uppercase tracking-[0.15em] text-muted-foreground leading-none mb-1 opacity-80">{stat.label}</span>
-                            <span className="text-xl font-black tracking-tight text-foreground group-hover:text-primary transition-all whitespace-nowrap">{stat.value}</span>
+                            <span className="text-[9px] font-bold uppercase tracking-[0.2em] text-muted-foreground leading-none mb-3 opacity-60">{stat.label}</span>
+                            <span className="text-xl font-black tracking-tighter text-foreground whitespace-nowrap uppercase">{stat.value}</span>
                         </div>
                     </Card>
                 ))}
             </div>
 
-            <div className="flex flex-col md:flex-row gap-4 items-center justify-between bg-card p-4 rounded-2xl border border-border shadow-sm">
-                <div className="relative flex-1 w-full md:max-w-md">
+            <div className="flex flex-col gap-3 bg-card p-4 rounded-2xl border border-border shadow-sm">
+                <div className="relative w-full">
                     <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
                     <input
                         type="text"
@@ -544,23 +679,49 @@ export default function ProductsPage() {
                         onChange={(e) => setSearchQuery(e.target.value)}
                     />
                 </div>
-                <div className="flex items-center gap-2 overflow-x-auto w-full md:w-auto no-scrollbar pb-1 md:pb-0">
-                    <select
-                        className="h-12 px-4 bg-muted rounded-xl border border-border outline-none text-[10px] font-black uppercase tracking-widest text-muted-foreground focus:border-primary/50 transition-all cursor-pointer"
-                        value={selectedBrand}
-                        onChange={(e) => setSelectedBrand(e.target.value)}
-                    >
-                        <option>All Brands</option>
-                        {BRANDS.map(b => <option key={b} value={b}>{b}</option>)}
-                    </select>
-                    <select
-                        className="h-12 px-4 bg-muted rounded-xl border border-border outline-none text-[10px] font-black uppercase tracking-widest text-muted-foreground focus:border-primary/50 transition-all cursor-pointer"
-                        value={selectedCategory}
-                        onChange={(e) => setSelectedCategory(e.target.value)}
-                    >
-                        <option>All Categories</option>
-                        {dynamicCategories.map(c => <option key={c} value={c}>{c}</option>)}
-                    </select>
+                <div className="flex items-center flex-wrap gap-2 relative z-20">
+                    <FilterDropdown
+                        label="Brands"
+                        options={dynamicBrands}
+                        selected={selectedBrands}
+                        onToggle={(val) => setSelectedBrands(prev => prev.includes(val) ? prev.filter(v => v !== val) : [...prev, val])}
+                        icon={<Tags size={16} />}
+                    />
+                    <FilterDropdown
+                        label="Categories"
+                        options={dynamicCategories}
+                        selected={selectedCategories}
+                        onToggle={(val) => setSelectedCategories(prev => prev.includes(val) ? prev.filter(v => v !== val) : [...prev, val])}
+                        icon={<Layers size={16} />}
+                    />
+                    <FilterDropdown
+                        label="Stock"
+                        options={["In Stock", "Low Stock", "Out of Stock"]}
+                        selected={selectedStockStatuses}
+                        onToggle={(val) => setSelectedStockStatuses(prev => prev.includes(val) ? prev.filter(v => v !== val) : [...prev, val])}
+                        icon={<Package size={16} />}
+                    />
+                    <FilterDropdown
+                        label="Visibility"
+                        options={["Visible Only", "Hidden Only"]}
+                        selected={selectedVisibilities}
+                        onToggle={(val) => setSelectedVisibilities(prev => prev.includes(val) ? prev.filter(v => v !== val) : [...prev, val])}
+                        icon={<Eye size={16} />}
+                    />
+                    <FilterDropdown
+                        label="Badges"
+                        options={["New Arrival", "Hot/Featured", "On Sale"]}
+                        selected={selectedBadges}
+                        onToggle={(val) => setSelectedBadges(prev => prev.includes(val) ? prev.filter(v => v !== val) : [...prev, val])}
+                        icon={<Zap size={16} />}
+                    />
+                    <FilterDropdown
+                        label="Discount"
+                        options={["Has Discount", "No Discount", "10% - 20% Off", "20% - 40% Off", "40%+ Off"]}
+                        selected={selectedDiscounts}
+                        onToggle={(val) => setSelectedDiscounts(prev => prev.includes(val) ? prev.filter(v => v !== val) : [...prev, val])}
+                        icon={<Tags size={16} />}
+                    />
                 </div>
             </div>
 
@@ -610,8 +771,36 @@ export default function ProductsPage() {
                                                     <span className="text-[10px] font-black uppercase text-primary leading-none">{p.brand}</span>
                                                     {p.isNew && <span className="bg-primary text-[8px] text-primary-foreground px-1.5 py-0.5 rounded font-black ">NEW</span>}
                                                 </div>
-                                                <span className="text-sm font-black text-foreground tracking-tight mt-1">{p.name}</span>
-                                                <span className="text-[10px] font-bold text-muted-foreground mt-0.5">KSh {new Intl.NumberFormat('en-KE').format(p.price)}</span>
+                                                <span className="text-sm font-black text-foreground tracking-tight mt-1">
+                                                    {p.name}
+                                                    {p.specs?.identity?.isHidden && (
+                                                        <span className="ml-2 bg-orange-500/10 text-orange-600 text-[8px] px-1.5 py-0.5 rounded font-black border border-orange-500/20">HIDDEN</span>
+                                                    )}
+                                                </span>
+                                                {(() => {
+                                                    const dp = p.specs?.identity?.discountPrice || p.discountPrice
+                                                    const dpNum = dp ? parseFloat(dp) : 0
+                                                    const pct = p.discount || parseInt(p.specs?.identity?.discountPercent || "0")
+                                                    if (dpNum > 0 && dpNum < p.price) {
+                                                        return (
+                                                            <div className="flex items-center gap-2 mt-0.5">
+                                                                <span className="text-[10px] font-black text-emerald-600">KSh {new Intl.NumberFormat('en-KE').format(dpNum)}</span>
+                                                                <span className="text-[9px] font-bold text-muted-foreground line-through opacity-50">KSh {new Intl.NumberFormat('en-KE').format(p.price)}</span>
+                                                                <span className="text-[8px] font-black bg-emerald-500/10 text-emerald-600 px-1 py-0.5 rounded">{Math.round(((p.price - dpNum) / p.price) * 100)}% OFF</span>
+                                                            </div>
+                                                        )
+                                                    } else if (pct > 0) {
+                                                        const computed = Math.round(p.price * (1 - pct / 100))
+                                                        return (
+                                                            <div className="flex items-center gap-2 mt-0.5">
+                                                                <span className="text-[10px] font-black text-emerald-600">KSh {new Intl.NumberFormat('en-KE').format(computed)}</span>
+                                                                <span className="text-[9px] font-bold text-muted-foreground line-through opacity-50">KSh {new Intl.NumberFormat('en-KE').format(p.price)}</span>
+                                                                <span className="text-[8px] font-black bg-emerald-500/10 text-emerald-600 px-1 py-0.5 rounded">{pct}% OFF</span>
+                                                            </div>
+                                                        )
+                                                    }
+                                                    return <span className="text-[10px] font-bold text-muted-foreground mt-0.5">KSh {new Intl.NumberFormat('en-KE').format(p.price)}</span>
+                                                })()}
                                             </div>
                                         </td>
                                         <td className="px-6 sm:px-8 py-5 hidden lg:table-cell">
@@ -761,9 +950,6 @@ export default function ProductsPage() {
                                                                             type="button"
                                                                             onClick={() => {
                                                                                 if (newBrandInput.trim()) {
-                                                                                    if (!dynamicBrands.includes(newBrandInput.trim())) {
-                                                                                        setDynamicBrands(prev => [...prev, newBrandInput.trim()])
-                                                                                    }
                                                                                     setNewProduct({ ...newProduct, brand: newBrandInput.trim() })
                                                                                     setIsCreatingNewBrand(false)
                                                                                     setNewBrandInput("")
@@ -837,9 +1023,6 @@ export default function ProductsPage() {
                                                                             type="button"
                                                                             onClick={() => {
                                                                                 if (newCategoryInput.trim()) {
-                                                                                    if (!dynamicCategories.includes(newCategoryInput.trim())) {
-                                                                                        setDynamicCategories(prev => [...prev, newCategoryInput.trim()])
-                                                                                    }
                                                                                     setNewProduct({ ...newProduct, category: newCategoryInput.trim() })
                                                                                     setIsCreatingNewCategory(false)
                                                                                     setNewCategoryInput("")
@@ -888,36 +1071,75 @@ export default function ProductsPage() {
                                                     <div className="flex flex-col gap-2">
                                                         <div className="flex items-center justify-between ml-2">
                                                             <label className="text-[10px] font-bold text-muted-foreground">Sale Pricing (Optional)</label>
-                                                            <div className="flex items-center gap-4 px-3 py-1 bg-muted/40 rounded-lg border border-border/10">
-                                                                {[
-                                                                    { id: 'base', label: 'Main' },
-                                                                    { id: 'variants', label: 'Vars' },
-                                                                    { id: 'both', label: 'Both' }
-                                                                ].map(t => (
-                                                                    <button
-                                                                        key={t.id}
-                                                                        type="button"
-                                                                        onClick={() => setNewProduct({ ...newProduct, discountTarget: t.id as any })}
-                                                                        className={cn(
-                                                                            "text-[8px] font-black uppercase tracking-widest transition-all",
-                                                                            newProduct.discountTarget === t.id ? "text-primary scale-110" : "text-muted-foreground opacity-30 hover:opacity-100"
-                                                                        )}
-                                                                    >
-                                                                        {t.label}
-                                                                    </button>
-                                                                ))}
-                                                            </div>
+                                                            {/* Only show target toggle when variants exist */}
+                                                            {newProduct.variants.length > 0 && (
+                                                                <div className="flex items-center gap-4 px-3 py-1 bg-muted/40 rounded-lg border border-border/10">
+                                                                    {[
+                                                                        { id: 'base', label: 'Main' },
+                                                                        { id: 'variants', label: 'Vars' },
+                                                                        { id: 'both', label: 'Both' }
+                                                                    ].map(t => (
+                                                                        <button
+                                                                            key={t.id}
+                                                                            type="button"
+                                                                            onClick={() => setNewProduct({ ...newProduct, discountTarget: t.id as any })}
+                                                                            className={cn(
+                                                                                "text-[8px] font-black uppercase tracking-widest transition-all",
+                                                                                newProduct.discountTarget === t.id ? "text-primary scale-110" : "text-muted-foreground opacity-30 hover:opacity-100"
+                                                                            )}
+                                                                        >
+                                                                            {t.label}
+                                                                        </button>
+                                                                    ))}
+                                                                </div>
+                                                            )}
                                                         </div>
                                                         <div className="flex gap-2">
                                                             <div className="relative flex-1">
-                                                                <Input type="number" value={newProduct.discountPrice} onChange={(e) => setNewProduct({ ...newProduct, discountPrice: e.target.value })} placeholder="New Price" className="h-10 bg-muted/30 border-border/20 rounded-xl text-sm font-medium pr-10" />
+                                                                <Input
+                                                                    type="number"
+                                                                    value={newProduct.discountPrice}
+                                                                    onChange={(e) => {
+                                                                        const dp = e.target.value
+                                                                        const base = parseFloat(newProduct.price)
+                                                                        const sale = parseFloat(dp)
+                                                                        const pct = base > 0 && sale > 0 && sale < base
+                                                                            ? String(Math.round(((base - sale) / base) * 100))
+                                                                            : ""
+                                                                        setNewProduct({ ...newProduct, discountPrice: dp, discountPercent: pct })
+                                                                    }}
+                                                                    placeholder="New Price"
+                                                                    className="h-10 bg-muted/30 border-border/20 rounded-xl text-sm font-medium pr-10"
+                                                                />
                                                                 <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[9px] font-medium opacity-40">KSh</span>
                                                             </div>
                                                             <div className="relative w-24">
-                                                                <Input type="number" value={newProduct.discountPercent} onChange={(e) => setNewProduct({ ...newProduct, discountPercent: e.target.value })} placeholder="Off %" className="h-10 bg-muted/30 border-border/20 rounded-xl text-sm font-medium pr-10" />
+                                                                <Input
+                                                                    type="number"
+                                                                    value={newProduct.discountPercent}
+                                                                    onChange={(e) => {
+                                                                        const pct = e.target.value
+                                                                        const base = parseFloat(newProduct.price)
+                                                                        const p = parseFloat(pct)
+                                                                        const dp = base > 0 && p > 0 && p < 100
+                                                                            ? String(Math.round(base * (1 - p / 100)))
+                                                                            : ""
+                                                                        setNewProduct({ ...newProduct, discountPercent: pct, discountPrice: dp })
+                                                                    }}
+                                                                    placeholder="Off %"
+                                                                    className="h-10 bg-muted/30 border-border/20 rounded-xl text-sm font-medium pr-10"
+                                                                />
                                                                 <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[9px] font-medium opacity-40">%</span>
                                                             </div>
                                                         </div>
+                                                        {/* Live preview */}
+                                                        {newProduct.discountPrice && newProduct.discountPercent && parseFloat(newProduct.price) > 0 && (
+                                                            <div className="flex items-center gap-2 px-3 py-2 bg-emerald-500/5 border border-emerald-500/20 rounded-xl">
+                                                                <span className="text-[9px] font-black text-emerald-600 uppercase tracking-widest">
+                                                                    KSh {parseFloat(newProduct.price).toLocaleString()} → KSh {parseFloat(newProduct.discountPrice).toLocaleString()} ({newProduct.discountPercent}% off)
+                                                                </span>
+                                                            </div>
+                                                        )}
                                                     </div>
                                                     <div className="flex flex-col gap-2 mt-auto">
                                                         <div className="flex items-center gap-3 p-4 rounded-xl bg-orange-500/5 border border-orange-500/10 h-10">
