@@ -20,11 +20,25 @@ export async function GET() {
            config = null
         }
 
-        if (!config) {
+        // Ensure Matrix structure exists
+        if (!config || !config.sections) {
             config = {
-                newArrivals: { visible: true, order: 1, title: "NEW ARRIVALS" },
-                featured: { visible: true, order: 2, title: "BEST SELLERS" },
-                dynamicSections: []
+                sections: [
+                    { id: "s1", type: "hero", isActive: true, config: {} },
+                    { id: "s2", type: "trust_bar", isActive: true, config: {} },
+                    { id: "s3", type: "flash_deals", isActive: true, title: "LIMITED TIME DEALS", config: { endTime: "2026-12-31T23:59:59Z" } },
+                    { id: "s4", type: "categories", isActive: true, title: "SHOP BY CATEGORY", config: {} },
+                    { id: "s5", type: "featured_products", isActive: true, title: "NEW RELEASES", config: { source: "new", limit: 10, iconType: "newArrivals" } },
+                    { id: "s6", type: "promo_banner", isActive: true, config: { 
+                        title: "iPhone 16 Pro", 
+                        subtitle: "The ultimate iPhone.", 
+                        imageUrl: "https://images.unsplash.com/photo-1616348436168-de43ad0db179?auto=format&w=1600&q=80", 
+                        link: "/products"
+                    }},
+                    { id: "s7", type: "featured_products", isActive: true, title: "BEST SELLERS", config: { source: "featured", limit: 10, iconType: "featured" } },
+                    { id: "s8", type: "brand_showcase", isActive: true, title: "AUTHENTIC BRANDS", config: {} },
+                    { id: "s9", type: "featured_products", isActive: true, title: "ALL PRODUCTS", config: { source: "all", limit: 20, iconType: "smartphones" } },
+                ]
             }
         }
         

@@ -3,7 +3,7 @@ import { Smartphone } from "lucide-react"
 import { ProductRegistry } from "@/components/products/ProductRegistry"
 import { supabaseAdmin } from "@/lib/supabase"
 
-export const revalidate = 600
+export const dynamic = "force-dynamic"
 
 export const metadata = {
     title: "All Products",

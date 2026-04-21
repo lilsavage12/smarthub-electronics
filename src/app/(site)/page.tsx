@@ -3,8 +3,7 @@ import { Smartphone } from "lucide-react"
 import { supabaseAdmin } from "@/lib/supabase"
 import { ClientHome } from "@/components/home/ClientHome"
 
-// Static revalidation for lightning fast initial loads (Every 10 minutes)
-export const revalidate = 600
+export const dynamic = "force-dynamic"
 
 export default async function Home() {
     try {

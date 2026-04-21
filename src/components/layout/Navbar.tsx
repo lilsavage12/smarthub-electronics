@@ -35,11 +35,40 @@ export const Navbar = ({ initialSettings }: { initialSettings?: any }) => {
     const [isProfileOpen, setIsProfileOpen] = useState(false)
     const [expandedMobileCategory, setExpandedMobileCategory] = useState<string | null>(null)
     const [searchQuery, setSearchQuery] = useState("")
+    const [suggestions, setSuggestions] = useState<any[]>([])
+    const [isSearching, setIsSearching] = useState(false)
     const [activeDropdown, setActiveDropdown] = useState<string | null>(null)
 
     const router = useRouter()
     const pathname = usePathname()
     const dropdownRef = useRef<HTMLDivElement>(null)
+    const searchRef = useRef<HTMLFormElement>(null)
+    const mobileSearchRef = useRef<HTMLFormElement>(null)
+
+    // Live Search Discovery
+    useEffect(() => {
+        const fetchSuggestions = async () => {
+            if (searchQuery.trim().length < 2) {
+                setSuggestions([])
+                return
+            }
+            setIsSearching(true)
+            try {
+                const res = await fetch(`/api/products?q=${encodeURIComponent(searchQuery)}&limit=6`)
+                if (res.ok) {
+                    const data = await res.json()
+                    setSuggestions(data)
+                }
+            } catch (err) {
+                console.error("Discovery error:", err)
+            } finally {
+                setIsSearching(false)
+            }
+        }
+
+        const debounce = setTimeout(fetchSuggestions, 300)
+        return () => clearTimeout(debounce)
+    }, [searchQuery])
 
     // Fetch Storefront Settings (CMS)
     useEffect(() => {
@@ -80,6 +109,10 @@ export const Navbar = ({ initialSettings }: { initialSettings?: any }) => {
     useEffect(() => {
         const handleClickOutside = (e: MouseEvent) => {
             if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) setIsProfileOpen(false)
+            if (searchRef.current && !searchRef.current.contains(e.target as Node) && 
+                mobileSearchRef.current && !mobileSearchRef.current.contains(e.target as Node)) {
+                setSuggestions([])
+            }
         }
         document.addEventListener("mousedown", handleClickOutside)
         return () => document.removeEventListener("mousedown", handleClickOutside)
@@ -141,7 +174,7 @@ export const Navbar = ({ initialSettings }: { initialSettings?: any }) => {
 
                                 <Link href="/" className="flex items-center gap-2 group shrink-0" suppressHydrationWarning>
                                     <div suppressHydrationWarning className="relative w-10 h-10 shrink-0">
-                                        <NextImage src="/favicon.png" alt="S" fill className="object-contain group-hover:rotate-6 transition-transform" />
+                                        <NextImage src="/favicon.png" alt="S" fill sizes="40px" className="object-contain group-hover:rotate-6 transition-transform" />
                                     </div>
                                     <div suppressHydrationWarning className="flex flex-col leading-[0.8] py-1">
                                         <span className="font-black text-lg tracking-tighter text-foreground px-0">
@@ -157,6 +190,7 @@ export const Navbar = ({ initialSettings }: { initialSettings?: any }) => {
                             {/* CENTER: DISCOVERY (DESKTOP) */}
                             {cmsSettings?.searchShow !== false && (
                                 <form
+                                    ref={searchRef}
                                     onSubmit={handleSearch}
                                     className="hidden lg:flex flex-1 max-w-xl group relative"
                                     suppressHydrationWarning
@@ -174,6 +208,44 @@ export const Navbar = ({ initialSettings }: { initialSettings?: any }) => {
                                     <div className="absolute right-2 top-1/2 -translate-y-1/2 hidden group-focus-within:block animate-in fade-in zoom-in duration-300" suppressHydrationWarning>
                                         <Button type="submit" size="sm" className="h-8 px-4 rounded-lg bg-primary text-[9px] font-black uppercase tracking-widest shadow-lg shadow-primary/20">Search</Button>
                                     </div>
+
+                                    {/* DESKTOP SEARCH PREVIEW */}
+                                    <AnimatePresence>
+                                        {suggestions.length > 0 && searchQuery.length >= 2 && (
+                                            <motion.div 
+                                                initial={{ opacity: 0, y: 10 }}
+                                                animate={{ opacity: 1, y: 0 }}
+                                                exit={{ opacity: 0, y: 10 }}
+                                                className="absolute top-full left-0 right-0 mt-2 bg-background border border-border rounded-2xl shadow-2xl overflow-hidden z-[1000] p-2"
+                                            >
+                                                <div className="flex flex-col gap-1">
+                                                    <div className="px-3 py-2 border-b border-border/50 mb-1">
+                                                        <span className="text-[8px] font-black uppercase tracking-widest text-primary opacity-40">Product Suggestions</span>
+                                                    </div>
+                                                    {suggestions.map(p => (
+                                                        <Link 
+                                                            key={p.id}
+                                                            href={`/products/${p.id}`}
+                                                            onClick={() => {
+                                                                setSearchQuery("")
+                                                                setSuggestions([])
+                                                            }}
+                                                            className="flex items-center gap-4 p-2 rounded-xl hover:bg-primary/5 transition-all group"
+                                                        >
+                                                            <div className="w-12 h-12 rounded-lg bg-muted flex items-center justify-center overflow-hidden shrink-0">
+                                                                <img src={p.images?.[0] || p.image} className="w-full h-full object-cover group-hover:scale-110 transition-transform" />
+                                                            </div>
+                                                            <div className="flex flex-col min-w-0">
+                                                                <span className="text-[10px] font-black uppercase tracking-tight truncate">{p.name}</span>
+                                                                <span className="text-[9px] font-bold text-primary">KSh {p.price.toLocaleString()}</span>
+                                                            </div>
+                                                            <ChevronRight size={14} className="ml-auto opacity-0 group-hover:opacity-100 transition-all text-primary" />
+                                                        </Link>
+                                                    ))}
+                                                </div>
+                                            </motion.div>
+                                        )}
+                                    </AnimatePresence>
                                 </form>
                             )}
 
@@ -207,6 +279,63 @@ export const Navbar = ({ initialSettings }: { initialSettings?: any }) => {
 
                             </div>
                         </div>
+
+                        {/* MOBILE DISCOVERY (ALWAYS VISIBLE) */}
+                        {cmsSettings?.searchShow !== false && (
+                            <div className="lg:hidden w-full pb-2">
+                                <form
+                                    ref={mobileSearchRef}
+                                    onSubmit={handleSearch}
+                                    className="relative group"
+                                    suppressHydrationWarning
+                                >
+                                    <div className="absolute left-5 top-1/2 -translate-y-1/2 text-muted-foreground group-focus-within:text-primary transition-colors">
+                                        <Search className="w-4 h-4" />
+                                    </div>
+                                    <input
+                                        type="text"
+                                        placeholder="SEARCH PRODUCTS..."
+                                        className="w-full h-14 bg-muted/10 border-border/40 border rounded-xl pl-12 pr-4 text-[10px] font-black uppercase tracking-widest outline-none transition-all focus:ring-4 focus:ring-primary/5 focus:border-primary/20 placeholder:text-muted-foreground/60 shadow-sm"
+                                        value={searchQuery}
+                                        onChange={(e) => setSearchQuery(e.target.value)}
+                                    />
+                                    
+                                     {/* MOBILE SEARCH PREVIEW (FLOATING) */}
+                                    <AnimatePresence>
+                                        {suggestions.length > 0 && searchQuery.length >= 2 && (
+                                            <motion.div 
+                                                initial={{ opacity: 0, y: 10 }}
+                                                animate={{ opacity: 1, y: 0 }}
+                                                exit={{ opacity: 0, y: 10 }}
+                                                className="absolute top-full left-0 right-0 mt-2 bg-background border border-border rounded-2xl shadow-2xl overflow-hidden z-[1000] p-2"
+                                            >
+                                                <div className="flex flex-col gap-1">
+                                                    {suggestions.map(p => (
+                                                        <Link 
+                                                            key={p.id}
+                                                            href={`/products/${p.id}`}
+                                                            onClick={() => {
+                                                                setSearchQuery("")
+                                                                setSuggestions([])
+                                                            }}
+                                                            className="flex items-center gap-4 p-2 rounded-xl hover:bg-primary/5 transition-all"
+                                                        >
+                                                            <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center overflow-hidden shrink-0">
+                                                                <img src={p.images?.[0] || p.image} className="w-full h-full object-cover" />
+                                                            </div>
+                                                            <div className="flex flex-col min-w-0">
+                                                                <span className="text-[10px] font-black uppercase tracking-tight truncate">{p.name}</span>
+                                                                <span className="text-[9px] font-bold text-primary">KSh {p.price.toLocaleString()}</span>
+                                                            </div>
+                                                        </Link>
+                                                    ))}
+                                                </div>
+                                            </motion.div>
+                                        )}
+                                    </AnimatePresence>
+                                </form>
+                            </div>
+                        )}
 
                         {/* PROFESSIONAL HORIZONTAL NAVIGATION (MEGA MENU) */}
                         <div className="hidden lg:block border-t border-border/10 mt-2" suppressHydrationWarning>
@@ -313,7 +442,7 @@ export const Navbar = ({ initialSettings }: { initialSettings?: any }) => {
                                 <div className="flex items-center justify-between">
                                     <Link href="/" className="flex items-center gap-3" onClick={() => setIsMobileMenuOpen(false)}>
                                         <div suppressHydrationWarning className="relative w-10 h-10 shrink-0">
-                                            <NextImage src="/favicon.png" alt="S" fill className="object-contain" />
+                                            <NextImage src="/favicon.png" alt="S" fill sizes="40px" className="object-contain" />
                                         </div>
                                         <div className="flex flex-col leading-[0.75]" suppressHydrationWarning>
                                             <span className="font-black text-sm tracking-widest text-foreground ">SmartHub</span>
@@ -327,7 +456,7 @@ export const Navbar = ({ initialSettings }: { initialSettings?: any }) => {
 
                                 {/* MOBILE SEARCH */}
                                 {cmsSettings?.searchShow !== false && (
-                                    <form onSubmit={handleSearch} className="relative group">
+                                    <form onSubmit={handleSearch} ref={mobileSearchRef} className="relative group">
                                         <div className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground group-focus-within:text-primary transition-colors">
                                             <Search className="w-4 h-4" />
                                         </div>
@@ -338,6 +467,41 @@ export const Navbar = ({ initialSettings }: { initialSettings?: any }) => {
                                             value={searchQuery}
                                             onChange={(e) => setSearchQuery(e.target.value)}
                                         />
+
+                                        {/* MOBILE SEARCH PREVIEW */}
+                                        <AnimatePresence>
+                                            {suggestions.length > 0 && searchQuery.length >= 2 && (
+                                                <motion.div 
+                                                    initial={{ opacity: 0, y: 10 }}
+                                                    animate={{ opacity: 1, y: 0 }}
+                                                    exit={{ opacity: 0, y: 10 }}
+                                                    className="absolute top-full left-0 right-0 mt-2 bg-background border border-border rounded-2xl shadow-2xl overflow-hidden z-[1000] p-2"
+                                                >
+                                                    <div className="flex flex-col gap-1">
+                                                        {suggestions.map(p => (
+                                                            <Link 
+                                                                key={p.id}
+                                                                href={`/products/${p.id}`}
+                                                                onClick={() => {
+                                                                    setSearchQuery("")
+                                                                    setSuggestions([])
+                                                                    setIsMobileMenuOpen(false)
+                                                                }}
+                                                                className="flex items-center gap-4 p-2 rounded-xl hover:bg-primary/5 transition-all group"
+                                                            >
+                                                                <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center overflow-hidden shrink-0">
+                                                                    <img src={p.images?.[0] || p.image} className="w-full h-full object-cover" />
+                                                                </div>
+                                                                <div className="flex flex-col min-w-0">
+                                                                    <span className="text-[10px] font-black uppercase tracking-tight truncate">{p.name}</span>
+                                                                    <span className="text-[9px] font-bold text-primary">KSh {p.price.toLocaleString()}</span>
+                                                                </div>
+                                                            </Link>
+                                                        ))}
+                                                    </div>
+                                                </motion.div>
+                                            )}
+                                        </AnimatePresence>
                                     </form>
                                 )}
 

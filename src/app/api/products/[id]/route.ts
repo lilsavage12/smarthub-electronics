@@ -154,12 +154,11 @@ export async function PATCH(
     let body: any = {}
     try {
         body = await req.json()
+        console.log(`[PATCH /api/products/${id}] STARTING UPDATE...`);
         const { variants, specs, images, ...updateData } = body
-
-        // 1. Build a SPARSE update — only include fields that were explicitly sent.
-        // This prevents stock-only updates from silently wiping price, name, etc.
+        
+        // 1. Build a SPARSE update
         const validUpdateData: Record<string, any> = { id }
-
         if ('name' in updateData) validUpdateData.name = updateData.name
         if ('price' in updateData) validUpdateData.price = parseFloat(updateData.price) || 0
         if ('stock' in updateData || 'stock' in body) validUpdateData.stock = parseInt(body.stock ?? updateData.stock) || 0
@@ -173,6 +172,7 @@ export async function PATCH(
         if ('condition' in updateData) validUpdateData.condition = updateData.condition
         if ('isNew' in updateData) validUpdateData.isNew = !!updateData.isNew
         if ('isFeatured' in updateData) validUpdateData.isFeatured = !!updateData.isFeatured
+
         if ('isSale' in updateData || 'discountPrice' in updateData || 'discountPercent' in updateData) {
             validUpdateData.isSale = !!updateData.isSale || !!updateData.discountPrice || !!updateData.discountPercent
             validUpdateData.discount = updateData.discountPercent
@@ -181,18 +181,24 @@ export async function PATCH(
                     ? Math.round(((Number(updateData.price) - Number(updateData.discountPrice)) / Number(updateData.price)) * 100)
                     : null)
         }
-        if (specs !== undefined) validUpdateData.specs = JSON.stringify(specs)
-        if (images !== undefined) validUpdateData.galleryImages = JSON.stringify(images)
+        
+        if (specs !== undefined) validUpdateData.specs = typeof specs === 'string' ? specs : JSON.stringify(specs)
+        if (images !== undefined) validUpdateData.galleryImages = typeof images === 'string' ? images : JSON.stringify(images)
 
+        console.log(`[PATCH /api/products/${id}] STEP 1: Updating Product record...`);
         const { error: productError } = await supabaseAdmin
             .from('Product')
             .update(validUpdateData)
             .eq('id', id)
 
-        if (productError) throw productError
+        if (productError) {
+            console.error(`[PATCH /api/products/${id}] STEP 1 FAILED:`, productError);
+            throw new Error(`Product update failed: ${productError.message}`);
+        }
 
-        // 2. Update Variants using resilient Upsert logic
+        // 2. Update Variants
         if (variants !== undefined) {
+            console.log(`[PATCH /api/products/${id}] STEP 2: Syncing ${variants.length} variants...`);
             const variantsToUpsert = variants.map((v: any) => ({
                 id: (v.id && !v.id.startsWith('new_')) ? v.id : crypto.randomUUID(),
                 productId: id,
@@ -211,16 +217,20 @@ export async function PATCH(
                     .upsert(variantsToUpsert, { onConflict: 'id' })
 
                 if (variantsError) {
-                    console.error("Supabase: Variant synchronization warning:", variantsError.message);
+                    console.error(`[PATCH /api/products/${id}] STEP 2 WARNING:`, variantsError.message);
                 }
             }
         }
 
-        return NextResponse.json({ message: "Product record updated" })
+        console.log(`[PATCH /api/products/${id}] SUCCESS.`);
+        return NextResponse.json({ success: true, message: "Product record updated" })
     } catch (error: any) {
-        try { require('fs').appendFileSync('tmp/api_trace.log', `\n[PATCH ERROR ${new Date().toISOString()}] ${id}: ${error.stack || error.message}\nPAYLOAD: ${JSON.stringify(body || {}, null, 2)}\n`) } catch { }
-        console.error("Supabase Database Update Failure:", error)
-        return NextResponse.json({ error: "Update failed", details: error.message }, { status: 500 })
+        console.error(`[PATCH /api/products/${id}] FATAL ERROR:`, error.message);
+        return NextResponse.json({ 
+            error: "Update failed", 
+            details: error.message,
+            stack: error.stack?.split('\n')[0] 
+        }, { status: 500 })
     }
 }
 

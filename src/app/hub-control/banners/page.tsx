@@ -546,7 +546,14 @@ export default function BannerManager() {
                                                     <option value="/">HOME HUB</option>
                                                     <option value="/products">HARDWARE STORE</option>
                                                     <option value="/products?promo=FLASH_SALE">FLASH SALE</option>
-                                                    <option value="/hub-control">DASHBOARD</option>
+                                                    <option disabled>── PAGE SECTIONS ──</option>
+                                                    <option value="#categories">SHOP BY CATEGORY</option>
+                                                    <option value="#featured_products">NEW RELEASES</option>
+                                                    <option value="#brand_showcase">AUTHENTIC BRANDS</option>
+                                                    <option value="#trust_bar">TRUST BAR</option>
+                                                    <option disabled>─ STANDALONE PAGES ─</option>
+                                                    <option value="/about">ABOUT US</option>
+                                                    <option value="/hub-control">DASHBOARD (ADMIN)</option>
                                                     {productList.length > 0 && (
                                                         <>
                                                             <option disabled>──────────</option>

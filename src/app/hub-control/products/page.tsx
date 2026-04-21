@@ -6,23 +6,58 @@ import {
     MoreHorizontal, Edit2, Trash2, Eye,
     ArrowUpRight, Package, Smartphone as SmartphoneIcon,
     Tags, Layers, ShieldCheck, Zap, X, Image as ImageIcon,
-    ChevronDown, ChevronUp, Save, BarChart3, Shield, Download, Info, Globe, Ruler, Copy, Check
+    ChevronDown, ChevronUp, Save, BarChart3, Shield, Download, Info, Globe, Ruler, Copy, Check, Archive, Loader2
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
+import { AutoScroller } from "@/components/admin/AutoScroller"
 import { motion, AnimatePresence } from "framer-motion"
 import { toast } from "react-hot-toast"
 import Image from "next/image"
+import Link from "next/link"
 import { cn } from "@/lib/utils"
 
-const BRANDS = ["Apple", "Samsung", "Xiaomi", "Oppo", "Infinix", "Tecno", "Google", "Huawei", "Nothing", "OnePlus"]
-const CATEGORIES = ["Smartphones", "Tablets", "Accessories", "Laptops", "Smart Watches", "Headphones", "Foldables", "Gaming", "Refurbished"]
+const BRANDS: string[] = []
 const OS_TYPES = ["iOS", "Android", "HarmonyOS", "Other"]
 const DISPLAY_TYPES = ["OLED", "AMOLED", "Super AMOLED", "LTPO OLED", "LCD", "IPS LCD", "IPS", "Liquid Retina"]
 const FIELD_TYPES = ["Text", "Number", "Dropdown", "Boolean", "Multi-select"]
+
+const initialProductState = {
+    brand: "",
+    model: "",
+    releaseYear: new Date().getFullYear().toString(),
+    productColors: [] as { color: string, stock: string, image?: string }[],
+    price: "",
+    discountPrice: "",
+    sku: "",
+    category: "Smartphones",
+    isHidden: false,
+    showDiscountBadge: true,
+    isNew: false,
+    isFeatured: false,
+    stock: "",
+    ram: "",
+    storage: "",
+    customFields: [] as { key: string, value: string }[],
+    discountPercent: "",
+    discountTarget: "both" as "base" | "variants" | "both",
+    images: [] as string[],
+    quickDescription: "",
+    detailedDescription: "",
+    customSpecifications: {} as Record<string, { field_name: string, field_type: string, value: any }[]>,
+    customSections: [] as { id: string, title: string, icon: string, fields: { field_name: string, field_type: string, value: any }[] }[],
+    variants: [] as {
+        id: string,
+        ram: string,
+        storage: string,
+        price: string,
+        stock: string,
+        productColors: { color: string, stock: string, image?: string }[],
+        customFields: { key: string, value: string }[]
+    }[]
+}
 
 function FilterDropdown({ label, options = [], selected, onToggle, icon }: { label: string, options?: string[], selected: string[], onToggle: (val: string) => void, icon?: React.ReactNode }) {
     const [isOpen, setIsOpen] = useState(false)
@@ -109,10 +144,10 @@ function FilterDropdown({ label, options = [], selected, onToggle, icon }: { lab
 }
 
 export default function ProductsPage() {
-    const [products, setProducts] = useState<any[]>([])
+    const [editingProduct, setEditingProduct] = useState<any>(null)
+    const [data, setData] = useState<{ products: any[], cmsCategories: any[] }>({ products: [], cmsCategories: [] })
     const [isLoading, setIsLoading] = useState(true)
     const [isAddModalOpen, setIsAddModalOpen] = useState(false)
-    const [editingProduct, setEditingProduct] = useState<any>(null)
     const [searchQuery, setSearchQuery] = useState("")
     const [selectedBrands, setSelectedBrands] = useState<string[]>([])
     const [selectedCategories, setSelectedCategories] = useState<string[]>([])
@@ -126,18 +161,46 @@ export default function ProductsPage() {
     const [isSaving, setIsSaving] = useState(false)
     const [isCreatingNewCategory, setIsCreatingNewCategory] = useState(false)
     const [newCategoryInput, setNewCategoryInput] = useState("")
+    const [locallyCreatedCategories, setLocallyCreatedCategories] = useState<string[]>([])
     const [isCreatingNewBrand, setIsCreatingNewBrand] = useState(false)
     const [newBrandInput, setNewBrandInput] = useState("")
+    const [locallyCreatedBrands, setLocallyCreatedBrands] = useState<string[]>([])
+
+    const products = data.products || [];
+    const [newProduct, setNewProduct] = useState(initialProductState)
+    const [showLibrary, setShowLibrary] = useState(false)
+    const [library, setLibrary] = useState<any[]>([])
+    const [loadingLibrary, setLoadingLibrary] = useState(false)
+    const [librarySearch, setLibrarySearch] = useState("")
+
+    const fetchLibrary = async () => {
+        setLoadingLibrary(true)
+        try {
+            const res = await fetch("/api/upload")
+            const data = await res.json()
+            if (data.success) setLibrary(data.files)
+        } catch (e) {
+            toast.error("Failed to load library")
+        } finally {
+            setLoadingLibrary(false)
+        }
+    }
+
+    useEffect(() => {
+        if (showLibrary) fetchLibrary()
+    }, [showLibrary])
 
     const dynamicBrands = React.useMemo(() => {
         const brandsFromItems = Array.from(new Set(products.map(p => p.brand).filter(Boolean)))
-        return Array.from(new Set([...BRANDS, ...brandsFromItems])).sort()
-    }, [products])
+        return Array.from(new Set([...BRANDS, ...brandsFromItems, ...locallyCreatedBrands])).sort()
+    }, [products, locallyCreatedBrands])
 
     const dynamicCategories = React.useMemo(() => {
+        const cmsCats = data.cmsCategories?.map((c: any) => c.name) || []
         const catsFromItems = Array.from(new Set(products.map(p => p.category).filter(Boolean)))
-        return Array.from(new Set([...CATEGORIES, ...catsFromItems])).sort()
-    }, [products])
+        return Array.from(new Set([...cmsCats, ...catsFromItems, ...locallyCreatedCategories])).sort()
+    }, [products, data.cmsCategories, locallyCreatedCategories])
+
     const router = useRouter()
 
     const toggleSection = (section: string) => {
@@ -216,39 +279,7 @@ export default function ProductsPage() {
         toast("Advanced filtering options coming soon.", { icon: "🔍" })
     }
 
-    const initialProductState = {
-        brand: "",
-        model: "",
-        releaseYear: new Date().getFullYear().toString(),
-        productColors: [] as { color: string, stock: string, image?: string }[],
-        price: "",
-        discountPrice: "",
-        sku: "",
-        category: "Smartphones",
-        isHidden: false,
-        showDiscountBadge: true,
-        isNew: false,
-        isFeatured: false,
-        stock: "",
-        discountPercent: "",
-        discountTarget: "both" as "base" | "variants" | "both",
-        images: [] as string[],
-        quickDescription: "",
-        detailedDescription: "",
-        customSpecifications: {} as Record<string, { field_name: string, field_type: string, value: any }[]>,
-        customSections: [] as { id: string, title: string, icon: string, fields: { field_name: string, field_type: string, value: any }[] }[],
-        variants: [] as {
-            id: string,
-            ram: string,
-            storage: string,
-            price: string,
-            stock: string,
-            productColors: { color: string, stock: string, image?: string }[],
-            customFields: { key: string, value: string }[]
-        }[]
-    }
 
-    const [newProduct, setNewProduct] = useState(initialProductState)
 
     // Safely parse specs — API now returns parsed objects, but defend against
     // cached string data or any edge case where specs is still a raw string.
@@ -279,6 +310,9 @@ export default function ProductsPage() {
             releaseYear: s.identity?.releaseYear || "",
             productColors: mappedColors,
             stock: String(product.stock || ""),
+            ram: s.identity?.ram || "",
+            storage: s.identity?.storage || "",
+            customFields: s.identity?.customFields || [],
             price: (product.price != null && product.price !== 0) ? String(product.price) : "",
             discountPrice: s.identity?.discountPrice || "",
             sku: s.identity?.sku || "",
@@ -313,18 +347,26 @@ export default function ProductsPage() {
         fetchProducts()
     }, [])
 
+
+    // Old auto-scroll effect removed
+
+
     const fetchProducts = async () => {
         if (isRefreshing) return
         setIsLoading(true)
         setIsRefreshing(true)
         try {
-            const res = await fetch("/api/products?all=true")
-            const data = await res.json()
-            // Deduplicate products by ID just in case the API returns duplicates
-            const uniqueProducts = Array.from(new Map(data.map((item: any) => [item.id, item])).values())
-            setProducts(uniqueProducts)
+            const [prodRes, catRes] = await Promise.all([
+                fetch("/api/products?all=true"),
+                fetch("/api/cms/categories")
+            ])
+            const [prods, cats] = await Promise.all([prodRes.json(), catRes.json()])
+
+            // Deduplicate products by ID 
+            const uniqueProducts = Array.from(new Map(prods.map((item: any) => [item.id, item])).values())
+            setData({ products: uniqueProducts, cmsCategories: cats })
         } catch (error) {
-            toast.error("Failed to sync products")
+            toast.error("Failed to sync products and categories")
         } finally {
             setIsLoading(false)
             setIsRefreshing(false)
@@ -432,6 +474,7 @@ export default function ProductsPage() {
             const sanitizedImages = newProduct.images
                 .map(url => String(url || "").trim())
                 .filter(url => url.length > 0 && url !== "null" && url !== "undefined")
+                .filter(url => !url.startsWith("data:image")) // Critical: Prevent base64 from bloating payload
 
             const payload = {
                 name: `${newProduct.brand} ${newProduct.model}`.trim(),
@@ -454,6 +497,9 @@ export default function ProductsPage() {
                     identity: {
                         releaseYear: newProduct.releaseYear,
                         sku: newProduct.sku,
+                        ram: newProduct.ram,
+                        storage: newProduct.storage,
+                        customFields: newProduct.customFields,
                         isHidden: newProduct.isHidden || false,
                         showDiscountBadge: newProduct.showDiscountBadge !== false,
                         discountPrice: newProduct.discountPrice,
@@ -498,15 +544,27 @@ export default function ProductsPage() {
             // API returns the updated product with specs already parsed
             const savedProduct = await res.json()
 
+            // Background Sync / Cross-Section Auto-Sync
+            // If the category used doesn't exist in the CMS, auto-push it
+            if (!data.cmsCategories.some(c => c.name.toLowerCase() === newProduct.category.toLowerCase())) {
+                try {
+                    await fetch("/api/cms/categories", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ name: newProduct.category, isActive: true, imageUrl: "" })
+                    })
+                } catch (ce) { console.error("Auto-sync category failed:", ce) }
+            }
+
             toast.success(editingProduct ? "Product Updated" : "Product Saved", { id: saveToast })
             setIsAddModalOpen(false)
 
             // Immediately update local state from API response (no full refetch lag)
-            setProducts(prev => {
+            setData(prev => {
                 if (editingProduct) {
-                    return prev.map(p => p.id === savedProduct.id ? savedProduct : p)
+                    return { ...prev, products: prev.products.map(p => p.id === savedProduct.id ? savedProduct : p) }
                 } else {
-                    return [savedProduct, ...prev]
+                    return { ...prev, products: [savedProduct, ...prev.products] }
                 }
             })
 
@@ -898,6 +956,7 @@ export default function ProductsPage() {
                             </div>
 
                             <div className="flex-1 overflow-y-auto p-4 lg:p-10 no-scrollbar bg-muted/[0.01]" onPaste={handlePaste}>
+                                <AutoScroller trigger={editingProduct} />
                                 <form id="product-form" onSubmit={handleSaveProduct} className="flex flex-col gap-8 max-w-5xl mx-auto pb-10">
                                     <div className="flex flex-col gap-6">
                                         <button type="button" onClick={() => toggleSection("basic")} className="flex items-center gap-4 group text-left">
@@ -950,10 +1009,12 @@ export default function ProductsPage() {
                                                                             type="button"
                                                                             onClick={() => {
                                                                                 if (newBrandInput.trim()) {
-                                                                                    setNewProduct({ ...newProduct, brand: newBrandInput.trim() })
+                                                                                    const brand = newBrandInput.trim()
+                                                                                    setLocallyCreatedBrands(prev => Array.from(new Set([...prev, brand])))
+                                                                                    setNewProduct({ ...newProduct, brand: brand })
                                                                                     setIsCreatingNewBrand(false)
                                                                                     setNewBrandInput("")
-                                                                                    toast.success(`Brand "${newBrandInput}" added`, { icon: "🏢" })
+                                                                                    toast.success(`Brand "${brand}" added`, { icon: "🏢" })
                                                                                 }
                                                                             }}
                                                                             className="absolute right-3 top-1/2 -translate-y-1/2 text-primary hover:scale-110 transition-transform"
@@ -986,7 +1047,76 @@ export default function ProductsPage() {
                                                     </div>
                                                 </div>
 
+                                                {newProduct.variants.length > 0 && (
+                                                    <div className="p-6 bg-primary/[0.03] border border-primary/10 rounded-[2rem] flex flex-col gap-6 animate-in fade-in slide-in-from-top-4 duration-500">
+                                                        <div className="flex items-center gap-3">
+                                                            <div className="w-1.5 h-6 bg-primary rounded-full" />
+                                                            <h4 className="text-[11px] font-black uppercase tracking-[0.2em] text-primary">Base Configuration Details</h4>
+                                                        </div>
+                                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                                            <div className="flex flex-col gap-2">
+                                                                <label className="text-[9px] font-black uppercase tracking-[0.1em] text-muted-foreground ml-2 ">Base RAM</label>
+                                                                <Input value={newProduct.ram} onChange={(e) => setNewProduct({ ...newProduct, ram: e.target.value })} placeholder="e.g. 8GB" className="h-10 bg-white border-border/20 rounded-xl text-[10px] font-bold" />
+                                                            </div>
+                                                            <div className="flex flex-col gap-2">
+                                                                <label className="text-[9px] font-black uppercase tracking-[0.1em] text-muted-foreground ml-2 ">Base Storage</label>
+                                                                <Input value={newProduct.storage} onChange={(e) => setNewProduct({ ...newProduct, storage: e.target.value })} placeholder="e.g. 128GB" className="h-10 bg-white border-border/20 rounded-xl text-[10px] font-bold" />
+                                                            </div>
+                                                        </div>
 
+                                                        {/* Base Custom Fields */}
+                                                        <div className="flex flex-col gap-4 pt-2">
+                                                            <div className="flex items-center justify-between">
+                                                                <span className="text-[9px] font-black uppercase tracking-[0.1em] text-muted-foreground ml-2">Base Custom Attributes</span>
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => setNewProduct({ ...newProduct, customFields: [...(newProduct.customFields || []), { key: "", value: "" }] })}
+                                                                    className="text-primary text-[8px] font-black uppercase tracking-widest hover:underline"
+                                                                >
+                                                                    + Add Attribute
+                                                                </button>
+                                                            </div>
+                                                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                                                {(newProduct.customFields || []).map((f, fIdx) => (
+                                                                    <div key={fIdx} className="flex flex-col gap-2 p-3 bg-white border border-border/10 rounded-xl relative group/fld">
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={() => {
+                                                                                const ncf = newProduct.customFields.filter((_, i) => i !== fIdx);
+                                                                                setNewProduct({ ...newProduct, customFields: ncf });
+                                                                            }}
+                                                                            className="absolute -top-2 -right-2 w-5 h-5 bg-rose-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover/fld:opacity-100 transition-all shadow-lg"
+                                                                        >
+                                                                            <X size={10} />
+                                                                        </button>
+                                                                        <div className="flex flex-col gap-1.5">
+                                                                            <input
+                                                                                value={f.key}
+                                                                                onChange={(e) => {
+                                                                                    const ncf = [...newProduct.customFields];
+                                                                                    ncf[fIdx].key = e.target.value;
+                                                                                    setNewProduct({ ...newProduct, customFields: ncf });
+                                                                                }}
+                                                                                placeholder="LABEL (e.g. Battery)"
+                                                                                className="text-[8px] font-black uppercase tracking-widest text-primary bg-transparent outline-none w-full"
+                                                                            />
+                                                                            <input
+                                                                                value={f.value}
+                                                                                onChange={(e) => {
+                                                                                    const ncf = [...newProduct.customFields];
+                                                                                    ncf[fIdx].value = e.target.value;
+                                                                                    setNewProduct({ ...newProduct, customFields: ncf });
+                                                                                }}
+                                                                                placeholder="VALUE (e.g. 5000mAh)"
+                                                                                className="text-[10px] font-black uppercase tracking-widest text-foreground bg-transparent outline-none w-full"
+                                                                            />
+                                                                        </div>
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                )}
 
                                                 <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
                                                     <div className="flex flex-col gap-2 md:col-span-2">
@@ -1023,10 +1153,12 @@ export default function ProductsPage() {
                                                                             type="button"
                                                                             onClick={() => {
                                                                                 if (newCategoryInput.trim()) {
-                                                                                    setNewProduct({ ...newProduct, category: newCategoryInput.trim() })
+                                                                                    const cat = newCategoryInput.trim()
+                                                                                    setLocallyCreatedCategories(prev => Array.from(new Set([...prev, cat])))
+                                                                                    setNewProduct({ ...newProduct, category: cat })
                                                                                     setIsCreatingNewCategory(false)
                                                                                     setNewCategoryInput("")
-                                                                                    toast.success(`Category "${newCategoryInput}" created`, { icon: "✅" })
+                                                                                    toast.success(`Category "${cat}" selected`, { icon: "✅" })
                                                                                 }
                                                                             }}
                                                                             className="absolute right-3 top-1/2 -translate-y-1/2 text-primary hover:scale-110 transition-transform"
@@ -1053,7 +1185,7 @@ export default function ProductsPage() {
                                                         <label className="text-[10px] font-bold text-muted-foreground ml-2  uppercase">SKU / Serial</label>
                                                         <Input value={newProduct.sku} onChange={(e) => setNewProduct({ ...newProduct, sku: e.target.value })} placeholder="e.g. AP-IP16-256-BK" className="h-10 bg-muted/30 border-border/20 rounded-xl text-sm font-medium" />
                                                     </div>
-                                                    {newProduct.productColors.length === 0 && (
+                                                    {newProduct.productColors.length === 0 && newProduct.variants.length < 2 && (
                                                         <div className="flex flex-col gap-2 md:col-span-1">
                                                             <label className="text-[10px] font-bold text-muted-foreground ml-2  uppercase">Total Stock</label>
                                                             <Input type="number" value={newProduct.stock} onChange={(e) => setNewProduct({ ...newProduct, stock: e.target.value })} placeholder="0" className="h-10 bg-muted/30 border-border/20 rounded-xl text-sm font-medium" />
@@ -1724,50 +1856,134 @@ export default function ProductsPage() {
                                                             </div>
                                                         </div>
                                                     ))}
-                                                    <div
-                                                        className="md:col-span-full relative"
-                                                    >
-                                                        <div className="relative group/uploader overflow-hidden rounded-[2.5rem] bg-slate-900/[0.02] border-2 border-dashed border-slate-900/5 hover:border-primary/20 hover:bg-primary/[0.02] transition-all duration-500 p-8 flex flex-col items-center justify-center text-center gap-4">
-                                                            <div className="w-16 h-16 rounded-full bg-white shadow-xl shadow-slate-900/5 flex items-center justify-center text-primary group-hover/uploader:scale-110 group-hover/uploader:rotate-12 transition-all duration-500">
-                                                                <ImageIcon size={28} strokeWidth={1.5} />
+                                                    <div className="md:col-span-full relative flex flex-col gap-4">
+                                                        <div className="flex items-center justify-between px-2">
+                                                            <div className="flex flex-col">
+                                                                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-900">Asset Management</span>
+                                                                <span className="text-[8px] font-bold text-muted-foreground uppercase tracking-widest opacity-40">Choose to upload new or reuse existing</span>
                                                             </div>
-                                                            <div className="flex flex-col gap-1 max-w-[280px]">
-                                                                <h4 className="text-[12px] font-black uppercase tracking-[0.2em] text-slate-900">Universal Asset Portal</h4>
-                                                                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest opacity-40 leading-relaxed">
-                                                                    Drop your masters here. <br />
-                                                                    <span className="text-primary opacity-60">Paste from clipboard</span> or browse locally.
-                                                                </p>
-                                                            </div>
-                                                            <div className="h-px w-24 bg-slate-900/5 my-2" />
-                                                            <label
-                                                                htmlFor="product-image-upload"
-                                                                className="relative h-12 px-10 rounded-full bg-slate-900 text-white flex items-center justify-center gap-3 cursor-pointer hover:bg-slate-800 hover:scale-105 active:scale-95 transition-all shadow-2xl shadow-slate-900/20"
+                                                            <button 
+                                                                type="button"
+                                                                onClick={() => setShowLibrary(!showLibrary)}
+                                                                className={cn(
+                                                                    "h-10 px-6 rounded-full flex items-center justify-center gap-2 text-[9px] font-black uppercase tracking-widest transition-all border",
+                                                                    showLibrary 
+                                                                        ? "bg-slate-900 text-white border-slate-900" 
+                                                                        : "bg-primary/5 text-primary border-primary/20 hover:bg-primary/10"
+                                                                )}
                                                             >
-                                                                <Plus size={16} strokeWidth={3} />
-                                                                <span className="text-[10px] font-black uppercase tracking-[0.2em]">Select Assets</span>
-                                                                <input
-                                                                    id="product-image-upload"
-                                                                    type="file"
-                                                                    multiple
-                                                                    onChange={handleImageUpload}
-                                                                    className="hidden"
-                                                                    accept="image/*"
-                                                                />
-                                                            </label>
-
-                                                            {/* Subtle corner accents */}
-                                                            <div className="absolute top-6 left-6 w-3 h-3 border-t-2 border-l-2 border-slate-900/10 rounded-tl-sm" />
-                                                            <div className="absolute top-6 right-6 w-3 h-3 border-t-2 border-r-2 border-slate-900/10 rounded-tr-sm" />
-                                                            <div className="absolute bottom-6 left-6 w-3 h-3 border-b-2 border-l-2 border-slate-900/10 rounded-bl-sm" />
-                                                            <div className="absolute bottom-6 right-6 w-3 h-3 border-b-2 border-r-2 border-slate-900/10 rounded-br-sm" />
+                                                                <Archive size={12} /> {showLibrary ? "BACK TO UPLOADER" : "OPEN ASSET LIBRARY"}
+                                                            </button>
                                                         </div>
+
+                                                        <AnimatePresence mode="wait">
+                                                            {showLibrary ? (
+                                                                <motion.div 
+                                                                    key="library"
+                                                                    initial={{ opacity: 0, y: 20 }}
+                                                                    animate={{ opacity: 1, y: 0 }}
+                                                                    exit={{ opacity: 0, y: 20 }}
+                                                                    className="relative group/library overflow-hidden rounded-[2.5rem] bg-slate-900/[0.02] border-2 border-slate-900/5 p-8 flex flex-col gap-6"
+                                                                >
+                                                                    <div className="flex items-center justify-between">
+                                                                        <div className="flex items-center gap-2">
+                                                                            <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+                                                                            <span className="text-[9px] font-black uppercase tracking-[0.3em] text-slate-500">Global Repository ({library.length})</span>
+                                                                        </div>
+                                                                        <div className="relative flex-1 max-w-xs ml-4">
+                                                                            <Search size={12} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground opacity-40" />
+                                                                            <input 
+                                                                                type="text"
+                                                                                placeholder="SEARCH REPOSITORY..."
+                                                                                value={librarySearch}
+                                                                                onChange={(e) => setLibrarySearch(e.target.value)}
+                                                                                className="w-full h-8 pl-9 pr-4 bg-white/50 border border-slate-200 rounded-full text-[9px] font-bold uppercase tracking-widest outline-none focus:border-primary/30 transition-all"
+                                                                            />
+                                                                        </div>
+                                                                        {loadingLibrary && <Loader2 size={14} className="animate-spin text-primary" />}
+                                                                    </div>
+                                                                    
+                                                                    <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-4 max-h-[300px] overflow-y-auto pr-4 custom-scrollbar">
+                                                                        {library.filter(img => (img.name || "").toLowerCase().includes(librarySearch.toLowerCase())).map((img, i) => (
+                                                                            <button
+                                                                                key={i}
+                                                                                type="button"
+                                                                                onClick={() => {
+                                                                                    if (!newProduct.images.includes(img.url)) {
+                                                                                        setNewProduct(prev => ({ ...prev, images: [...prev.images, img.url] }));
+                                                                                        toast.success("Asset added to product");
+                                                                                    } else {
+                                                                                        toast.error("Asset already added");
+                                                                                    }
+                                                                                }}
+                                                                                className={cn(
+                                                                                    "aspect-square rounded-2xl border-2 transition-all p-2 bg-white hover:scale-105 active:scale-95 group/libItem relative overflow-hidden",
+                                                                                    newProduct.images.includes(img.url) ? "border-primary shadow-xl shadow-primary/10" : "border-transparent opacity-60 hover:opacity-100 hover:border-slate-200"
+                                                                                )}
+                                                                            >
+                                                                                <img src={img.url} alt="" className="w-full h-full object-contain" />
+                                                                                {newProduct.images.includes(img.url) && (
+                                                                                    <div className="absolute inset-0 bg-primary/20 flex items-center justify-center">
+                                                                                        <Check size={16} strokeWidth={4} className="text-primary" />
+                                                                                    </div>
+                                                                                )}
+                                                                            </button>
+                                                                        ))}
+                                                                        {library.length === 0 && !loadingLibrary && (
+                                                                            <div className="col-span-full py-12 flex flex-col items-center justify-center opacity-20 grayscale">
+                                                                                <ImageIcon size={40} />
+                                                                                <span className="text-[9px] font-black uppercase tracking-[0.5em] mt-4">Empty Repository</span>
+                                                                            </div>
+                                                                        )}
+                                                                    </div>
+                                                                </motion.div>
+                                                            ) : (
+                                                                <motion.div
+                                                                    key="uploader"
+                                                                    initial={{ opacity: 0, y: -20 }}
+                                                                    animate={{ opacity: 1, y: 0 }}
+                                                                    exit={{ opacity: 0, y: -20 }}
+                                                                    className="relative group/uploader overflow-hidden rounded-[2.5rem] bg-slate-900/[0.02] border-2 border-dashed border-slate-900/5 hover:border-primary/20 hover:bg-primary/[0.02] transition-all duration-500 p-8 flex flex-col items-center justify-center text-center gap-4"
+                                                                >
+                                                                    <div className="w-16 h-16 rounded-full bg-white shadow-xl shadow-slate-900/5 flex items-center justify-center text-primary group-hover/uploader:scale-110 group-hover/uploader:rotate-12 transition-all duration-500">
+                                                                        <ImageIcon size={28} strokeWidth={1.5} />
+                                                                    </div>
+                                                                    <div className="flex flex-col gap-1 max-w-[280px]">
+                                                                        <h4 className="text-[12px] font-black uppercase tracking-[0.2em] text-slate-900">Universal Asset Portal</h4>
+                                                                        <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest opacity-40 leading-relaxed">
+                                                                            Drop your masters here. <br />
+                                                                            <span className="text-primary opacity-60">Paste from clipboard</span> or browse locally.
+                                                                        </p>
+                                                                    </div>
+                                                                    <div className="h-px w-24 bg-slate-900/5 my-2" />
+                                                                    <label
+                                                                        htmlFor="product-image-upload"
+                                                                        className="relative h-12 px-10 rounded-full bg-slate-900 text-white flex items-center justify-center gap-3 cursor-pointer hover:bg-slate-800 hover:scale-105 active:scale-95 transition-all shadow-2xl shadow-slate-900/20"
+                                                                    >
+                                                                        <Plus size={16} strokeWidth={3} />
+                                                                        <span className="text-[10px] font-black uppercase tracking-[0.2em]">Select Assets</span>
+                                                                        <input
+                                                                            id="product-image-upload"
+                                                                            type="file"
+                                                                            multiple
+                                                                            onChange={handleImageUpload}
+                                                                            className="hidden"
+                                                                            accept="image/*"
+                                                                        />
+                                                                    </label>
+
+                                                                    <div className="absolute top-6 left-6 w-3 h-3 border-t-2 border-l-2 border-slate-900/10 rounded-tl-sm" />
+                                                                    <div className="absolute top-6 right-6 w-3 h-3 border-t-2 border-r-2 border-slate-900/10 rounded-tr-sm" />
+                                                                    <div className="absolute bottom-6 left-6 w-3 h-3 border-b-2 border-l-2 border-slate-900/10 rounded-bl-sm" />
+                                                                    <div className="absolute bottom-6 right-6 w-3 h-3 border-b-2 border-r-2 border-slate-900/10 rounded-br-sm" />
+                                                                </motion.div>
+                                                            )}
+                                                        </AnimatePresence>
                                                     </div>
                                                 </div>
                                             </motion.div>
                                         )}
                                     </div>
-
-                                    {/* All legacy spec sections removed - favoring simplified Quick/Detailed description architecture */}
                                 </form>
                             </div>
                         </motion.div>

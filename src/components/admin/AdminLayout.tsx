@@ -172,7 +172,8 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                     })
                 }
             } catch (err) {
-                // Silently handle polling failures to avoid console noise during dev restarts
+                // Silently handle polling failures (common in dev HMR or with extensions like Dashlane)
+                console.log("[ADMIN_SYNC] Background sync paused - check network/extensions");
             }
         }
 

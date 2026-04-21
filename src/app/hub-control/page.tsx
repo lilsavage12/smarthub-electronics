@@ -16,7 +16,7 @@ export default function DashboardOverview() {
     const [products, setProducts] = useState<any[]>([])
     const [discounts, setDiscounts] = useState<any[]>([])
     const [loading, setLoading] = useState(true)
-    const [timeRange, setTimeRange] = useState("7 DAYS")
+    const [timeRange, setTimeRange] = useState<string | null>(null)
     const router = useRouter()
 
     const fetchData = async () => {
@@ -49,7 +49,7 @@ export default function DashboardOverview() {
 
     const filteredOrders = useMemo(() => {
         const now = new Date()
-        let cutoff = new Date(0) // Default to all time
+        let cutoff = new Date(0)
         if (timeRange === "7 DAYS") {
             cutoff = new Date()
             cutoff.setDate(now.getDate() - 7)
@@ -59,6 +59,8 @@ export default function DashboardOverview() {
         } else if (timeRange === "1 YEAR") {
             cutoff = new Date()
             cutoff.setFullYear(now.getFullYear() - 1)
+        } else if (timeRange === null) {
+            return liveOrders
         }
         
         return liveOrders.filter(o => new Date(o.createdAt) >= cutoff)
@@ -92,6 +94,57 @@ export default function DashboardOverview() {
     }, [liveOrders])
 
     const chartData = useMemo(() => {
+        if (!liveOrders.length) return []
+
+        // Handle ALL TIME (null) vs Specific Ranges
+        if (timeRange === null) {
+            // Find oldest order to determine if we need yearly or monthly grouping
+            const dates = liveOrders.map(o => new Date(o.createdAt).getTime()).filter(d => !isNaN(d))
+            const oldestDate = dates.length ? new Date(Math.min(...dates)) : new Date()
+            const now = new Date()
+            const yearDiff = now.getFullYear() - oldestDate.getFullYear()
+
+            if (yearDiff >= 2) {
+                // Multi-year view: Group by Year
+                const years: any[] = []
+                for (let y = oldestDate.getFullYear(); y <= now.getFullYear(); y++) {
+                    const ordersInYear = liveOrders.filter(o => new Date(o.createdAt).getFullYear() === y)
+                    const revenue = ordersInYear
+                        .filter(o => {
+                            const s = (o.status || '').toUpperCase()
+                            const p = (o.paymentStatus || '').toUpperCase()
+                            return (s === 'COMPLETED' || s === 'DELIVERED' || p === 'PAID') && s !== 'CANCELLED'
+                        })
+                        .reduce((acc, o) => acc + (parseFloat(o.totalAmount) || 0), 0)
+                    
+                    years.push({ name: y.toString(), value: revenue })
+                }
+                return years
+            } else {
+                // Short-term ALL TIME: Show last 12 months for better detail
+                const months: any[] = []
+                for (let i = 11; i >= 0; i--) {
+                    const d = new Date()
+                    d.setMonth(d.getMonth() - i)
+                    const label = d.toLocaleDateString('en-US', { month: 'short' })
+                    const monthKey = d.toISOString().slice(0, 7)
+                    
+                    const ordersInMonth = liveOrders.filter(o => o.createdAt && o.createdAt.startsWith(monthKey))
+                    const revenue = ordersInMonth
+                        .filter(o => {
+                            const s = (o.status || '').toUpperCase()
+                            const p = (o.paymentStatus || '').toUpperCase()
+                            return (s === 'COMPLETED' || s === 'DELIVERED' || p === 'PAID') && s !== 'CANCELLED'
+                        })
+                        .reduce((acc, o) => acc + (parseFloat(o.totalAmount) || 0), 0)
+                    
+                    months.push({ name: label, value: revenue })
+                }
+                return months
+            }
+        }
+
+        // Specific Time Ranges (7D, 30D, 1Y)
         const points = timeRange === '1 YEAR' ? 12 : (timeRange === '30 DAYS' ? 30 : 7)
         return Array.from({ length: points }).map((_, i) => {
             const d = new Date()
@@ -123,7 +176,7 @@ export default function DashboardOverview() {
                 })
                 .reduce((acc, o) => acc + (parseFloat(o.totalAmount) || 0), 0)
 
-            return { name: label, value: revenue } // No random fallbacks anymore
+            return { name: label, value: revenue }
         })
     }, [liveOrders, timeRange])
 
@@ -148,7 +201,7 @@ export default function DashboardOverview() {
                     {['7 DAYS', '30 DAYS', '1 YEAR'].map((p) => (
                         <button 
                             key={p} 
-                            onClick={() => setTimeRange(p)}
+                            onClick={() => setTimeRange(timeRange === p ? null : p)}
                             className={cn(
                                 "px-4 py-2 sm:px-5 sm:py-2 text-[9px] sm:text-[10px] font-[900] uppercase tracking-widest rounded-lg transition-all duration-300",
                                 timeRange === p ? "bg-[#0F172A] text-white shadow-lg" : "text-slate-400 hover:text-slate-900"

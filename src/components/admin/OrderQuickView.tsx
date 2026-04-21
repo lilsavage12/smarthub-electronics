@@ -23,6 +23,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
+import { AutoScroller } from "./AutoScroller"
 import Image from 'next/image'
 
 interface OrderItem {
@@ -214,6 +215,7 @@ export const OrderQuickView: React.FC<OrderQuickViewProps> = ({
 
                         {/* Content */}
                         <div className="flex-1 overflow-y-auto">
+                            <AutoScroller trigger={order.id} />
                             <div className="p-6 flex flex-col gap-8">
                                 
                                 {/* Cancellation Mediation Alert */}

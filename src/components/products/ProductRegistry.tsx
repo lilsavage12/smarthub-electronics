@@ -85,6 +85,22 @@ export function ProductRegistry({ initialProducts, cmsData: initialCmsData }: Pr
         <div className="min-h-screen bg-background text-foreground pb-40" suppressHydrationWarning>
             <div className="max-w-7xl mx-auto px-6 flex flex-col gap-12 pt-10" suppressHydrationWarning>
 
+                {/* MOBILE SEARCH BAR - COMPACT VERSION */}
+                <div className="lg:hidden w-full mb-2">
+                    <div className="relative group">
+                         <div className="absolute left-5 top-1/2 -translate-y-1/2 text-muted-foreground group-focus-within:text-primary transition-colors">
+                             <SearchIcon className="w-4 h-4" />
+                         </div>
+                         <input
+                             type="text"
+                             placeholder="SEARCH IN CATALOG..."
+                             className="w-full h-16 bg-muted/20 border-border/50 border rounded-2xl pl-12 pr-4 text-[11px] font-black uppercase tracking-widest outline-none transition-all focus:ring-4 focus:ring-primary/5 focus:border-primary/40 placeholder:text-muted-foreground/60 shadow-inner"
+                             value={activeFilters.q}
+                             onChange={(e) => setActiveFilters({ ...activeFilters, q: e.target.value })}
+                         />
+                    </div>
+                </div>
+
                 {/* 1. Page Header */}
                 <div className="flex flex-col md:flex-row md:items-end justify-between gap-8 border-b border-border/50 pb-12" suppressHydrationWarning>
                     <div className="flex flex-col gap-4">
@@ -102,7 +118,7 @@ export function ProductRegistry({ initialProducts, cmsData: initialCmsData }: Pr
 
 
                 <div className="flex flex-col lg:flex-row gap-16 relative" suppressHydrationWarning>
-                    <aside className="hidden lg:block w-72 flex-shrink-0 sticky top-48 h-fit">
+                    <aside className="hidden lg:block w-72 flex-shrink-0 sticky top-48 h-[calc(100vh-240px)] overflow-y-auto custom-scrollbar pr-4">
                         <SideFilter
                             brands={Array.from(new Set([
                                 ...(cmsData?.brands || []).map((b: any) => b.name),

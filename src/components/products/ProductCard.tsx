@@ -8,7 +8,7 @@ import {
     Clock, Percent, Eye, ShoppingCart,
     ChevronLeft, ChevronRight, Check, Activity,
     Star, Heart, Zap, Cpu, Battery,
-    Maximize, ArrowLeftRight, TrendingUp, ShieldCheck, Flame,
+    Maximize, ArrowLeftRight, TrendingUp, ShieldCheck,
     Box, CheckCircle2, Sparkles, Smartphone, Tag, X
 } from "lucide-react"
 import { cn } from "@/lib/utils"
@@ -37,12 +37,12 @@ const validateImageUrl = (url: string) => {
     return url
 }
 
-export const ProductCard = ({ product, viewMode = "grid" }: { product: any, viewMode?: "grid" | "list" }) => {
+export const ProductCard = ({ product, viewMode = "grid", dark = false }: { product: any, viewMode?: "grid" | "list", dark?: boolean }) => {
     const { addItem, items, updateQuantity } = useCart()
     const { toggleWishlist, isInWishlist } = useWishlist()
     const { user } = useAuth()
     const router = useRouter()
-    
+
     const productUrl = `/products/${slugify(product.name)}--${product.id}`
 
     const hasOptions = useMemo(() => {
@@ -120,7 +120,7 @@ export const ProductCard = ({ product, viewMode = "grid" }: { product: any, view
     }, [isHovered, product])
 
     const pVariants = product.variants || []
-    
+
     // Improved price extraction with variant fallbacks to avoid "KSh 0"
     const getBasePrice = () => {
         const rawPrice = Number(product.price || 0)
@@ -204,111 +204,84 @@ export const ProductCard = ({ product, viewMode = "grid" }: { product: any, view
         updateQuantity(product.id, cartQty - 1, user?.id)
     }
 
+    const getPriceDisplay = () => {
+        if (pVariants.length > 0) {
+            const prices = pVariants.map((v: any) => {
+                const p = Number(v.price || 0)
+                return p > 0 ? p : discountedPrice
+            })
+            prices.push(discountedPrice)
+            
+            const uniquePrices = Array.from(new Set(prices)) as number[]
+            if (uniquePrices.length > 1) {
+                const min = Math.min(...uniquePrices)
+                const max = Math.max(...uniquePrices)
+                return `${formatPrice(min)} - ${formatPrice(max)}`
+            }
+        }
+        return formatPrice(discountedPrice)
+    }
+
     return (
-        <motion.div
-            layout
+        <Card
+            ref={containerRef}
             onMouseEnter={() => setIsHovered(true)}
-            onMouseLeave={() => setIsHovered(false)}
+            onMouseLeave={() => { setIsHovered(false); setCurrentImageIndex(0); }}
             className={cn(
-                "group relative h-full flex flex-col transition-all duration-500",
-                product.stock <= 0 && "grayscale opacity-70 pointer-events-none sm:pointer-events-auto"
+                "group h-full flex flex-col transition-all duration-500 overflow-hidden relative border border-border/10 rounded-2xl shadow-lg bg-white/30 dark:bg-black/30 backdrop-blur-sm",
+                dark ? "bg-white/5 border-white/10 hover:bg-white/10" : "bg-card hover:bg-muted/30 hover:border-primary/30 shadow-sm hover:shadow-[0_45px_100px_rgba(0,0,0,0.08)]",
+                viewMode === "list" ? "flex-row h-auto md:h-64" : ""
             )}
         >
-            <Card className="relative flex flex-col h-full bg-card border-border overflow-hidden group/card shadow-xl transition-all duration-700" suppressHydrationWarning>
-                {/* 1. IMAGE LAYER */}
+            <div className="relative flex flex-col h-full w-full bg-transparent border-none overflow-hidden group/card transition-all duration-700" suppressHydrationWarning>
                 <div className="aspect-square relative overflow-hidden bg-white dark:bg-slate-900 border-b border-border/50" suppressHydrationWarning>
-                    <div className="absolute top-0 left-0 z-30 flex flex-col items-start gap-1" suppressHydrationWarning>
+                    <Link href={productUrl} className="absolute inset-0 z-10">
+                        <Image
+                            src={activeImages[currentImageIndex] || product.image}
+                            alt={product.name}
+                            fill
+                            className={cn(
+                                "object-contain p-6 md:p-8 transition-all duration-1000",
+                                isHovered ? "scale-110" : "scale-100"
+                            )}
+                        />
+                    </Link>
+
+                    <div className="absolute top-0 left-0 z-30 flex flex-col items-start gap-1 p-2" suppressHydrationWarning>
                         {product.stock <= 0 && (
-                            <div className="bg-rose-600 text-white text-[10px] font-black px-3 py-1.5 rounded-br-2xl uppercase tracking-widest  shadow-xl flex items-center gap-1.5 border-r border-b border-white/10 transition-all duration-300">
+                            <div className="bg-rose-600 text-white text-[10px] font-black px-3 py-1.5 rounded-full uppercase tracking-widest shadow-xl flex items-center gap-1.5 border-r border-b border-white/10 transition-all duration-300">
                                 <X size={12} strokeWidth={4} /> SOLD OUT
                             </div>
                         )}
                         {(product.stock > 0 && product.stock <= 10) && (
-                            <div className="bg-amber-500 text-white text-[10px] font-black px-3 py-1.5 rounded-br-2xl uppercase tracking-widest  shadow-xl flex items-center gap-1.5 border-r border-b border-white/10 transition-all duration-300">
+                            <div className="bg-amber-500 text-white text-[10px] font-black px-3 py-1.5 rounded-full uppercase tracking-widest shadow-xl flex items-center gap-1.5 border-r border-b border-white/10 transition-all duration-300">
                                 <Activity size={12} className="animate-pulse" /> ONLY {product.stock} LEFT
                             </div>
                         )}
                         {percentOff > 0 && product.stock > 0 && (
                             <div className={cn(
-                                "text-white text-[10px] font-black px-3 py-1.5 rounded-br-2xl uppercase tracking-widest  shadow-xl flex items-center gap-1.5 transition-colors duration-500",
+                                "text-white text-[10px] font-black px-3 py-1.5 rounded-full uppercase tracking-widest shadow-xl flex items-center gap-1.5 transition-colors duration-500",
                                 percentOff >= 30 ? "bg-rose-600" : percentOff >= 15 ? "bg-amber-500" : "bg-emerald-600"
                             )}>
                                 <Percent size={12} className="animate-pulse" /> {percentOff}% OFF
                             </div>
                         )}
-                        {(() => {
-                            const isRecentlyAdded = !!product.isNew && product.stock > 0;
-                            if (!isRecentlyAdded) return null;
-                            return (
-                                <div className="bg-primary text-white text-[10px] font-black px-3 py-1.5 rounded-br-2xl uppercase tracking-widest  shadow-xl flex items-center gap-1.5 transition-all duration-300">
-                                    <Sparkles size={12} className="text-amber-300" /> NEW
-                                </div>
-                            );
-                        })()}
-                        {(() => {
-                            const isHot = (product.isFeatured || (product.orderCount && product.orderCount > 15)) && product.stock > 0;
-                            if (!isHot) return null;
-                            return (
-                                <div className="bg-slate-900 text-white text-[10px] font-black px-3 py-1.5 rounded-br-2xl uppercase tracking-widest  shadow-xl flex items-center gap-1.5 border-r border-b border-primary/20 transition-all duration-300">
-                                    <Flame size={12} className="text-orange-400 fill-orange-400" /> HOT
-                                </div>
-                            );
-                        })()}
+                        {product.isNew && (
+                            <div className="bg-primary text-white text-[10px] font-black px-3 py-1.5 rounded-full uppercase tracking-widest shadow-xl flex items-center gap-1.5 border-r border-b border-white/10 transition-all duration-300">
+                                <Sparkles size={12} /> NEW
+                            </div>
+                        )}
                     </div>
 
-                    <div ref={containerRef} className="w-full h-full relative z-10 overflow-hidden">
-                        <Link href={`/products/${slugify(product.name)}--${product.id}`} className="block w-full h-full">
-                            <motion.div
-                                className="flex h-full"
-                                animate={{ x: -currentImageIndex * width }}
-                                transition={{
-                                    type: "tween",
-                                    ease: "easeOut",
-                                    duration: 0.25
-                                }}
-                                style={{ willChange: "transform", width: activeImages.length * width }}
-                            >
-                                {activeImages.map((img: string, idx: number) => (
-                                    <div key={idx} className="h-full relative shrink-0" style={{ width: width }}>
-                                        <Image
-                                            src={img}
-                                            alt={product.name}
-                                            fill
-                                            className="object-contain p-4"
-                                            priority={idx === 0}
-                                            quality={95}
-                                            sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 300px"
-                                        />
-                                    </div>
-                                ))}
-                            </motion.div>
-                        </Link>
-                    </div>
-
-                    {/* Quick Add Overlay */}
                     <div className="absolute inset-x-0 bottom-0 z-40 p-4 translate-y-full group-hover/card:translate-y-0 transition-transform duration-500 bg-gradient-to-t from-slate-900/80 to-transparent">
                         {inCart && !hasOptions ? (
-                            <div className="w-full h-12 rounded-xl bg-white flex items-center justify-between px-4 shadow-2xl">
-                                <button
-                                    onClick={handleDecrease}
-                                    className="text-slate-500 hover:text-slate-900 font-black text-lg leading-none w-8 h-8 flex items-center justify-center transition-colors"
-                                >
-                                    -
-                                </button>
+                            <div className="rounded-xl bg-white flex items-center justify-between px-4 shadow-2xl">
+                                <button onClick={handleDecrease} className="text-slate-500 hover:text-slate-900 font-black text-lg leading-none w-8 h-8 flex items-center justify-center transition-colors">-</button>
                                 <span className="text-slate-900 font-black text-sm">{cartQty}</span>
-                                <button
-                                    onClick={handleIncrease}
-                                    disabled={product.stock !== undefined && cartQty >= product.stock}
-                                    className="text-slate-500 hover:text-slate-900 font-black text-lg leading-none w-8 h-8 flex items-center justify-center transition-colors disabled:opacity-30"
-                                >
-                                    +
-                                </button>
+                                <button onClick={handleIncrease} disabled={product.stock !== undefined && cartQty >= product.stock} className="text-slate-500 hover:text-slate-900 font-black text-lg leading-none w-8 h-8 flex items-center justify-center transition-colors disabled:opacity-30">+</button>
                             </div>
                         ) : (
-                            <Button
-                                onClick={hasOptions ? (e) => { e.preventDefault(); e.stopPropagation(); router.push(productUrl); } : handleAddToCart}
-                                className="w-full h-12 rounded-xl bg-white text-slate-900 font-black text-[10px] uppercase tracking-widest shadow-2xl hover:bg-success hover:text-white transition-all"
-                            >
+                            <Button onClick={hasOptions ? (e) => { e.preventDefault(); e.stopPropagation(); router.push(productUrl); } : handleAddToCart} className="w-full h-12 rounded-xl bg-white text-slate-900 font-black text-[10px] uppercase tracking-widest shadow-2xl hover:bg-success hover:text-white transition-all">
                                 {hasOptions ? <Maximize className="w-4 h-4 mr-2" /> : <ShoppingCart className="w-4 h-4 mr-2" />}
                                 {hasOptions ? "SELECT OPTIONS" : "QUICK ADD"}
                             </Button>
@@ -316,73 +289,22 @@ export const ProductCard = ({ product, viewMode = "grid" }: { product: any, view
                     </div>
                 </div>
 
-                {/* 2. CONTENT LAYER */}
                 <div suppressHydrationWarning className="flex flex-col flex-1 p-6 gap-4">
                     <div className="flex flex-col gap-1" suppressHydrationWarning>
                         <span suppressHydrationWarning className="text-[10px] font-black uppercase tracking-widest text-muted-foreground opacity-60 ">{product.brand || product.category}</span>
-                        <h3 suppressHydrationWarning className="text-sm font-black  tracking-tighter uppercase leading-tight line-clamp-2 min-h-[2.5rem]">
-                            <Link href={`/products/${slugify(product.name)}--${product.id}`} suppressHydrationWarning>{product.name}</Link>
+                        <h3 suppressHydrationWarning className={cn("text-sm font-black tracking-tighter uppercase leading-tight line-clamp-2 min-h-[2.5rem]", dark ? "text-white" : "text-foreground")}>
+                            <Link href={productUrl} suppressHydrationWarning>{product.name}</Link>
                         </h3>
                     </div>
 
-                    <div suppressHydrationWarning className="mt-auto flex flex-col gap-0.5">
-                        {percentOff > 0 && (
-                            <span suppressHydrationWarning className="text-[10px] font-black text-muted-foreground line-through opacity-40 ">{formatPrice(originalPrice)}</span>
-                        )}
-                        <div suppressHydrationWarning className="flex items-baseline gap-2">
-                            {(() => {
-                                const variants = product.variants || []
-                                if (variants.length > 0) {
-                                    const vPrices = variants.map((v: any) => {
-                                        const vP = Number(v.price || standardPrice)
-                                        if (percentOff > 0) {
-                                            return Math.round(vP * (1 - percentOff / 100))
-                                        }
-                                        return Math.round(vP)
-                                    }).filter((p: number) => p > 0)
-                                    const min = Math.min(discountedPrice, ...vPrices)
-                                    const max = Math.max(discountedPrice, ...vPrices)
-
-                                    if (max > min) {
-                                        return (
-                                            <span suppressHydrationWarning className="text-sm md:text-lg font-black tracking-tighter text-success leading-none">
-                                                KSh {min.toLocaleString()} - {max.toLocaleString()}
-                                            </span>
-                                        )
-                                    }
-                                }
-
-                                // Don't show KSh 0 — show contextual UI based on stock state
-                                if (discountedPrice <= 0) {
-                                    const isInStock = (product.stock || 0) > 0
-                                    if (isInStock) {
-                                        // In stock but price not yet set — nudge to product page
-                                        return (
-                                            <span suppressHydrationWarning className="text-sm md:text-lg font-black tracking-tighter text-primary leading-none underline underline-offset-4">
-                                                See Product
-                                            </span>
-                                        )
-                                    }
-                                    // Out of stock and no price
-                                    return (
-                                        <span suppressHydrationWarning className="text-sm md:text-lg font-black tracking-tighter text-muted-foreground opacity-40 leading-none">
-                                            Price N/A
-                                        </span>
-                                    )
-                                }
-
-                                return (
-                                    <span suppressHydrationWarning className="text-sm md:text-lg font-black tracking-tighter text-success leading-none">
-                                        {formatPrice(discountedPrice)}
-                                    </span>
-                                )
-                            })()}
-                        </div>
-
-                        <div className="pt-2" />
-                    </div>
+                     <div suppressHydrationWarning className="mt-auto flex flex-col gap-0.5">
+                         <span className="text-base font-black text-foreground">{getPriceDisplay()}</span>
+                         {percentOff > 0 && !hasOptions && (
+                             <span className="text-[10px] font-black text-muted-foreground line-through opacity-40 ">{formatPrice(originalPrice)}</span>
+                         )}
+                     </div>
                 </div>
-            </Card>
-        </motion.div>
+            </div>
+        </Card>
     )
 }

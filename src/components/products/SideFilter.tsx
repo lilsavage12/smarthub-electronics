@@ -97,16 +97,17 @@ export const SideFilter = ({ brands = [], categories = [], activeFilters, setAct
             {/* Section: Dynamic Brands */}
             <div className="flex flex-col gap-5" suppressHydrationWarning>
                 <button
-                    className="flex items-center justify-between font-black text-[10px] tracking-widest uppercase  group"
+                    className="flex items-center justify-between font-black text-[10px] tracking-widest uppercase group"
                     onClick={() => toggleSection("brand")}
                 >
                     <div suppressHydrationWarning className="flex items-center gap-2">
                         <Box className="w-4 h-4 text-primary group-hover:scale-110 transition-transform" />
                         Brands
                     </div>
+                    <ChevronDown className={cn("w-3.5 h-3.5 transition-transform", expandedSections.includes("brand") ? "rotate-180" : "")} />
                 </button>
                 {expandedSections.includes("brand") && (
-                    <div className="flex flex-wrap gap-2">
+                    <div className="flex flex-wrap gap-2 p-2 bg-white/20 dark:bg-black/20 backdrop-blur-sm rounded-b-xl">
                         {brands.map((brandName) => {
                             const name = typeof brandName === 'string' ? brandName : brandName.name
                             const isActive = activeFilters.brands.includes(name)
@@ -132,16 +133,17 @@ export const SideFilter = ({ brands = [], categories = [], activeFilters, setAct
             {/* Section: Categories */}
             <div className="flex flex-col gap-5" suppressHydrationWarning>
                 <button
-                    className="flex items-center justify-between font-black text-[10px] tracking-widest uppercase "
+                    className="flex items-center justify-between font-black text-[10px] tracking-widest uppercase group"
                     onClick={() => toggleSection("category")}
                 >
                     <div suppressHydrationWarning className="flex items-center gap-2">
                         <Tag className="w-4 h-4 text-primary" />
                         Categories
                     </div>
+                    <ChevronDown className={cn("w-3.5 h-3.5 transition-transform", expandedSections.includes("category") ? "rotate-180" : "")} />
                 </button>
                 {expandedSections.includes("category") && (
-                    <div className="flex flex-col gap-2">
+                    <div className="flex flex-col gap-2 p-2 bg-white/20 dark:bg-black/20 backdrop-blur-sm rounded-b-xl">
                         {categories.map((cat) => (
                             <FilterButton
                                 key={cat}

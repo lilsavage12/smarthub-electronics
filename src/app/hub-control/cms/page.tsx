@@ -1,19 +1,20 @@
 "use client"
 
-import React, { useState, useEffect } from "react"
+import React, { useState, useEffect, useRef } from "react"
 import { cn } from "@/lib/utils"
 import {
-    Plus, Trash2, Edit2, Save, X, MoveUp, MoveDown, Archive,
-    Zap, ShieldCheck, Truck, Activity, Box, Tag, Star, Mail, Loader2, Maximize, Minimize, Smartphone, BarChart3, Package, Phone, Clock,
+    Plus, Trash2, Edit2, Save, X, MoveUp, MoveDown, Archive, Settings2,
+    Zap, ShieldCheck, Truck, Activity, Box, Tag, Star, Mail, Loader2, Maximize, Minimize, Smartphone, BarChart3, Package, Phone, Clock, TrendingUp,
     Navigation, Search, Link as LinkIcon, MoveRight, Upload, Clipboard, ImageOff, FileText, Info as InfoIcon,
     LayoutDashboard as Layout, Image as ImageIcon, Settings as SettingsIcon, Share2, RefreshCw, Sparkles, Percent,
-    Facebook, Instagram, Twitter, MessageCircle, Music2, Globe
+    Facebook, Instagram, Twitter, MessageCircle, Music2, Globe, ChevronLeft, ChevronRight
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { toast } from "react-hot-toast"
 import { motion, AnimatePresence } from "framer-motion"
+import { AutoScroller } from "@/components/admin/AutoScroller"
 
 const WhatsAppIcon = ({ size = 20, className }: { size?: number, className?: string }) => (
     <svg viewBox="0 0 24 24" width={size} height={size} fill="currentColor" className={className}>
@@ -24,6 +25,27 @@ const WhatsAppIcon = ({ size = 20, className }: { size?: number, className?: str
 const ImageManager = ({ value, onChange, label, className }: { value: string, onChange: (val: string) => void, label: string, className?: string }) => {
     const [dragging, setDragging] = useState(false)
     const [uploading, setUploading] = useState(false)
+    const [showLibrary, setShowLibrary] = useState(false)
+    const [library, setLibrary] = useState<any[]>([])
+    const [loadingLibrary, setLoadingLibrary] = useState(false)
+    const [librarySearch, setLibrarySearch] = useState("")
+
+    const fetchLibrary = async () => {
+        setLoadingLibrary(true)
+        try {
+            const res = await fetch("/api/upload")
+            const data = await res.json()
+            if (data.success) setLibrary(data.files)
+        } catch (e) {
+            toast.error("Failed to load library")
+        } finally {
+            setLoadingLibrary(false)
+        }
+    }
+
+    useEffect(() => {
+        if (showLibrary) fetchLibrary()
+    }, [showLibrary])
 
     const handleFile = async (file: File) => {
         if (!file.type.startsWith('image/') || uploading) {
@@ -68,79 +90,145 @@ const ImageManager = ({ value, onChange, label, className }: { value: string, on
 
     return (
         <div className={cn("flex flex-col gap-3", className)} onPaste={onPaste}>
-            <label className="text-[10px] font-black uppercase text-muted-foreground ">{label}</label>
-            <div
-                onDragOver={(e) => { e.preventDefault(); setDragging(true) }}
-                onDragLeave={() => setDragging(false)}
-                onDrop={(e) => {
-                    e.preventDefault()
-                    setDragging(false)
-                    const file = e.dataTransfer.files[0]
-                    if (file) handleFile(file)
-                }}
-                className={cn(
-                    "relative h-32 rounded-2xl border-2 border-dashed transition-all overflow-hidden group",
-                    dragging ? "border-primary bg-primary/10" : "border-border bg-muted/20 hover:border-primary/40"
-                )}
-            >
-                {value ? (
-                    <div className="w-full h-full relative group/img">
-                        <img
-                            src={
-                                (value && typeof value === 'string' && value.trim().length > 0) ? (
-                                    (value.startsWith('http') || value.startsWith('/') || value.startsWith('data:')) ? value : `https://${value}`
-                                ) : ""
-                            }
-                            className="w-full h-full object-contain p-4"
-                            alt="Preview"
-                        />
-
-                        {/* Status Overlay */}
-                        <div className="absolute inset-0 bg-slate-950/60 opacity-0 group-hover/img:opacity-100 transition-opacity flex items-center justify-center gap-4 backdrop-blur-sm pointer-events-none">
-                            <Upload className="text-white animate-bounce" size={20} />
-                            <span className="text-[10px] font-black text-white uppercase tracking-widest leading-none font-outfit">Update Image</span>
-                        </div>
-
-                        {/* Delete Command - Higher Z-index and relative to stay above the input if necessary, but actually we use pointer-events-auto here */}
-                        <button
-                            type="button"
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                e.preventDefault();
-                                onChange("");
-                                toast.success("Image Removed");
-                            }}
-                            className="absolute top-4 right-4 z-[60] w-10 h-10 bg-destructive text-white rounded-xl shadow-2xl opacity-0 group-hover/img:opacity-100 transition-all hover:scale-110 flex items-center justify-center cursor-pointer overflow-hidden border border-white/20"
-                        >
-                            <Trash2 size={16} />
-                            <div className="absolute inset-0 bg-white/10 opacity-0 hover:opacity-100 transition-opacity" />
-                        </button>
-
-                        <input
-                            type="file"
-                            accept="image/*"
-                            onChange={(e) => e.target.files?.[0] && handleFile(e.target.files[0])}
-                            className="absolute inset-0 opacity-0 cursor-pointer z-50"
-                        />
-                    </div>
-                ) : (
-                    <div className="w-full h-full flex flex-col items-center justify-center gap-3 text-muted-foreground group-hover:opacity-80 transition-all relative">
-                        <div className="w-10 h-10 rounded-xl bg-muted border border-border flex items-center justify-center">
-                            <Upload size={18} />
-                        </div>
-                        <div className="flex flex-col items-center text-center px-6">
-                            <span className="text-[9px] font-black uppercase tracking-widest leading-none transition-all group-hover:tracking-[0.4em]">DRAG / CLICK / PASTE</span>
-                            <span className="text-[8px] font-bold uppercase tracking-[0.2em] mt-1 ">Standard Media Upload</span>
-                        </div>
-                        <input
-                            type="file"
-                            accept="image/*"
-                            onChange={(e) => e.target.files?.[0] && handleFile(e.target.files[0])}
-                            className="absolute inset-0 opacity-0 cursor-pointer z-50"
-                        />
-                    </div>
-                )}
+            <div className="flex items-center justify-between">
+                <label className="text-[10px] font-black uppercase text-muted-foreground ">{label}</label>
+                <button 
+                    type="button"
+                    onClick={() => setShowLibrary(!showLibrary)}
+                    className="flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-[8px] font-black uppercase tracking-widest hover:bg-primary/20 transition-all border border-primary/20"
+                >
+                    <Archive size={10} /> {showLibrary ? "Close Library" : "Asset Library"}
+                </button>
             </div>
+
+            <AnimatePresence mode="wait">
+                {showLibrary ? (
+                    <motion.div 
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: 10 }}
+                        className="h-48 rounded-2xl border border-border bg-muted/30 overflow-hidden flex flex-col"
+                    >
+                        <div className="p-3 border-b border-border flex items-center justify-between bg-card/50 gap-4">
+                             <div className="flex items-center gap-2">
+                                <span className="text-[8px] font-black uppercase tracking-widest text-muted-foreground whitespace-nowrap">Source Repository ({library.length})</span>
+                             </div>
+                             <div className="relative flex-1">
+                                <Search size={10} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground opacity-40" />
+                                <input 
+                                    type="text"
+                                    placeholder="Filter assets..."
+                                    value={librarySearch}
+                                    onChange={(e) => setLibrarySearch(e.target.value)}
+                                    className="w-full h-7 pl-8 pr-4 bg-white/5 border border-slate-200 rounded-full text-[9px] font-bold uppercase outline-none focus:border-primary/30 transition-all"
+                                />
+                             </div>
+                             {loadingLibrary && <Loader2 size={10} className="animate-spin text-primary" />}
+                        </div>
+                        <div className="flex-1 overflow-y-auto p-3 grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-2 no-scrollbar">
+                            {library.filter(img => (img.name || img.path || "").toLowerCase().includes(librarySearch.toLowerCase())).map((img, i) => (
+                                <button
+                                    key={i}
+                                    type="button"
+                                    onClick={() => {
+                                        onChange(img.url)
+                                        setShowLibrary(false)
+                                        toast.success("Asset Selected")
+                                    }}
+                                    className={cn(
+                                        "aspect-square rounded-xl border-2 transition-all p-1 bg-card hover:scale-105 active:scale-95 group/lib",
+                                        value === img.url ? "border-primary shadow-lg shadow-primary/20" : "border-transparent opacity-60 hover:opacity-100"
+                                    )}
+                                >
+                                    <img src={img.url} alt="" className="w-full h-full object-contain rounded-lg" title={img.name} />
+                                </button>
+                            ))}
+                            {library.length === 0 && !loadingLibrary && (
+                                <div className="col-span-full h-24 flex flex-col items-center justify-center opacity-20 grayscale">
+                                    <ImageIcon size={20} />
+                                    <span className="text-[7px] font-black uppercase tracking-[0.2em] mt-2">Library Empty</span>
+                                </div>
+                            )}
+                        </div>
+                    </motion.div>
+                ) : (
+                    <motion.div
+                        initial={{ opacity: 0, y: -10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -10 }}
+                        onDragOver={(e) => { e.preventDefault(); setDragging(true) }}
+                        onDragLeave={() => setDragging(false)}
+                        onDrop={(e) => {
+                            e.preventDefault()
+                            setDragging(false)
+                            const file = e.dataTransfer.files[0]
+                            if (file) handleFile(file)
+                        }}
+                        className={cn(
+                            "relative h-32 rounded-2xl border-2 border-dashed transition-all overflow-hidden group",
+                            dragging ? "border-primary bg-primary/10" : "border-border bg-muted/20 hover:border-primary/40"
+                        )}
+                    >
+                        {value ? (
+                            <div className="w-full h-full relative group/img">
+                                <img
+                                    src={
+                                        (value && typeof value === 'string' && value.trim().length > 0) ? (
+                                            (value.startsWith('http') || value.startsWith('/') || value.startsWith('data:')) ? value : `https://${value}`
+                                        ) : ""
+                                    }
+                                    className="w-full h-full object-contain p-4"
+                                    alt="Preview"
+                                />
+
+                                {/* Status Overlay */}
+                                <div className="absolute inset-0 bg-slate-950/60 opacity-0 group-hover/img:opacity-100 transition-opacity flex items-center justify-center gap-4 backdrop-blur-sm pointer-events-none">
+                                    <Upload className="text-white animate-bounce" size={20} />
+                                    <span className="text-[10px] font-black text-white uppercase tracking-widest leading-none font-outfit">Update Image</span>
+                                </div>
+
+                                {/* Delete Command */}
+                                <button
+                                    type="button"
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        e.preventDefault();
+                                        onChange("");
+                                        toast.success("Image Removed");
+                                    }}
+                                    className="absolute top-4 right-4 z-[60] w-10 h-10 bg-destructive text-white rounded-xl shadow-2xl opacity-0 group-hover/img:opacity-100 transition-all hover:scale-110 flex items-center justify-center cursor-pointer overflow-hidden border border-white/20"
+                                >
+                                    <Trash2 size={16} />
+                                    <div className="absolute inset-0 bg-white/10 opacity-0 hover:opacity-100 transition-opacity" />
+                                </button>
+
+                                <input
+                                    type="file"
+                                    accept="image/*"
+                                    onChange={(e) => e.target.files?.[0] && handleFile(e.target.files[0])}
+                                    className="absolute inset-0 opacity-0 cursor-pointer z-50"
+                                />
+                            </div>
+                        ) : (
+                            <div className="w-full h-full flex flex-col items-center justify-center gap-3 text-muted-foreground group-hover:opacity-80 transition-all relative">
+                                <div className="w-10 h-10 rounded-xl bg-muted border border-border flex items-center justify-center">
+                                    <Upload size={18} />
+                                </div>
+                                <div className="flex flex-col items-center text-center px-6">
+                                    <span className="text-[9px] font-black uppercase tracking-widest leading-none transition-all group-hover:tracking-[0.4em]">DRAG / CLICK / PASTE</span>
+                                    <span className="text-[8px] font-bold uppercase tracking-[0.2em] mt-1 ">Standard Media Upload</span>
+                                </div>
+                                <input
+                                    type="file"
+                                    accept="image/*"
+                                    onChange={(e) => e.target.files?.[0] && handleFile(e.target.files[0])}
+                                    className="absolute inset-0 opacity-0 cursor-pointer z-50"
+                                />
+                            </div>
+                        )}
+                    </motion.div>
+                )}
+            </AnimatePresence>
         </div>
     )
 }
@@ -150,7 +238,7 @@ type Section = "navigation" | "banners" | "categories" | "homepage" | "footer" |
 export default function CMSPage() {
     const [activeTab, setActiveTab] = useState<Section>("navigation")
     const [data, setData] = useState<any>({
-        settings: {}, banners: [], categories: [], testimonials: [], pages: []
+        settings: {}, banners: [], categories: [], brands: [], testimonials: [], pages: []
     })
     const [loading, setLoading] = useState(true)
     const [saving, setSaving] = useState(false)
@@ -161,7 +249,53 @@ export default function CMSPage() {
     const [editingCategory, setEditingCategory] = useState<any>(null)
     const [editingFooterCluster, setEditingFooterCluster] = useState<any>(null)
     const [supportSettings, setSupportSettings] = useState<any>(null)
+    const [editingSection, setEditingSection] = useState<any>(null)
     const [previewMode, setPreviewMode] = useState<"desktop" | "mobile">("desktop")
+    const drawerRef = useRef<HTMLDivElement>(null)
+
+    // Auto-scroll to top when any side panel is opened
+    useEffect(() => {
+        if (editingSection || editingCategory || editingLink !== null || editingFooterCluster || editingBanner) {
+            // Short delay to ensure DOM is rendered before scrolling
+            setTimeout(() => {
+                // Find specifically marked scrolling containers inside the open drawer modal
+                const scrollableDivs = document.querySelectorAll('.scroll-target');
+                scrollableDivs.forEach(div => {
+                    div.scrollTo({ top: 0, behavior: 'instant' });
+                });
+                
+                // Fallback for ref if attached specifically to the correct element
+                if (drawerRef.current) {
+                    drawerRef.current.scrollTo({ top: 0, behavior: 'instant' });
+                }
+            }, 50)
+        }
+    }, [editingSection, editingCategory, editingLink, editingFooterCluster, editingBanner])
+
+    const handleAddSection = (type: string) => {
+        const id = Math.random().toString(36).substr(2, 9)
+        const newSection = {
+            id,
+            type,
+            isActive: true,
+            title: `NEW ${type.replace('_', ' ').toUpperCase()}`,
+            config: type === 'featured_products' ? { limit: 10, source: "all", iconType: "smartphones" } : {}
+        }
+
+        setData((prev: any) => {
+            const sections = [...(prev.hpConfig?.sections || []), newSection]
+            // Auto-open editor for the newest item
+            setTimeout(() => {
+                setEditingSection({ ...newSection, index: sections.length - 1 })
+            }, 100)
+
+            return {
+                ...prev,
+                hpConfig: { ...prev.hpConfig, sections }
+            }
+        })
+        toast.success(`Success: Added ${type.replace('_', ' ')}`)
+    }
 
     const fetchData = async () => {
         setLoading(true)
@@ -243,6 +377,60 @@ export default function CMSPage() {
         }
     }
 
+    const syncInventoryCategories = async () => {
+        const syncToast = toast.loading("Syncing inventory categories...")
+        try {
+            const prodRes = await fetch("/api/products?all=true")
+            const prods = await prodRes.json()
+            const inventoryCategories = Array.from(new Set(prods.map((p: any) => p.category).filter(Boolean)))
+            const existingNames = new Set(data.categories.map((c: any) => c.name.toLowerCase()))
+            const missing = inventoryCategories.filter((name: any) => !existingNames.has(name.toLowerCase()))
+            if (missing.length === 0) {
+                toast.success("Categories already in sync", { id: syncToast })
+                return
+            }
+            await Promise.all(missing.map(name =>
+                fetch("/api/cms/categories", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ name, isActive: true, imageUrl: "" })
+                })
+            ))
+            toast.success(`Synced ${missing.length} new categories`, { id: syncToast })
+            fetchData()
+        } catch (error) {
+            console.error(error)
+            toast.error("Sync failed", { id: syncToast })
+        }
+    }
+
+    const syncInventoryBrands = async () => {
+        const syncToast = toast.loading("Syncing inventory brands...")
+        try {
+            const prodRes = await fetch("/api/products?all=true")
+            const prods = await prodRes.json()
+            const inventoryBrands = Array.from(new Set(prods.map((p: any) => p.brand).filter(Boolean)))
+            const existingNames = new Set(data.brands.map((b: any) => b.name.toLowerCase()))
+            const missing = inventoryBrands.filter((name: any) => !existingNames.has(name.toLowerCase()))
+            if (missing.length === 0) {
+                toast.success("Brands already in sync", { id: syncToast })
+                return
+            }
+            await Promise.all(missing.map(name =>
+                fetch("/api/cms/brands", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ name, isActive: true, imageUrl: "" })
+                })
+            ))
+            toast.success(`Synced ${missing.length} new brands`, { id: syncToast })
+            fetchData()
+        } catch (error) {
+            console.error(error)
+            toast.error("Sync failed", { id: syncToast })
+        }
+    }
+
     useEffect(() => {
         fetchData()
     }, [])
@@ -284,6 +472,11 @@ export default function CMSPage() {
         }
 
         try {
+            // Virtual Field Handling
+            if (section === "categories") {
+                delete syncPayload.slug;
+            }
+
             const res = await fetch(`/api/cms/${section}`, {
                 method: section === "settings" ? "POST" : "PUT",
                 headers: { "Content-Type": "application/json" },
@@ -301,6 +494,42 @@ export default function CMSPage() {
             toast.error("Network Synchronization Error")
         } finally {
             setSaving(false)
+        }
+    }
+
+    const handleMove = async (section: "categories" | "brands", id: string, direction: "left" | "right") => {
+        const items = section === "categories" ? [...(data.categories || [])] : [...(data.brands || [])]
+        const idx = items.findIndex(i => i.id === id)
+        if (idx === -1) return
+        if (direction === "left" && idx === 0) return
+        if (direction === "right" && idx === items.length - 1) return
+
+        const newIdx = direction === "left" ? idx - 1 : idx + 1
+        const temp = items[idx]
+        items[idx] = items[newIdx]
+        items[newIdx] = temp
+
+        // Update local state first
+        setData((prev: any) => ({ ...prev, [section]: items }))
+
+        // Persist order to database
+        try {
+            await Promise.all([
+                fetch(`/api/cms/${section}`, {
+                    method: "PUT",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ id: items[idx].id, order: idx })
+                }),
+                fetch(`/api/cms/${section}`, {
+                    method: "PUT",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ id: items[newIdx].id, order: newIdx })
+                })
+            ])
+            toast.success("Order Synchronized")
+        } catch (e) {
+            toast.error("Failed to sync order")
+            fetchData()
         }
     }
 
@@ -532,7 +761,8 @@ export default function CMSPage() {
                                             animate={{ x: 0 }}
                                             exit={{ x: "100%" }}
                                             transition={{ type: "spring", damping: 30, stiffness: 300, mass: 0.8 }}
-                                            className="relative h-full w-full lg:max-w-[700px] bg-card border-l border-border shadow-[-80px_0_150px_rgba(0,0,0,0.6)] flex flex-col overflow-y-auto"
+                                            ref={drawerRef}
+                                            className="relative h-full w-full lg:max-w-[700px] bg-card border-l border-border shadow-[-80px_0_150px_rgba(0,0,0,0.6)] flex flex-col"
                                         >
                                             {/* Drawer Header */}
                                             <div className="p-6 lg:p-8 border-b border-border bg-muted/30 flex flex-wrap lg:flex-nowrap items-center justify-between gap-6 shrink-0 sticky top-0 z-50 backdrop-blur-xl">
@@ -566,6 +796,7 @@ export default function CMSPage() {
 
                                             {/* Link Configuration - High Density */}
                                             <div className="flex-1 overflow-y-auto p-10 custom-scrollbar flex flex-col gap-10 bg-muted/5">
+                                                <AutoScroller trigger={editingLink} />
                                                 <div className="flex flex-col gap-8">
                                                     <div className="flex flex-col gap-3">
                                                         <label className="text-[10px] font-black uppercase text-primary  flex items-center gap-2">
@@ -1052,811 +1283,643 @@ export default function CMSPage() {
                             </AnimatePresence>
                         </div>
                     )}
-
-                    {/* CATEGORY MANAGEMENT */}
-                    {activeTab === "categories" && (
-                        <div className="flex flex-col gap-10">
-                            <div className="flex items-center justify-between border-b border-border pb-8">
-                                <div className="flex flex-col gap-2">
-                                    <h2 className="text-4xl font-black  tracking-tighter uppercase leading-none">Store Categories</h2>
-                                    <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest opacity-40  underline decoration-primary/30 underline-offset-4">Manage product categories and store navigation</span>
-                                </div>
-                                <Button onClick={() => handleCreate("categories", { name: "NEW CATEGORY", imageUrl: "https://cdn-icons-png.flaticon.com/512/3659/3659899.png", isActive: true, order: data?.categories?.length || 0, redirectUrl: "" })} className="h-16 px-10 rounded-2xl gap-3 font-black  tracking-widest uppercase text-xs shadow-2xl shadow-primary/30">
-                                    <Plus size={20} /> CREATE CATEGORY
-                                </Button>
-                            </div>
-
-                            <div className="flex flex-col gap-6">
-                                <div className="flex flex-col gap-4">
-                                    {(data?.categories || []).sort((a: any, b: any) => (a.order || 0) - (b.order || 0)).map((cat: any, idx: number) => (
-                                        <motion.div
-                                            key={cat.id || idx}
-                                            initial={{ opacity: 0, x: -20 }}
-                                            animate={{ opacity: 1, x: 0 }}
-                                            transition={{ delay: idx * 0.05 }}
-                                            className="group p-6 bg-muted/10 border border-border rounded-[2.5rem] hover:border-primary/40 transition-all hover:bg-muted/20 flex items-center justify-between shadow-sm"
-                                        >
-                                            <div className="flex items-center gap-8">
-                                                <div className="flex items-center gap-4">
-                                                    <div className="w-10 h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center text-xs font-black ">
-                                                        {idx + 1}
-                                                    </div>
-                                                    <div className="w-16 h-16 rounded-2xl bg-card p-3 border border-border shadow-inner flex items-center justify-center">
-                                                        <img
-                                                            src={cat.imageUrl}
-                                                            alt={cat.name}
-                                                            className="w-full h-full object-contain grayscale group-hover:grayscale-0 transition-all duration-500"
-                                                        />
-                                                    </div>
-                                                </div>
-                                                <div className="flex flex-col">
-                                                    <h4 className="text-xl font-black uppercase tracking-tighter  leading-none">{cat.name}</h4>
-                                                    <div className="flex items-center gap-3 mt-2">
-                                                        <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/40 ">Link:</span>
-                                                        <span className="text-[10px] font-black uppercase tracking-widest text-primary  truncate max-w-[200px]">
-                                                            {cat.redirectUrl || "Standard Category Link"}
-                                                        </span>
-                                                    </div>
-                                                </div>
-                                            </div>
-
-                                            <div className="flex items-center gap-4">
-                                                {/* Order Control */}
-                                                <div className="flex items-center bg-card/50 p-1.5 rounded-2xl border border-border">
-                                                    <Button
-                                                        variant="ghost" size="icon" className="h-10 w-10 rounded-xl"
-                                                        onClick={() => {
-                                                            const sorted = [...data.categories].sort((a: any, b: any) => (a.order || 0) - (b.order || 0))
-                                                            if (idx > 0) {
-                                                                const target = sorted[idx - 1]
-                                                                const current = sorted[idx]
-                                                                const tempOrder = target.order || 0
-                                                                target.order = current.order || 0
-                                                                current.order = tempOrder
-                                                                setData({ ...data, categories: [...sorted] })
-                                                            }
-                                                        }}
-                                                        disabled={idx === 0}
-                                                    >
-                                                        <MoveUp size={16} />
-                                                    </Button>
-                                                    <Button
-                                                        variant="ghost" size="icon" className="h-10 w-10 rounded-xl"
-                                                        onClick={() => {
-                                                            const sorted = [...data.categories].sort((a: any, b: any) => (a.order || 0) - (b.order || 0))
-                                                            if (idx < sorted.length - 1) {
-                                                                const target = sorted[idx + 1]
-                                                                const current = sorted[idx]
-                                                                const tempOrder = target.order || 0
-                                                                target.order = current.order || 0
-                                                                current.order = tempOrder
-                                                                setData({ ...data, categories: [...sorted] })
-                                                            }
-                                                        }}
-                                                        disabled={idx === (data.categories?.length - 1)}
-                                                    >
-                                                        <MoveDown size={16} />
-                                                    </Button>
-                                                </div>
-
-                                                <Button
-                                                    onClick={() => setEditingCategory(cat)}
-                                                    className="h-12 px-6 rounded-2xl bg-indigo-500/10 text-indigo-500 border border-indigo-500/20 hover:bg-indigo-500 hover:text-white transition-all font-black uppercase text-[10px] tracking-widest "
-                                                >
-                                                    <Edit2 size={14} className="mr-2" /> EDIT CATEGORY
-                                                </Button>
-
-                                                <button
-                                                    onClick={() => handleDelete("categories", cat.id)}
-                                                    className="w-12 h-12 bg-red-500/10 text-red-500 rounded-2xl flex items-center justify-center hover:bg-red-500 hover:text-white transition-all border border-red-500/20"
-                                                >
-                                                    <Trash2 size={18} />
-                                                </button>
-                                            </div>
-                                        </motion.div>
-                                    ))}
-                                </div>
-
-                                <Button
-                                    onClick={() => {
-                                        // Bulk Sync Logic for Categories
-                                        data.categories.forEach((cat: any) => {
-                                            handleUpdate("categories", cat)
-                                        })
-                                    }}
-                                    className="h-20 rounded-[2.5rem] bg-foreground text-background font-black  tracking-widest uppercase text-sm hover:bg-primary hover:text-white transition-all shadow-2xl mt-10 border-4 border-background ring-2 ring-foreground/10"
-                                >
-                                    <Save size={24} className="mr-4" /> SAVE ALL CATEGORIES
-                                </Button>
-                            </div>
-
-                            {/* CATEGORY EDITOR DRAWER */}
-                            <AnimatePresence>
-                                {editingCategory !== null && (
-                                    <div className="fixed inset-0 z-[1000] flex justify-end">
-                                        <motion.div
-                                            initial={{ opacity: 0 }}
-                                            animate={{ opacity: 1 }}
-                                            exit={{ opacity: 0 }}
-                                            onClick={() => setEditingCategory(null)}
-                                            className="absolute inset-0 bg-slate-950/60 backdrop-blur-md"
-                                        />
-                                        <motion.div
-                                            initial={{ x: "100%" }}
-                                            animate={{ x: 0 }}
-                                            exit={{ x: "100%" }}
-                                            transition={{ type: "spring", damping: 30, stiffness: 300 }}
-                                            className="relative h-full w-full max-w-[580px] bg-card border-l border-border shadow-[-40px_0_120px_rgba(0,0,0,0.5)] flex flex-col"
-                                        >
-                                            <div className="p-10 border-b border-border bg-muted/30 flex items-center justify-between">
-                                                <div className="flex items-center gap-6">
-                                                    <div className="w-16 h-16 rounded-2xl bg-primary text-white flex items-center justify-center shadow-2xl">
-                                                        <Box size={32} />
-                                                    </div>
-                                                    <div className="flex flex-col">
-                                                        <span className="text-[10px] font-black uppercase tracking-[0.2em] text-primary  leading-none">Category Settings</span>
-                                                        <h4 className="text-3xl font-black uppercase tracking-tighter  leading-none mt-2">{editingCategory.name}</h4>
-                                                    </div>
-                                                </div>
-                                                <div className="flex items-center gap-4">
-                                                    <Button
-                                                        onClick={() => {
-                                                            handleUpdate("categories", editingCategory);
-                                                            setEditingCategory(null);
-                                                        }}
-                                                        className="h-14 px-8 rounded-2xl bg-primary text-white font-black  uppercase tracking-widest text-[10px] shadow-xl shadow-primary/20 hover:scale-[1.05] transition-all"
-                                                    >
-                                                        <Save size={16} className="mr-2" /> SAVE CHANGES
-                                                    </Button>
-                                                    <button onClick={() => setEditingCategory(null)} className="w-14 h-14 bg-muted/20 border border-border rounded-2xl flex items-center justify-center hover:bg-red-500 hover:text-white transition-all">
-                                                        <X size={24} />
-                                                    </button>
-                                                </div>
-                                            </div>
-
-                                            <div className="flex-1 overflow-y-auto p-12 space-y-12">
-                                                {/* Identity Section */}
-                                                <div className="space-y-8">
-                                                    <div className="flex items-center gap-4 text-primary">
-                                                        <SettingsIcon size={18} />
-                                                        <span className="text-[11px] font-black uppercase tracking-[0.2em] ">Category Details</span>
-                                                    </div>
-
-                                                    <div className="grid grid-cols-1 gap-8 p-10 rounded-[2.5rem] bg-muted/20 border border-border shadow-inner">
-                                                        <div className="space-y-3">
-                                                            <label className="text-[10px] font-black uppercase tracking-widest opacity-40 ">Category Title (Public Name)</label>
-                                                            <Input
-                                                                value={editingCategory.name}
-                                                                onChange={(e) => setEditingCategory({ ...editingCategory, name: e.target.value })}
-                                                                className="h-14 rounded-2xl bg-card border-border px-8 font-black text-xs uppercase "
-                                                            />
-                                                        </div>
-
-                                                        <ImageManager
-                                                            label="Category Icon"
-                                                            value={editingCategory.imageUrl}
-                                                            onChange={(val: string) => setEditingCategory({ ...editingCategory, imageUrl: val })}
-                                                        />
-
-                                                        <div className="space-y-3">
-                                                            <label className="text-[10px] font-black uppercase tracking-widest opacity-40 ">Category Redirect Link</label>
-                                                            <Input
-                                                                value={editingCategory.redirectUrl || ""}
-                                                                onChange={(e) => setEditingCategory({ ...editingCategory, redirectUrl: e.target.value })}
-                                                                placeholder="/products?categories=..."
-                                                                className="h-14 rounded-2xl bg-card border-border px-8 font-bold text-xs"
-                                                            />
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-
-                                            <div className="p-10 border-t border-border bg-muted/30">
-                                                <Button
-                                                    onClick={() => {
-                                                        handleUpdate("categories", editingCategory);
-                                                        setEditingCategory(null);
-                                                    }}
-                                                    className="w-full h-20 rounded-[2.5rem] bg-foreground text-background font-black  uppercase tracking-widest text-sm shadow-2xl hover:bg-primary hover:text-white transition-all transform hover:scale-[1.02]"
-                                                >
-                                                    <Save size={24} className="mr-4" /> SAVE CATEGORY SETTINGS
-                                                </Button>
-                                            </div>
-                                        </motion.div>
-                                    </div>
-                                )}
-                            </AnimatePresence>
-                        </div>
-                    )}
-                    {/* 4. HOMEPAGE MATRIX MANAGEMENT */}
+                    {/* HOMEPAGE MANAGEMENT & ARCHITECTURE */}
                     {activeTab === "homepage" && (
                         <div className="flex flex-col gap-10">
-                            <div className="flex items-center justify-between border-b border-border pb-10">
-                                <div className="flex flex-col gap-2">
-                                    <h2 className="text-4xl lg:text-[45px] font-black  tracking-tighter uppercase leading-tight">Homepage <span className="text-primary ">Layout</span></h2>
-                                    <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest opacity-60  underline decoration-primary/30 underline-offset-8">Orchestrate the primary storefront experience</span>
+                            {/* Matrix Architecture Header */}
+                            <div className="flex flex-col md:flex-row md:items-end justify-between gap-8 border-b border-border/60 pb-10">
+                                <div className="flex flex-col gap-3">
+                                    <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.3em] text-primary">
+                                        <Layout size={12} className="animate-pulse" />
+                                        Page Setup
+                                    </div>
+                                    <h2 className="text-4xl lg:text-5xl font-black  tracking-tighter uppercase leading-none">Design Your Screen</h2>
+                                    <p className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.3em] opacity-40 ">Pick a section to add to your homepage below</p>
                                 </div>
-                                <Button
-                                    onClick={() => {
-                                        const sections = data.hpConfig?.dynamicSections || []
-                                        const newSections = [...sections, {
-                                            id: Math.random().toString(36).substr(2, 9),
-                                            type: "category",
-                                            source: "",
-                                            titleOverride: "NEW FEATURED SECTION",
-                                            visible: true,
-                                            order: sections.length + 1,
-                                            limit: 8,
-                                            sort: "newest"
-                                        }]
-                                        setData({ ...data, hpConfig: { ...data.hpConfig, dynamicSections: newSections } })
-                                        toast.success("Draft section initialized")
-                                    }}
-                                    className="h-20 px-12 rounded-[2rem] bg-primary text-white font-black  uppercase tracking-widest text-[11px] shadow-2xl shadow-primary/30 hover:scale-[1.05] transition-all border-4 border-background ring-2 ring-primary/10 group"
-                                >
-                                    <Plus size={24} className="mr-4 group-hover:rotate-90 transition-transform duration-500" /> ADD DYNAMIC SECTION
-                                </Button>
+                                <div className="flex flex-wrap items-center gap-3">
+                                    {(!data.hpConfig?.sections || data.hpConfig.sections.length === 0) && (
+                                        <Button
+                                            onClick={() => {
+                                                const premiumLayout = [
+                                                    { id: "hero-1", type: "hero", isActive: true, title: "HERO PREVIEW", config: { headline: "ELITE ELECTRONICS", subheadline: "NEXT GENERATION GEAR", image: "https://images.unsplash.com/photo-1498050108023-c5249f4df085" } },
+                                                    { id: "trust-1", type: "trust_bar", isActive: true, title: "TRUST INDICATORS" },
+                                                    { id: "cat-1", type: "categories", isActive: true, title: "BROWSE CATEGORIES", config: { columns: 4 } },
+                                                    { id: "feat-1", type: "featured_products", isActive: true, title: "NEW ARRIVALS", config: { source: "new", iconType: "newArrivals" } },
+                                                    { id: "promo-1", type: "promo_banner", isActive: true, title: "AD BANNER", config: { image: "https://images.unsplash.com/photo-1616348436168-de43ad0db179", link: "/products" } },
+                                                    { id: "feat-2", type: "featured_products", isActive: true, title: "BEST SELLERS", config: { source: "featured", iconType: "featured" } },
+                                                    { id: "brand-1", type: "brand_showcase", isActive: true, title: "SHOP BY BRANDS" },
+                                                    { id: "feat-3", type: "featured_products", isActive: true, title: "SMARTPHONES", config: { source: "Smartphones", iconType: "smartphones" } },
+                                                ]
+                                                setData({ ...data, hpConfig: { ...data.hpConfig, sections: premiumLayout } })
+                                            }}
+                                            className="h-14 px-6 rounded-xl bg-indigo-500 text-white font-black uppercase tracking-widest text-[9px] shadow-2xl hover:scale-105 transition-all text-foreground"
+                                        >
+                                            RESET TO FACTORY LAYOUT
+                                        </Button>
+                                    )}
+
+                                    <div className="flex flex-wrap items-center gap-2">
+                                        <Button onClick={() => handleAddSection("featured_products")} className="h-14 px-5 rounded-xl bg-blue-500 text-white font-black uppercase tracking-widest text-[9px] shadow-lg hover:scale-105 transition-all gap-2"><Package size={14} /> ADD PRODUCTS</Button>
+                                        <Button onClick={() => handleAddSection("promo_banner")} className="h-14 px-5 rounded-xl bg-purple-500 text-white font-black uppercase tracking-widest text-[9px] shadow-lg hover:scale-105 transition-all gap-2"><Sparkles size={14} /> ADD AD BANNER</Button>
+                                        <Button onClick={() => handleAddSection("categories")} className="h-14 px-5 rounded-xl bg-emerald-500 text-white font-black uppercase tracking-widest text-[9px] shadow-lg hover:scale-105 transition-all gap-2"><Layout size={14} /> ADD CATEGORIES</Button>
+                                        <Button onClick={() => handleAddSection("brand_showcase")} className="h-14 px-5 rounded-xl bg-slate-700 text-white font-black uppercase tracking-widest text-[9px] shadow-lg hover:scale-105 transition-all gap-2"><Share2 size={14} /> ADD BRANDS</Button>
+
+                                    </div>
+                                </div>
                             </div>
 
-                            <div className="flex flex-col gap-8">
-                                <div className="bg-muted/10 border border-border/60 rounded-[3rem] p-10 shadow-inner flex flex-col gap-8">
-                                    <div className="flex items-center gap-3 px-4">
-                                        <Activity size={18} className="text-secondary" />
-                                        <div className="flex flex-col">
-                                            <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Standard Sections</span>
-                                            <span className="text-[8px] font-medium text-muted-foreground/60 uppercase tracking-tight ">Note: Priority determines vertical order (Lowest number = Top of home)</span>
+                            <div className="space-y-12">
+                                {(!data.hpConfig?.sections || data.hpConfig.sections.length === 0) ? (
+                                    <div className="p-20 rounded-[4rem] border-4 border-dashed border-border/40 bg-muted/20 flex flex-col items-center justify-center text-center gap-8">
+                                        <div className="w-24 h-24 rounded-full bg-card shadow-2xl flex items-center justify-center text-primary/20">
+                                            <Layout size={48} />
+                                        </div>
+                                        <div className="flex flex-col gap-3">
+                                            <h3 className="text-2xl font-black uppercase tracking-tighter italic">No Active Architecture Detected</h3>
+                                            <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest opacity-40">Initialize a premium layout or add your first block above</p>
                                         </div>
                                     </div>
-
-                                    {/* 1. Default Sections Configuration */}
-                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                        {['newArrivals', 'featured', 'flashDeals'].sort((a, b) => (data?.hpConfig?.[a]?.order || 0) - (data?.hpConfig?.[b]?.order || 0)).map((key, idx, sortedKeys) => {
-                                            const section = data.hpConfig?.[key] || { visible: true, title: key.toUpperCase(), order: 0 }
-                                            let isNew = key === 'newArrivals'
-                                            let isFlash = key === 'flashDeals'
-                                            let isFeat = key === 'featured'
-
-                                            let icon = <Star size={16} />
-                                            let badge = "Catalog Fresh"
-                                            let label = "New Arrivals"
-                                            let color = "bg-emerald-500 text-white"
-
-                                            if (isNew) { icon = <Activity size={16} />; badge = "Catalog Fresh"; label = "New Arrivals"; color = "bg-emerald-500 text-white"; }
-                                            if (isFlash) { icon = <Percent size={16} />; badge = "Discounts"; label = "Active Offers"; color = "bg-indigo-500 text-white"; }
-                                            if (isFeat) { icon = <Star size={16} />; badge = "Best Sellers"; label = "Featured Items"; color = "bg-amber-500 text-white"; }
-
+                                ) : (
+                                    <div className="flex flex-col gap-3">
+                                        {data.hpConfig.sections.map((sec: any, idx: number) => {
+                                            const typeColors: Record<string, string> = {
+                                                featured_products: "blue",
+                                                flash_deals: "rose",
+                                                promo_banner: "purple",
+                                                categories: "emerald",
+                                                brand_showcase: "slate",
+                                                trust_bar: "rose"
+                                            };
+                                            const themeColor = typeColors[sec.type] || "blue";
                                             return (
-                                                <Card key={key} className="rounded-[1.5rem] border border-border bg-card overflow-hidden group hover:border-primary/40 transition-all shadow-lg flex flex-col">
-                                                    <div className="p-5 border-b border-border bg-muted/10 flex items-center justify-between">
-                                                        <div className="flex items-center gap-3">
-                                                            <div className={cn(
-                                                                "w-9 h-9 rounded-xl flex items-center justify-center shadow-md",
-                                                                color
-                                                            )}>
-                                                                {icon}
-                                                            </div>
-                                                            <div className="flex flex-col">
-                                                                <span className="text-[9px] font-black uppercase tracking-widest text-primary  leading-none">{label}</span>
-                                                                <h4 className="text-sm font-black uppercase tracking-tight mt-1">{badge}</h4>
-                                                            </div>
+                                                <motion.div
+                                                    key={sec.id}
+                                                    layout
+                                                    className={cn(
+                                                        "group p-3 rounded-xl border-2 transition-all flex items-center justify-between gap-4 relative overflow-hidden",
+                                                        sec.isActive
+                                                            ? `bg-${themeColor}-500/5 border-${themeColor}-500/30 shadow-md hover:border-${themeColor}-500/60`
+                                                            : "bg-muted/40 border-dashed border-border opacity-60"
+                                                    )}
+                                                >
+                                                    {/* Accent gradient for active items */}
+                                                    {sec.isActive && (
+                                                        <div className={`absolute left-0 top-0 bottom-0 w-2 bg-${themeColor}-500 opacity-20`} />
+                                                    )}
+
+                                                    <div className="flex items-center gap-4 z-10">
+                                                        <div className="flex flex-col items-center bg-background/50 p-1.5 rounded-xl border border-border/40 shadow-inner">
+                                                            <button onClick={() => {
+                                                                if (idx > 0) {
+                                                                    const newSects = [...data.hpConfig.sections];
+                                                                    [newSects[idx], newSects[idx - 1]] = [newSects[idx - 1], newSects[idx]];
+                                                                    setData((prev: any) => ({ ...prev, hpConfig: { ...prev.hpConfig, sections: newSects } }));
+                                                                }
+                                                            }} disabled={idx === 0} className="p-1.5 hover:text-primary transition-colors disabled:opacity-20"><MoveUp size={16} /></button>
+                                                            <div className="w-4 h-px bg-border/40 my-1" />
+                                                            <button onClick={() => {
+                                                                if (idx < data.hpConfig.sections.length - 1) {
+                                                                    const newSects = [...data.hpConfig.sections];
+                                                                    [newSects[idx], newSects[idx + 1]] = [newSects[idx + 1], newSects[idx]];
+                                                                    setData((prev: any) => ({ ...prev, hpConfig: { ...prev.hpConfig, sections: newSects } }));
+                                                                }
+                                                            }} disabled={idx === data.hpConfig.sections.length - 1} className="p-1.5 hover:text-primary transition-colors disabled:opacity-20"><MoveDown size={16} /></button>
                                                         </div>
-                                                        <div
-                                                            onClick={() => {
-                                                                const newVal = !section.visible
-                                                                setData({ ...data, hpConfig: { ...data.hpConfig, [key]: { ...section, visible: newVal } } })
-                                                            }}
-                                                            className={cn(
-                                                                "h-9 px-4 rounded-lg flex items-center gap-2 cursor-pointer transition-all border font-bold text-[9px] uppercase tracking-widest",
-                                                                section.visible ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-500" : "bg-muted border-border text-muted-foreground opacity-60"
-                                                            )}
-                                                        >
-                                                            <div className={cn("w-1.5 h-1.5 rounded-full", section.visible ? "bg-emerald-500 animate-pulse" : "bg-muted-foreground")} />
-                                                            {section.visible ? "On" : "Off"}
+                                                                <div className="flex flex-col gap-1">
+                                                            <div className="flex items-center gap-2">
+                                                                <span className={`text-[9px] font-black uppercase tracking-[0.2em] text-${themeColor}-500 bg-${themeColor}-500/10 px-3 py-1 rounded-full border border-${themeColor}-500/20`}>
+                                                                    {sec.type.replace('_', ' ')}
+                                                                </span>
+                                                                <span className={`bg-${themeColor}-500 text-slate-950 px-4 py-1 rounded-full text-xs font-black uppercase shadow-lg shadow-${themeColor}-500/20 ring-2 ring-white/50`}>
+                                                                    POS {idx + 1}
+                                                                </span>
+                                                                {sec.type === 'featured_products' && sec.config?.source && (
+                                                                    <span className="bg-primary/5 text-primary/60 px-3 py-1 rounded-full text-[8px] font-black uppercase border border-primary/10">
+                                                                        {sec.config.source === 'new' ? 'New Arrivals' : sec.config.source === 'featured' ? 'Best Sellers' : sec.config.source}
+                                                                    </span>
+                                                                )}
+                                                            </div>
+                                                            <h4 className="text-sm font-black uppercase tracking-tighter leading-none italic group-hover:translate-x-1 transition-transform">{sec.title || "Untitled Block"}</h4>
                                                         </div>
                                                     </div>
-                                                    <div className="p-5 space-y-4">
-                                                        <div className="flex items-center justify-between pb-2">
-                                                            <div className="flex items-center gap-4">
-                                                                <span className="text-[10px] font-black uppercase text-muted-foreground tracking-widest ">Priority:</span>
-                                                                <div className="flex items-center gap-3 bg-muted/60 p-1.5 rounded-xl border border-border/60">
-                                                                    <button
-                                                                        onClick={async () => {
-                                                                            if (idx > 0) {
-                                                                                const prevKey = sortedKeys[idx - 1]
-                                                                                const currentOrder = section.order || 0
-                                                                                const prevOrder = data.hpConfig?.[prevKey]?.order || 0
 
-                                                                                const newConfig = { 
-                                                                                    ...data.hpConfig, 
-                                                                                    [key]: { ...section, order: prevOrder },
-                                                                                    [prevKey]: { ...data.hpConfig?.[prevKey], order: currentOrder }
-                                                                                }
-                                                                                setData({ ...data, hpConfig: newConfig })
-                                                                                try {
-                                                                                    const res = await fetch("/api/config/homepage", {
-                                                                                        method: "POST",
-                                                                                        headers: { "Content-Type": "application/json" },
-                                                                                        body: JSON.stringify(newConfig)
-                                                                                    })
-                                                                                    if (res.ok) toast.success("Section Moved Up")
-                                                                                } catch (e) { }
-                                                                            }
-                                                                        }}
-                                                                        disabled={idx === 0}
-                                                                        className="h-8 w-8 rounded-lg hover:bg-card flex items-center justify-center text-muted-foreground hover:text-primary transition-all border border-transparent hover:border-border disabled:opacity-20"
-                                                                    >
-                                                                        <MoveUp size={12} />
-                                                                    </button>
-                                                                    <span className="text-sm font-black w-6 text-center">{section.order}</span>
-                                                                    <button
-                                                                        onClick={async () => {
-                                                                            if (idx < sortedKeys.length - 1) {
-                                                                                const nextKey = sortedKeys[idx + 1]
-                                                                                const currentOrder = section.order || 0
-                                                                                const nextOrder = data.hpConfig?.[nextKey]?.order || 0
+                                                    <div className="flex items-center gap-3 z-10">
+                                                        <div className="flex items-center bg-muted/50 p-2 rounded-xl border border-border/20 mr-4">
+                                                            <Button
+                                                                onClick={() => {
+                                                                    const sects = [...data.hpConfig.sections];
+                                                                    sects[idx].isActive = !sects[idx].isActive;
+                                                                    setData((prev: any) => ({ ...prev, hpConfig: { ...prev.hpConfig, sections: sects } }));
+                                                                }}
+                                                                variant="ghost"
+                                                                className={cn(
+                                                                    "h-9 px-6 rounded-lg text-[10px] font-black tracking-widest transition-all shadow-lg",
+                                                                    sec.isActive ? `bg-${themeColor}-500 text-white` : "bg-rose-600 text-white"
+                                                                )}
+                                                            >
+                                                                {sec.isActive ? "ACTIVE" : "HIDDEN"}
+                                                            </Button>
+                                                        </div>
 
-                                                                                const newConfig = { 
-                                                                                    ...data.hpConfig, 
-                                                                                    [key]: { ...section, order: nextOrder },
-                                                                                    [nextKey]: { ...data.hpConfig?.[nextKey], order: currentOrder }
-                                                                                }
-                                                                                setData({ ...data, hpConfig: newConfig })
-                                                                                try {
-                                                                                    const res = await fetch("/api/config/homepage", {
-                                                                                        method: "POST",
-                                                                                        headers: { "Content-Type": "application/json" },
-                                                                                        body: JSON.stringify(newConfig)
-                                                                                    })
-                                                                                    if (res.ok) toast.success("Section Moved Down")
-                                                                                } catch (e) { }
-                                                                            }
-                                                                        }}
-                                                                        disabled={idx === sortedKeys.length - 1}
-                                                                        className="h-8 w-8 rounded-lg hover:bg-card flex items-center justify-center text-muted-foreground hover:text-primary transition-all border border-transparent hover:border-border disabled:opacity-20"
-                                                                    >
-                                                                        <MoveDown size={12} />
-                                                                    </button>
-                                                                </div>
-                                                            </div>
+                                                        <div className="flex items-center gap-2">
+                                                            <button
+                                                                onClick={() => setEditingSection({ ...sec, index: idx })}
+                                                                className={`w-10 h-10 bg-${themeColor}-500/10 text-${themeColor}-500 border border-${themeColor}-500/20 rounded-xl flex items-center justify-center hover:bg-${themeColor}-500 hover:text-white transition-all shadow-sm`}
+                                                                title="Edit Section"
+                                                            >
+                                                                <Settings2 size={16} />
+                                                            </button>
+                                                            <button
+                                                                onClick={() => {
+                                                                    if (confirm("Delete this section permanently?")) {
+                                                                        const sects = data.hpConfig.sections.filter((_: any, i: number) => i !== idx);
+                                                                        setData((prev: any) => ({ ...prev, hpConfig: { ...prev.hpConfig, sections: sects } }));
+                                                                        toast.error("Section Removed");
+                                                                    }
+                                                                }}
+                                                                className="w-10 h-10 bg-rose-500/10 text-rose-500 rounded-xl flex items-center justify-center hover:bg-rose-500 hover:text-white transition-all border border-rose-500/20 shadow-sm"
+                                                                title="Remove Section"
+                                                            >
+                                                                <Trash2 size={16} />
+                                                            </button>
                                                         </div>
                                                     </div>
-                                                </Card>
-                                            )
+
+                                                    {/* Background decorative element */}
+                                                    <div className={`absolute -right-4 -bottom-4 w-32 h-32 bg-${themeColor}-500/5 rounded-full blur-3xl`} />
+                                                </motion.div>
+                                            );
                                         })}
                                     </div>
-
-                                    {/* 2. Dynamic Sub-Sections Configuration */}
-                                    <div className="flex flex-col gap-10 mt-10">
-                                        <div className="flex items-center justify-between px-4">
-                                            <div className="flex items-center gap-3">
-                                                <Box size={20} className="text-primary" />
-                                                <div className="flex flex-col">
-                                                    <h3 className="text-xl font-bold uppercase tracking-tight">Custom Sections</h3>
-                                                    <span className="text-[10px] font-medium text-muted-foreground mt-1 opacity-60">Create your own product collections from categories or brands</span>
-                                                </div>
-                                            </div>
-                                            <Button
-                                                onClick={() => {
-                                                    const sections = data.hpConfig?.dynamicSections || []
-                                                    const newSec = {
-                                                        id: Math.random().toString(36).substr(2, 9),
-                                                        type: "category",
-                                                        source: "",
-                                                        titleOverride: "New Collection",
-                                                        visible: true,
-                                                        order: sections.length + 10,
-                                                        limit: 8,
-                                                        sort: "newest"
-                                                    }
-                                                    const newSections = [...sections, newSec]
-                                                    setData({ ...data, hpConfig: { ...data.hpConfig, dynamicSections: newSections } })
-                                                    setEditingLink({ payload: newSec, index: sections.length })
-                                                }}
-                                                className="h-10 px-6 rounded-xl bg-foreground text-background font-bold uppercase tracking-widest text-[9px] hover:bg-primary hover:text-white transition-all shadow-md"
-                                            >
-                                                <Plus size={16} className="mr-2" /> Add Section
-                                            </Button>
-                                        </div>
-
-                                        <div className="grid grid-cols-1 gap-6">
-                                            {(data.hpConfig?.dynamicSections || []).sort((a: any, b: any) => (a.order || 0) - (b.order || 0)).map((sec: any, idx: number) => (
-                                                <motion.div
-                                                    key={sec.id || idx}
-                                                    layout
-                                                    initial={{ opacity: 0, y: 20 }}
-                                                    animate={{ opacity: 1, y: 0 }}
-                                                    className="group p-6 lg:p-8 bg-card border-2 border-border/80 rounded-[2.5rem] hover:border-primary/40 transition-all hover:shadow-2xl hover:shadow-primary/5 flex flex-col lg:flex-row lg:items-center justify-between gap-8 relative overflow-hidden"
-                                                >
-                                                    <div className="flex items-center gap-6 relative z-10">
-                                                        <div className="flex items-center gap-4">
-                                                            <div className="w-12 h-12 rounded-2xl bg-muted border border-border flex items-center justify-center text-sm font-black  shadow-inner shrink-0 group-hover:scale-110 transition-transform">
-                                                                {idx + 1}
-                                                            </div>
-                                                        </div>
-                                                        <div className="flex flex-col min-w-0">
-                                                            <div className="flex items-center gap-4">
-                                                                <span className={cn(
-                                                                    "px-3 py-1 rounded-full text-[9px] font-bold uppercase tracking-widest",
-                                                                    sec.type === "brand" ? "bg-amber-500/10 text-amber-500" : "bg-indigo-500/10 text-indigo-500"
-                                                                )}>{sec.type} list</span>
-                                                                {sec.source && <span className="text-[10px] font-bold uppercase tracking-widest text-primary opacity-60">Source: {sec.source}</span>}
-                                                            </div>
-                                                            <h4 className="text-xl font-black uppercase tracking-tighter  leading-none mt-2 truncate">{sec.titleOverride || "UNTITLED SECTION"}</h4>
-                                                            <div className="flex items-center gap-4 mt-2 text-[10px] font-black uppercase tracking-widest text-muted-foreground opacity-40 ">
-                                                                <Layout size={10} className="text-primary" /> {sec.limit} Items • <RefreshCw size={10} className="text-primary" /> {sec.sort}
-                                                            </div>
-                                                        </div>
-                                                    </div>
-
-                                                    <div className="flex flex-wrap items-center gap-4 relative z-10 shrink-0">
-                                                        <button
-                                                            onClick={async () => {
-                                                                const sections = [...data.hpConfig.dynamicSections]
-                                                                const targetIdx = sections.findIndex(s => s.id === sec.id)
-                                                                if (targetIdx !== -1) {
-                                                                    sections[targetIdx].visible = !sections[targetIdx].visible
-                                                                    const newConfig = { ...data.hpConfig, dynamicSections: sections }
-                                                                    setData({ ...data, hpConfig: newConfig })
-
-                                                                    // Auto-Sync
-                                                                    try {
-                                                                        await fetch("/api/config/homepage", {
-                                                                            method: "POST",
-                                                                            headers: { "Content-Type": "application/json" },
-                                                                            body: JSON.stringify(newConfig)
-                                                                        })
-                                                                    } catch (e) { }
-                                                                }
-                                                            }}
-                                                            className={cn(
-                                                                "h-12 px-6 rounded-xl flex items-center gap-3 cursor-pointer transition-all border-2 text-[10px] font-black uppercase tracking-widest shadow-sm",
-                                                                sec.visible ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-500" : "bg-muted border-border text-muted-foreground opacity-50"
-                                                            )}
-                                                        >
-                                                            <div className={cn("w-2 h-2 rounded-full", sec.visible ? "bg-emerald-500 animate-pulse" : "bg-muted-foreground")} />
-                                                            {sec.visible ? "Active" : "Disabled"}
-                                                        </button>
-
-                                                        <div className="flex items-center bg-muted/40 p-1 rounded-xl border border-border shadow-inner">
-                                                            <Button
-                                                                variant="ghost" size="icon" className="h-10 w-10 rounded-lg hover:bg-card"
-                                                                onClick={async () => {
-                                                                    // 1. Create a sorted copy to match the UI order
-                                                                    const sections = [...data.hpConfig.dynamicSections].sort((a: any, b: any) => (a.order || 0) - (b.order || 0))
-                                                                    if (idx > 0) {
-                                                                        const current = { ...sections[idx] }
-                                                                        const prev = { ...sections[idx - 1] }
-
-                                                                        // 2. Swap order values
-                                                                        const currentOrder = current.order || 0
-                                                                        const prevOrder = prev.order || 0
-                                                                        current.order = prevOrder
-                                                                        prev.order = currentOrder
-
-                                                                        // 3. Update the array with swapped items
-                                                                        sections[idx] = prev
-                                                                        sections[idx - 1] = current
-
-                                                                        const newConfig = { ...data.hpConfig, dynamicSections: sections }
-                                                                        setData({ ...data, hpConfig: newConfig })
-
-                                                                        // 4. Auto-Sync
-                                                                        try {
-                                                                            await fetch("/api/config/homepage", {
-                                                                                method: "POST",
-                                                                                headers: { "Content-Type": "application/json" },
-                                                                                body: JSON.stringify(newConfig)
-                                                                            })
-                                                                            toast.success("Order Synchronized")
-                                                                        } catch (e) { }
-                                                                    }
-                                                                }}
-                                                                disabled={idx === 0}
-                                                            >
-                                                                <MoveUp size={14} />
-                                                            </Button>
-                                                            <Button
-                                                                variant="ghost" size="icon" className="h-10 w-10 rounded-lg hover:bg-card"
-                                                                onClick={async () => {
-                                                                    // 1. Create a sorted copy to match the UI order
-                                                                    const sections = [...data.hpConfig.dynamicSections].sort((a: any, b: any) => (a.order || 0) - (b.order || 0))
-                                                                    if (idx < sections.length - 1) {
-                                                                        const current = { ...sections[idx] }
-                                                                        const next = { ...sections[idx + 1] }
-
-                                                                        // 2. Swap order values
-                                                                        const currentOrder = current.order || 0
-                                                                        const nextOrder = next.order || 0
-                                                                        current.order = nextOrder
-                                                                        next.order = currentOrder
-
-                                                                        // 3. Update the array with swapped items
-                                                                        sections[idx] = next
-                                                                        sections[idx + 1] = current
-
-                                                                        const newConfig = { ...data.hpConfig, dynamicSections: sections }
-                                                                        setData({ ...data, hpConfig: newConfig })
-
-                                                                        // 4. Auto-Sync
-                                                                        try {
-                                                                            await fetch("/api/config/homepage", {
-                                                                                method: "POST",
-                                                                                headers: { "Content-Type": "application/json" },
-                                                                                body: JSON.stringify(newConfig)
-                                                                            })
-                                                                            toast.success("Order Synchronized")
-                                                                        } catch (e) { }
-                                                                    }
-                                                                }}
-                                                                disabled={idx === (data.hpConfig.dynamicSections?.length - 1)}
-                                                            >
-                                                                <MoveDown size={14} />
-                                                            </Button>
-                                                        </div>
-
-                                                        <Button
-                                                            onClick={() => setEditingLink({ payload: sec, index: idx })}
-                                                            className="h-12 w-12 rounded-xl bg-primary text-white shadow-lg hover:scale-110 transition-all flex items-center justify-center shadow-primary/20"
-                                                        >
-                                                            <Edit2 size={18} />
-                                                        </Button>
-
-                                                        <button
-                                                            onClick={() => {
-                                                                if (confirm("Purge this dynamic section?")) {
-                                                                    const sections = data.hpConfig.dynamicSections.filter((_: any, i: number) => i !== idx)
-                                                                    setData({ ...data, hpConfig: { ...data.hpConfig, dynamicSections: sections } })
-                                                                    toast.success("Draft Purged")
-                                                                }
-                                                            }}
-                                                            className="w-12 h-12 bg-destructive/10 text-destructive rounded-xl flex items-center justify-center hover:bg-destructive hover:text-white transition-all border-2 border-destructive/10 group/del shadow-sm"
-                                                        >
-                                                            <Trash2 size={18} />
-                                                        </button>
-                                                    </div>
-                                                </motion.div>
-                                            ))}
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <Button
-                                    onClick={async () => {
-                                        setSaving(true)
-                                        try {
-                                            const res = await fetch("/api/config/homepage", {
-                                                method: "POST",
-                                                headers: { "Content-Type": "application/json" },
-                                                body: JSON.stringify(data.hpConfig)
-                                            })
-                                            if (res.ok) {
-                                                toast.success("Homepage Configuration Synchronized")
-                                                fetchData()
-                                            } else {
-                                                toast.error("Synchronization Failure")
-                                            }
-                                        } catch (e) {
-                                            toast.error("Network Topology Error")
-                                        } finally {
-                                            setSaving(false)
-                                        }
-                                    }}
-                                    className="h-28 rounded-[3rem] bg-foreground text-background font-black  tracking-[0.3em] uppercase text-lg hover:bg-primary hover:text-white transition-all shadow-[0_30px_60px_rgba(0,0,0,0.1)] mt-12 border-4 border-background ring-4 ring-foreground/5 relative group overflow-hidden"
-                                    disabled={saving}
-                                >
-                                    <div className="absolute inset-0 bg-white/5 -translate-x-full group-hover:translate-x-full transition-transform duration-1000 skew-x-12" />
-                                    {saving ? <Loader2 className="w-8 h-8 animate-spin mr-6" /> : <Save size={32} className="mr-6 group-hover:rotate-12 transition-transform" />} SYNC HOMEPAGE ARCHITECTURE
-                                </Button>
+                                )}
                             </div>
 
-                            {/* DYNAMIC SECTION EDITOR SLIDE-OVER - Reusing editingLink state but with extra payload */}
+                            <Button
+                                onClick={async () => {
+                                    setSaving(true);
+                                    try {
+                                        const res = await fetch("/api/config/homepage", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(data.hpConfig) });
+                                        if (res.ok) { toast.success("Composition Synchronized"); fetchData(); } else toast.error("Sync Failure");
+                                    } catch (e) { toast.error("Network Error"); } finally { setSaving(false); }
+                                }}
+                                className="h-20 rounded-[2.5rem] bg-foreground text-background font-black uppercase text-sm hover:bg-primary hover:text-white transition-all shadow-2xl mt-8 border-4 border-background ring-2 ring-foreground/10"
+                                disabled={saving}
+                            >
+                                {saving ? <Loader2 className="w-6 h-6 animate-spin mr-3" /> : <Save size={24} className="mr-3" />} SAVE TO HOMEPAGE
+                            </Button>
+
+                            {/* Section Editor Drawer (Integrated) */}
                             <AnimatePresence>
-                                {editingLink && typeof editingLink === 'object' && editingLink.payload && (
+                                {editingSection && (
                                     <div className="fixed inset-0 z-[1000] flex justify-end">
-                                        <motion.div
-                                            initial={{ opacity: 0 }}
-                                            animate={{ opacity: 1 }}
-                                            exit={{ opacity: 0 }}
-                                            onClick={() => setEditingLink(null)}
-                                            className="absolute inset-0 bg-slate-950/80 backdrop-blur-3xl"
-                                        />
-                                        <motion.div
-                                            initial={{ x: "100%" }}
-                                            animate={{ x: 0 }}
-                                            exit={{ x: "100%" }}
-                                            transition={{ type: "spring", damping: 30, stiffness: 250 }}
-                                            className="relative h-full w-full max-w-[640px] bg-card border-l-4 border-primary/20 shadow-[-100px_0_150px_rgba(0,0,0,0.4)] flex flex-col"
-                                        >
-                                            <div className="p-8 border-b border-border bg-muted/40 flex items-center justify-between relative overflow-hidden">
-                                                <div className="absolute top-0 right-0 w-96 h-96 bg-primary/5 rounded-full -translate-y-1/2 translate-x-1/2 blur-[100px]" />
-                                                <div className="flex flex-col gap-2 relative z-10">
-                                                    <h4 className="text-2xl font-black uppercase tracking-tight  leading-none">{editingLink.payload.titleOverride || "Edit Section"}</h4>
-                                                    <p className="text-[10px] font-medium text-muted-foreground uppercase opacity-60">Manage this collection's content and rules</p>
+                                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setEditingSection(null)} className="absolute inset-0 bg-slate-950/70 backdrop-blur-3xl" />
+                                        <motion.div initial={{ x: "100%" }} animate={{ x: 0 }} exit={{ x: "100%" }} transition={{ type: "spring", damping: 30, stiffness: 250 }} ref={drawerRef} className="relative h-full w-full max-w-[700px] bg-card border-l border-white/10 shadow-2xl flex flex-col">
+                                            <div className="p-10 border-b border-border bg-muted/20 flex items-center justify-between">
+                                                <div className="flex flex-col gap-1">
+                                                    <span className="text-[10px] font-black uppercase tracking-[0.3em] text-primary">{editingSection.type} Editor</span>
+                                                    <h4 className="text-3xl font-black uppercase tracking-tighter italic">{editingSection.title || "Untitled"}</h4>
                                                 </div>
-                                                <div className="flex items-center gap-4 relative z-10">
-                                                    <Button
-                                                        onClick={async () => {
-                                                            const sections = [...data.hpConfig.dynamicSections]
-                                                            sections[editingLink.index] = editingLink.payload
-                                                            const newConfig = { ...data.hpConfig, dynamicSections: sections }
-                                                            setData({ ...data, hpConfig: newConfig })
-
-                                                            // Auto-Sync
-                                                            setSaving(true)
-                                                            try {
-                                                                const res = await fetch("/api/config/homepage", {
-                                                                    method: "POST",
-                                                                    headers: { "Content-Type": "application/json" },
-                                                                    body: JSON.stringify(newConfig)
-                                                                })
-                                                                if (res.ok) {
-                                                                    toast.success("Saved & Synced to Homepage")
-                                                                    setEditingLink(null)
-                                                                    fetchData()
-                                                                } else {
-                                                                    toast.error("Failed to sync changes")
-                                                                }
-                                                            } catch (e) {
-                                                                toast.error("Network error during sync")
-                                                            } finally {
-                                                                setSaving(false)
-                                                            }
-                                                        }}
-                                                        disabled={saving}
-                                                        className="h-12 px-8 rounded-xl bg-primary text-white font-black uppercase tracking-widest text-[10px] shadow-xl hover:scale-[1.05] transition-all"
-                                                    >
-                                                        {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save size={18} className="mr-2" />}
-                                                        {saving ? "SAVING..." : "SAVE & SYNC"}
-                                                    </Button>
-                                                    <button
-                                                        onClick={() => setEditingLink(null)}
-                                                        className="w-12 h-12 bg-background border-2 border-border/50 rounded-xl flex items-center justify-center hover:bg-red-500 hover:text-white hover:border-red-500 transition-all shadow-md group"
-                                                    >
-                                                        <X size={20} className="group-hover:rotate-90 transition-transform" />
-                                                    </button>
-                                                </div>
+                                                <button onClick={() => setEditingSection(null)} className="w-14 h-14 bg-background border border-border rounded-2xl flex items-center justify-center hover:bg-rose-500 hover:text-white transition-all"><X size={24} /></button>
                                             </div>
+                                            <div className="flex-1 overflow-y-auto p-12 space-y-12 no-scrollbar">
+                                                <AutoScroller trigger={editingSection?.id} />
+                                                <div className="space-y-4">
+                                                    <label className="text-[10px] font-black uppercase opacity-40">Display Title</label>
+                                                    <Input value={editingSection.title || ""} onChange={(e) => setEditingSection({ ...editingSection, title: e.target.value })} className="h-16 rounded-2xl bg-muted/20 border-border px-6 text-lg font-black uppercase" />
+                                                </div>
+                                                {/* Hero Slider Section is removed */}
 
-                                            <div className="flex-1 overflow-y-auto p-12 space-y-10 no-scrollbar">
-                                                {/* Simple Controls */}
-                                                <div className="space-y-8">
-                                                    <div className="flex items-center gap-3 text-primary">
-                                                        <SettingsIcon size={18} />
-                                                        <span className="text-[11px] font-bold uppercase tracking-widest">Section Settings</span>
-                                                    </div>
-
-                                                    <div className="grid grid-cols-1 gap-8">
-                                                        {/* Title */}
-                                                        <div className="p-6 rounded-2xl bg-muted/20 border border-border shadow-inner space-y-4">
-                                                            <div className="space-y-2">
-                                                                <label className="text-[10px] font-bold uppercase text-muted-foreground tracking-widest ml-1">Section Heading</label>
-                                                                <Input
-                                                                    value={editingLink.payload.titleOverride}
-                                                                    onChange={(e) => {
-                                                                        const payload = { ...editingLink.payload, titleOverride: e.target.value }
-                                                                        setEditingLink({ ...editingLink, payload })
-                                                                    }}
-                                                                    placeholder="e.g. Featured Electronics"
-                                                                    className="h-14 rounded-xl bg-background border-border px-6 font-bold text-sm focus:ring-4 focus:ring-primary/5 transition-all"
-                                                                />
+                                                {editingSection.type === 'promo_banner' && (
+                                                    <div className="space-y-6">
+                                                        <div className="space-y-4">
+                                                            <label className="text-[10px] font-black uppercase opacity-40">Banner Title</label>
+                                                            <Input value={editingSection.config?.title || ""} onChange={(e) => setEditingSection({ ...editingSection, config: { ...editingSection.config, title: e.target.value } })} className="h-14 rounded-xl" />
+                                                        </div>
+                                                        <div className="space-y-4">
+                                                            <label className="text-[10px] font-black uppercase opacity-40">Banner Subtitle</label>
+                                                            <Input value={editingSection.config?.subtitle || ""} onChange={(e) => setEditingSection({ ...editingSection, config: { ...editingSection.config, subtitle: e.target.value } })} className="h-14 rounded-xl" />
+                                                        </div>
+                                                        <div className="space-y-4">
+                                                            <label className="text-[10px] font-black uppercase opacity-40">Background Image</label>
+                                                            <ImageManager label="Promo Cover" value={editingSection.config?.imageUrl || ""} onChange={(v: string) => setEditingSection({ ...editingSection, config: { ...editingSection.config, imageUrl: v } })} />
+                                                        </div>
+                                                        <div className="grid grid-cols-2 gap-4">
+                                                            <div className="space-y-4">
+                                                                <label className="text-[10px] font-black uppercase opacity-40">Target Link</label>
+                                                                <Input value={editingSection.config?.link || ""} onChange={(e) => setEditingSection({ ...editingSection, config: { ...editingSection.config, link: e.target.value } })} className="h-14 rounded-xl" />
                                                             </div>
-
-                                                            <div className="grid grid-cols-2 gap-6 pt-2">
-                                                                <div className="space-y-2">
-                                                                    <label className="text-[10px] font-bold uppercase text-muted-foreground tracking-widest ml-1">Filter Type</label>
-                                                                    <div className="flex items-center gap-1.5 p-1.5 bg-muted/50 rounded-xl border border-border">
-                                                                        <button
-                                                                            onClick={() => {
-                                                                                const payload = { ...editingLink.payload, type: "category", source: "" }
-                                                                                setEditingLink({ ...editingLink, payload })
-                                                                            }}
-                                                                            className={cn(
-                                                                                "flex-1 h-9 rounded-lg text-[9px] font-bold uppercase transition-all",
-                                                                                editingLink.payload.type === "category" ? "bg-primary text-white shadow-md" : "text-muted-foreground hover:bg-background"
-                                                                            )}
-                                                                        >By Category</button>
-                                                                        <button
-                                                                            onClick={() => {
-                                                                                const payload = { ...editingLink.payload, type: "brand", source: "" }
-                                                                                setEditingLink({ ...editingLink, payload })
-                                                                            }}
-                                                                            className={cn(
-                                                                                "flex-1 h-9 rounded-lg text-[9px] font-bold uppercase transition-all",
-                                                                                editingLink.payload.type === "brand" ? "bg-primary text-white shadow-md" : "text-muted-foreground hover:bg-background"
-                                                                            )}
-                                                                        >By Brand</button>
-                                                                    </div>
-                                                                </div>
-
-                                                                <div className="space-y-2">
-                                                                    <label className="text-[10px] font-bold uppercase text-muted-foreground tracking-widest ml-1">Choose {editingLink.payload.type}</label>
-                                                                    <select
-                                                                        value={editingLink.payload.source}
-                                                                        onChange={(e) => {
-                                                                            const payload = { ...editingLink.payload, source: e.target.value }
-                                                                            setEditingLink({ ...editingLink, payload })
-                                                                        }}
-                                                                        className="h-12 w-full rounded-xl bg-background border border-border px-4 font-bold text-xs outline-none focus:ring-4 focus:ring-primary/5 transition-all appearance-none"
-                                                                    >
-                                                                        <option value="">Choose item...</option>
-                                                                        {editingLink.payload.type === "category" ? (
-                                                                            (data.categories || []).map((cat: any) => (
-                                                                                <option key={cat.id} value={cat.name}>{cat.name}</option>
-                                                                            ))
-                                                                        ) : (
-                                                                            Array.from(new Set(products.map(p => p.brand))).map((brand: string) => (
-                                                                                <option key={brand} value={brand}>{brand}</option>
-                                                                            ))
-                                                                        )}
-                                                                    </select>
-                                                                </div>
+                                                            <div className="space-y-4">
+                                                                <label className="text-[10px] font-black uppercase opacity-40">Theme</label>
+                                                                <select value={editingSection.config?.dark ? "dark" : "light"} onChange={(e) => setEditingSection({ ...editingSection, config: { ...editingSection.config, dark: e.target.value === "dark" } })} className="w-full h-14 rounded-xl bg-background border border-border px-4 text-xs font-black uppercase">
+                                                                    <option value="dark">Dark Mode</option>
+                                                                    <option value="light">Light Mode</option>
+                                                                </select>
                                                             </div>
                                                         </div>
+                                                    </div>
+                                                )}
 
-                                                        {/* Grid & Sort */}
-                                                        <div className="p-6 rounded-2xl bg-muted/20 border border-border shadow-inner grid grid-cols-2 gap-8">
-                                                            <div className="space-y-3">
-                                                                <label className="text-[10px] font-bold uppercase text-muted-foreground tracking-widest ml-1">Number of Items</label>
-                                                                <div className="flex items-center gap-4 bg-background p-1.5 rounded-xl border border-border shadow-sm">
-                                                                    <button
-                                                                        onClick={() => {
-                                                                            const payload = { ...editingLink.payload, limit: Math.max(4, editingLink.payload.limit - 4) }
-                                                                            setEditingLink({ ...editingLink, payload })
-                                                                        }}
-                                                                        className="h-10 w-10 rounded-lg bg-muted flex items-center justify-center font-bold text-lg hover:bg-primary hover:text-white transition-all">-</button>
-                                                                    <span className="flex-1 text-center font-bold text-base">{editingLink.payload.limit}</span>
-                                                                    <button
-                                                                        onClick={() => {
-                                                                            const payload = { ...editingLink.payload, limit: Math.min(24, editingLink.payload.limit + 4) }
-                                                                            setEditingLink({ ...editingLink, payload })
-                                                                        }}
-                                                                        className="h-10 w-10 rounded-lg bg-muted flex items-center justify-center font-bold text-lg hover:bg-primary hover:text-white transition-all">+</button>
-                                                                </div>
+                                                {editingSection.type === 'brand_showcase' && (
+                                                    <div className="space-y-8">
+                                                        <div className="space-y-4">
+                                                            <div className="flex items-center justify-between">
+                                                                <label className="text-[10px] font-black uppercase opacity-40">Choose Display Brands</label>
+                                                                <span className="text-[8px] font-black text-primary uppercase">Click to toggle</span>
                                                             </div>
-
-                                                            <div className="space-y-3">
-                                                                <label className="text-[10px] font-bold uppercase text-muted-foreground tracking-widest ml-1">Sort Products By</label>
-                                                                <div className="flex flex-col gap-2">
-                                                                    {['newest', 'price_asc', 'price_desc', 'stock_high'].map((rule) => (
+                                                            <div className="grid grid-cols-2 gap-3">
+                                                                {data.brands?.map((brand: any) => {
+                                                                    const isSelected = editingSection.config?.selectedBrands?.includes(brand.id)
+                                                                    return (
                                                                         <button
-                                                                            key={rule}
+                                                                            key={brand.id}
                                                                             onClick={() => {
-                                                                                const payload = { ...editingLink.payload, sort: rule }
-                                                                                setEditingLink({ ...editingLink, payload })
+                                                                                const selected = editingSection.config?.selectedBrands || []
+                                                                                const newSelected = selected.includes(brand.id)
+                                                                                    ? selected.filter((id: any) => id !== brand.id)
+                                                                                    : [...selected, brand.id]
+                                                                                setEditingSection({ ...editingSection, config: { ...editingSection.config, selectedBrands: newSelected } })
                                                                             }}
                                                                             className={cn(
-                                                                                "h-10 rounded-lg text-[9px] font-bold uppercase transition-all px-4 border flex items-center justify-between",
-                                                                                editingLink.payload.sort === rule ? "bg-primary text-white border-primary shadow-md" : "bg-background border-border text-muted-foreground hover:border-primary/40"
+                                                                                "p-5 rounded-2xl border-2 text-[11px] font-black uppercase text-left transition-all flex items-center gap-4",
+                                                                                isSelected 
+                                                                                    ? "bg-primary border-primary text-white shadow-[0_10px_30px_rgba(var(--primary),0.3)] scale-[1.02]" 
+                                                                                    : "bg-background border-border text-foreground hover:border-primary/50 hover:bg-muted/50"
                                                                             )}
                                                                         >
-                                                                            {rule.replace('_', ' ')}
-                                                                            {editingLink.payload.sort === rule && <Sparkles size={10} className="animate-pulse" />}
+                                                                            <div className={cn("w-3 h-3 rounded-full border-2", isSelected ? "bg-white border-white" : "bg-muted-foreground/30 border-transparent")} />
+                                                                            {brand.name}
                                                                         </button>
-                                                                    ))}
-                                                                </div>
+                                                                    )
+                                                                })}
                                                             </div>
                                                         </div>
                                                     </div>
-                                                </div>
-                                            </div>
+                                                )}
 
-                                            {/* Footer buttons removed - Save is now at top */}
-                                            <div className="p-8 border-t border-border bg-muted/10">
-                                                <p className="text-[10px] text-center text-muted-foreground font-medium uppercase tracking-widest  opacity-40">Your changes are automatically synced to the homepage after saving</p>
+                                                {editingSection.type === 'trust_bar' && (
+                                                    <div className="space-y-8">
+                                                        <div className="flex items-center justify-between">
+                                                            <div className="flex flex-col gap-1">
+                                                                <label className="text-[11px] font-black uppercase tracking-widest text-primary italic">Trust Markers</label>
+                                                                <span className="text-[8px] font-bold text-muted-foreground uppercase">Define localized benefits for this section</span>
+                                                            </div>
+                                                            <Button
+                                                                size="sm"
+                                                                onClick={() => {
+                                                                    const currentItems = editingSection.config?.items || []
+                                                                    setEditingSection({ ...editingSection, config: { ...editingSection.config, items: [...currentItems, { id: Math.random(), title: "Safe Shipping", subtitle: "Fast & Free", icon: "Truck" }] } })
+                                                                }}
+                                                                className="h-10 px-6 rounded-xl text-[9px] font-black bg-primary text-white hover:scale-105 transition-all shadow-lg shadow-primary/20"
+                                                            >
+                                                                ADD TRUST MARKER
+                                                            </Button>
+                                                        </div>
+                                                        <div className="grid grid-cols-1 gap-4">
+                                                            {(editingSection.config?.items || data.trust || []).map((item: any, iIdx: number) => (
+                                                                <div key={iIdx} className="p-6 bg-muted/20 border border-border/40 rounded-[2rem] flex flex-col gap-6 group relative">
+                                                                    <div className="flex items-start justify-between gap-4">
+                                                                        <div className="flex-1 space-y-4">
+                                                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                                                <div className="space-y-2">
+                                                                                    <label className="text-[9px] font-black uppercase opacity-40">Marker Title</label>
+                                                                                    <Input
+                                                                                        value={item.title || ""}
+                                                                                        onChange={(e) => {
+                                                                                            const items = [...(editingSection.config?.items || data.trust)]
+                                                                                            items[iIdx] = { ...items[iIdx], title: e.target.value }
+                                                                                            setEditingSection({ ...editingSection, config: { ...editingSection.config, items } })
+                                                                                        }}
+                                                                                        placeholder="e.g. Worldwide Shipping"
+                                                                                        className="h-12 rounded-xl text-[11px] font-black uppercase"
+                                                                                    />
+                                                                                </div>
+                                                                                <div className="space-y-2">
+                                                                                    <label className="text-[9px] font-black uppercase opacity-40">Sub-Title</label>
+                                                                                    <Input
+                                                                                        value={item.subtitle || ""}
+                                                                                        onChange={(e) => {
+                                                                                            const items = [...(editingSection.config?.items || data.trust)]
+                                                                                            items[iIdx] = { ...items[iIdx], subtitle: e.target.value }
+                                                                                            setEditingSection({ ...editingSection, config: { ...editingSection.config, items } })
+                                                                                        }}
+                                                                                        placeholder="e.g. Within 24 hours"
+                                                                                        className="h-12 rounded-xl text-[10px] font-medium"
+                                                                                    />
+                                                                                </div>
+                                                                            </div>
+                                                                            <div className="space-y-2">
+                                                                                <label className="text-[9px] font-black uppercase opacity-40">Lucide Icon Name</label>
+                                                                                <div className="relative">
+                                                                                    <Input
+                                                                                        value={item.icon || "Box"}
+                                                                                        onChange={(e) => {
+                                                                                            const items = [...(editingSection.config?.items || data.trust)]
+                                                                                            items[iIdx] = { ...items[iIdx], icon: e.target.value }
+                                                                                            setEditingSection({ ...editingSection, config: { ...editingSection.config, items } })
+                                                                                        }}
+                                                                                        className="h-12 rounded-xl pl-12 text-[11px] font-black tracking-widest uppercase border-primary/20 bg-primary/5"
+                                                                                    />
+                                                                                    <div className="absolute left-4 top-1/2 -translate-y-1/2 text-primary">
+                                                                                        <ShieldCheck size={16} />
+                                                                                    </div>
+                                                                                </div>
+                                                                            </div>
+                                                                        </div>
+                                                                        <button
+                                                                            onClick={() => {
+                                                                                const items = (editingSection.config?.items || data.trust).filter((_: any, i: number) => i !== iIdx)
+                                                                                setEditingSection({ ...editingSection, config: { ...editingSection.config, items } })
+                                                                            }}
+                                                                            className="w-10 h-10 rounded-xl bg-rose-500/10 text-rose-500 flex items-center justify-center hover:bg-rose-500 hover:text-white transition-all order-last"
+                                                                        >
+                                                                            <Trash2 size={14} />
+                                                                        </button>
+                                                                    </div>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                )}
+
+                                                {editingSection.type === 'categories' && (
+                                                    <div className="space-y-8">
+                                                        <div className="space-y-4">
+                                                            <div className="flex items-center justify-between">
+                                                                <label className="text-[10px] font-black uppercase opacity-40">Choose Display Categories</label>
+                                                                <span className="text-[8px] font-black text-primary uppercase">Click to toggle</span>
+                                                            </div>
+                                                            <div className="grid grid-cols-2 gap-3">
+                                                                {data.categories?.map((cat: any) => {
+                                                                    const isSelected = editingSection.config?.selectedCategories?.includes(cat.id)
+                                                                    return (
+                                                                        <button
+                                                                            key={cat.id}
+                                                                            onClick={() => {
+                                                                                const selected = editingSection.config?.selectedCategories || []
+                                                                                const newSelected = selected.includes(cat.id)
+                                                                                    ? selected.filter((id: any) => id !== cat.id)
+                                                                                    : [...selected, cat.id]
+                                                                                setEditingSection({ ...editingSection, config: { ...editingSection.config, selectedCategories: newSelected } })
+                                                                            }}
+                                                                            className={cn(
+                                                                                "p-4 rounded-xl border text-[10px] font-black uppercase text-left transition-all flex items-center gap-3",
+                                                                                isSelected ? "bg-primary border-primary text-white shadow-lg" : "bg-card border-border text-foreground hover:bg-muted"
+                                                                            )}
+                                                                        >
+                                                                            <div className={cn("w-2 h-2 rounded-full", isSelected ? "bg-white" : "bg-muted-foreground/20")} />
+                                                                            {cat.name}
+                                                                        </button>
+                                                                    )
+                                                                })}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                )}
+
+                                                {editingSection.type === 'featured_products' && (
+                                                    <div className="space-y-6">
+                                                        <div className="grid grid-cols-2 gap-4">
+                                                            <div className="space-y-4">
+                                                                <label className="text-[10px] font-black uppercase opacity-40">Source Rule</label>
+                                                                <select value={editingSection.config?.source} onChange={(e) => setEditingSection({ ...editingSection, config: { ...editingSection.config, source: e.target.value } })} className="w-full h-14 rounded-xl bg-background border border-border px-4 font-black uppercase text-[10px]">
+                                                                    <option value="all">All Products</option>
+                                                                    <option value="new">New Arrivals (isNew)</option>
+                                                                    <option value="featured">Best Sellers (isHot)</option>
+                                                                    <option value="discounts">Flash Discounts (Sale)</option>
+                                                                    <option value="category">Specific Category</option>
+                                                                    <option value="brand">Specific Brand</option>
+                                                                </select>
+                                                            </div>
+                                                            {(editingSection.config?.source === 'category' || editingSection.config?.source === 'category') && (
+                                                                <div className="space-y-4">
+                                                                    <label className="text-[10px] font-black uppercase opacity-40">Select Category</label>
+                                                                    <select value={editingSection.config?.categoryName} onChange={(e) => setEditingSection({ ...editingSection, config: { ...editingSection.config, categoryName: e.target.value } })} className="w-full h-14 rounded-xl bg-background border border-border px-4 font-black uppercase text-[10px]">
+                                                                        <option value="">Choose...</option>
+                                                                        {data.categories?.map((c: any) => <option key={c.id} value={c.name}>{c.name}</option>)}
+                                                                    </select>
+                                                                </div>
+                                                            )}
+                                                            {editingSection.config?.source === 'brand' && (
+                                                                <div className="space-y-4">
+                                                                    <label className="text-[10px] font-black uppercase opacity-40">Enter Brand Name</label>
+                                                                    <Input value={editingSection.config?.brandName || ""} onChange={(e) => setEditingSection({ ...editingSection, config: { ...editingSection.config, brandName: e.target.value } })} placeholder="e.g. Apple" className="h-14 rounded-xl" />
+                                                                </div>
+                                                            )}
+                                                        </div>
+
+                                                        {/* Integrated Banner Option */}
+                                                        <div className="pt-8 mt-4 border-t border-border/40 space-y-6">
+                                                            <div className="flex items-center justify-between">
+                                                                <div className="flex flex-col gap-1">
+                                                                </div>
+                                                            </div>
+
+                                                            {editingSection.config?.showBanner && (
+                                                                <div className="p-8 rounded-[2rem] bg-muted/20 border border-primary/10 space-y-8 animate-in fade-in slide-in-from-top-4 duration-700">
+                                                                    <ImageManager
+                                                                        label="Banner Image"
+                                                                        value={editingSection.config?.bannerImage || ""}
+                                                                        onChange={(v: string) => setEditingSection({ ...editingSection, config: { ...editingSection.config, bannerImage: v } })}
+                                                                    />
+                                                                    <div className="grid grid-cols-2 gap-6">
+                                                                        <div className="space-y-4">
+                                                                            <label className="text-[10px] font-black uppercase opacity-40">Banner Headline</label>
+                                                                            <Input
+                                                                                value={editingSection.config?.bannerTitle || ""}
+                                                                                onChange={(e) => setEditingSection({ ...editingSection, config: { ...editingSection.config, bannerTitle: e.target.value } })}
+                                                                                placeholder="e.g. SEASONAL SALE"
+                                                                                className="h-14 rounded-xl border-primary/20"
+                                                                            />
+                                                                        </div>
+                                                                        <div className="space-y-4">
+                                                                            <label className="text-[10px] font-black uppercase opacity-40">Banner Sub-text</label>
+                                                                            <Input
+                                                                                value={editingSection.config?.bannerSubtitle || ""}
+                                                                                onChange={(e) => setEditingSection({ ...editingSection, config: { ...editingSection.config, bannerSubtitle: e.target.value } })}
+                                                                                placeholder="e.g. UP TO 50% OFF"
+                                                                                className="h-14 rounded-xl border-primary/20"
+                                                                            />
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                )}
+
+                                            </div>
+                                            <div className="p-10 border-t border-border bg-card flex justify-between items-center sticky bottom-0 z-50 backdrop-blur-md">
+                                                <button onClick={() => setEditingSection(null)} className="text-[10px] font-black uppercase tracking-widest text-muted-foreground hover:text-rose-500 transition-colors">Discard Changes</button>
+                                                <Button onClick={() => {
+                                                    const sects = [...data.hpConfig.sections];
+                                                    sects[editingSection.index] = { ...editingSection, index: undefined };
+                                                    setData((prev: any) => ({ ...prev, hpConfig: { ...prev.hpConfig, sections: sects } }));
+                                                    setEditingSection(null);
+                                                    toast.success("Section Updated");
+                                                }} className="h-14 px-10 rounded-2xl bg-primary text-white font-black uppercase tracking-widest shadow-xl shadow-primary/20">APPLY CONFIG</Button>
                                             </div>
                                         </motion.div>
                                     </div>
                                 )}
                             </AnimatePresence>
+
+                            <div className="h-px bg-border/40 my-10" />
+
+                            {/* CATEGORY DIRECTORY INTEGRATION */}
+                            <div className="flex flex-col gap-10">
+                                <div className="flex items-center justify-between border-b border-border pb-8 text-foreground">
+                                    <div className="flex flex-col gap-2">
+                                        <h3 className="text-3xl font-black uppercase tracking-tighter">Category Directory</h3>
+                                        <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest opacity-40 italic">Manage product groupings and navigation assets</p>
+                                    </div>
+                                    <div className="flex flex-wrap items-center justify-center sm:justify-end gap-3">
+                                        <Button
+                                            onClick={syncInventoryCategories}
+                                            variant="outline"
+                                            className="h-14 px-8 rounded-2xl border-2 border-primary/20 bg-primary/5 text-primary font-black uppercase tracking-widest text-[11px] hover:bg-primary/10 transition-all gap-2"
+                                        >
+                                            <Zap size={18} /> SYNC FROM INVENTORY
+                                        </Button>
+                                        <Button
+                                            onClick={() => setEditingCategory({ name: "NEW CATEGORY", imageUrl: "", description: "", isActive: true, redirectUrl: "" })}
+                                            className="h-14 px-8 rounded-2xl bg-emerald-500 text-white font-black uppercase tracking-widest text-[11px] shadow-2xl shadow-emerald-500/20 hover:scale-105 transition-all"
+                                        >
+                                            <Plus size={20} className="mr-2" /> CREATE CATEGORY
+                                        </Button>
+                                    </div>
+                                </div>
+
+                                <div className="grid grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+                                    {(data.categories || []).map((cat: any) => (
+                                        <div key={cat.id} className="group p-4 bg-card border border-border rounded-[2rem] hover:border-primary/40 transition-all flex flex-col gap-4 shadow-sm relative overflow-hidden">
+                                            <div className="aspect-square rounded-[1.5rem] bg-muted/10 overflow-hidden relative border border-border/50 shrink-0">
+                                                {cat.imageUrl ? (
+                                                    <img src={cat.imageUrl} className="w-full h-full object-cover transition-all duration-700 group-hover:scale-110" />
+                                                ) : (
+                                                    <div className="w-full h-full flex items-center justify-center opacity-10 bg-gradient-to-br from-primary/20 to-indigo-500/20"><ImageIcon size={48} /></div>
+                                                )}
+                                                <div className="absolute top-3 right-3 flex gap-2">
+                                                    {!cat.isActive && <div className="w-8 h-8 rounded-xl bg-rose-500 text-white flex items-center justify-center shadow-xl border-2 border-white/20"><Archive size={14} /></div>}
+                                                </div>
+                                            </div>
+                                            <div className="flex flex-col gap-1 px-1">
+                                                <h4 className="text-sm font-black uppercase tracking-tight leading-none group-hover:text-primary transition-colors truncate">{cat.name}</h4>
+                                                <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest opacity-30">Category Entry</span>
+                                            </div>
+                                            <div className="flex items-center gap-2 mt-auto">
+                                                <div className="flex gap-1">
+                                                    <button 
+                                                        onClick={() => handleMove("categories", cat.id, "left")}
+                                                        className="w-10 h-10 bg-muted/10 rounded-xl flex items-center justify-center hover:bg-primary hover:text-white transition-all disabled:opacity-20"
+                                                    >
+                                                        <ChevronLeft size={16} />
+                                                    </button>
+                                                    <button 
+                                                        onClick={() => handleMove("categories", cat.id, "right")}
+                                                        className="w-10 h-10 bg-muted/10 rounded-xl flex items-center justify-center hover:bg-primary hover:text-white transition-all disabled:opacity-20"
+                                                    >
+                                                        <ChevronRight size={16} />
+                                                    </button>
+                                                </div>
+                                                <Button
+                                                    onClick={() => setEditingCategory(cat)}
+                                                    className="flex-1 h-10 rounded-xl font-black uppercase text-[9px] tracking-widest bg-muted/20 text-foreground border border-transparent hover:bg-white hover:border-border hover:shadow-sm transition-all"
+                                                >
+                                                    EDIT
+                                                </Button>
+                                                <button
+                                                    onClick={() => handleDelete("categories", cat.id)}
+                                                    className="w-10 h-10 bg-muted/10 text-rose-500 rounded-xl flex items-center justify-center hover:bg-rose-500/10 transition-all border border-transparent hover:border-rose-500/20"
+                                                >
+                                                    <Trash2 size={16} />
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                                <div className="h-px bg-border/40 my-10" />
+
+                                {/* BRAND DIRECTORY INTEGRATION */}
+                                <div className="flex flex-col gap-10">
+                                    <div className="flex items-center justify-between border-b border-border pb-8 text-foreground">
+                                        <div className="flex flex-col gap-2">
+                                            <h3 className="text-3xl font-black uppercase tracking-tighter">Brand Directory</h3>
+                                            <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest opacity-40 italic">Manage official partner logos and brand redirects</p>
+                                        </div>
+                                        <div className="flex flex-wrap items-center justify-center sm:justify-end gap-3">
+                                            <Button
+                                                onClick={syncInventoryBrands}
+                                                variant="outline"
+                                                className="h-14 px-8 rounded-2xl border-2 border-primary/20 bg-primary/5 text-primary font-black uppercase tracking-widest text-[11px] hover:bg-primary/10 transition-all gap-2"
+                                            >
+                                                <Zap size={18} /> SYNC FROM INVENTORY
+                                            </Button>
+                                            <Button
+                                                onClick={() => setEditingCategory({ name: "NEW BRAND", imageUrl: "", isActive: true, _type: 'brand' })}
+                                                className="h-14 px-8 rounded-2xl bg-slate-700 text-white font-black uppercase tracking-widest text-[11px] shadow-2xl hover:scale-105 transition-all"
+                                            >
+                                                <Plus size={20} className="mr-2" /> CREATE BRAND
+                                            </Button>
+                                        </div>
+                                    </div>
+
+                                    <div className="grid grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+                                        {(data.brands || []).map((brand: any) => (
+                                            <div key={brand.id} className="group p-4 bg-card border border-border rounded-[2rem] hover:border-primary/40 transition-all flex flex-col gap-4 shadow-sm relative overflow-hidden">
+                                                <div className="aspect-square rounded-[1.5rem] bg-white overflow-hidden relative border border-border/50 shrink-0 p-6 flex items-center justify-center">
+                                                    {brand.imageUrl ? (
+                                                        <img src={brand.imageUrl} className="max-w-full max-h-full object-contain transition-all duration-700 group-hover:scale-110" />
+                                                    ) : (
+                                                        <div className="w-full h-full flex items-center justify-center opacity-10 bg-gradient-to-br from-primary/20 to-indigo-500/20"><ImageIcon size={48} /></div>
+                                                    )}
+                                                </div>
+                                                <div className="flex flex-col gap-1 px-1 text-center">
+                                                    <h4 className="text-sm font-black uppercase tracking-tight leading-none group-hover:text-primary transition-colors truncate">{brand.name}</h4>
+                                                    <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest opacity-30">Official Partner</span>
+                                                </div>
+                                                <div className="flex items-center gap-2 mt-auto">
+                                                    <div className="flex gap-1">
+                                                        <button 
+                                                            onClick={() => handleMove("brands", brand.id, "left")}
+                                                            className="w-10 h-10 bg-muted/10 rounded-xl flex items-center justify-center hover:bg-primary hover:text-white transition-all disabled:opacity-20"
+                                                        >
+                                                            <ChevronLeft size={16} />
+                                                        </button>
+                                                        <button 
+                                                            onClick={() => handleMove("brands", brand.id, "right")}
+                                                            className="w-10 h-10 bg-muted/10 rounded-xl flex items-center justify-center hover:bg-primary hover:text-white transition-all disabled:opacity-20"
+                                                        >
+                                                            <ChevronRight size={16} />
+                                                        </button>
+                                                    </div>
+                                                    <Button
+                                                        onClick={() => setEditingCategory({ ...brand, _type: 'brand' })}
+                                                        className="flex-1 h-10 rounded-xl font-black uppercase text-[9px] tracking-widest bg-muted/20 text-foreground border border-transparent hover:bg-white hover:border-border hover:shadow-sm transition-all"
+                                                    >
+                                                        EDIT
+                                                    </Button>
+                                                    <button
+                                                        onClick={() => handleDelete("brands", brand.id)}
+                                                        className="w-10 h-10 bg-muted/10 text-rose-500 rounded-xl flex items-center justify-center hover:bg-rose-500/10 transition-all border border-transparent hover:border-rose-500/20"
+                                                    >
+                                                        <Trash2 size={16} />
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     )}
+
                     {activeTab === "footer" && data && (
                         <div className="flex flex-col gap-16 py-10">
                             {/* Footer Configuration Header */}
                             <div className="flex flex-col md:flex-row md:items-center justify-between gap-8 border-b border-border/60 pb-12 px-8">
                                 <div className="flex flex-col gap-2">
                                     <h2 className="text-4xl lg:text-5xl font-black  tracking-tighter uppercase leading-none">Footer Content</h2>
-                                    <span className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.3em] opacity-50 ">Manage the site's footer content and links</span>
+                                    <span className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em] opacity-50 ">Manage the site's footer content and links</span>
                                 </div>
                                 <Button
                                     onClick={() => handleUpdate("settings", data.settings)}
@@ -2020,6 +2083,7 @@ export default function CMSPage() {
                                             animate={{ x: 0 }}
                                             exit={{ x: "100%" }}
                                             transition={{ type: "spring", damping: 30, stiffness: 300, mass: 1 }}
+                                            ref={drawerRef}
                                             className="relative h-full w-full max-w-[600px] bg-card border-l border-border shadow-[-80px_0_150px_rgba(0,0,0,0.6)] flex flex-col"
                                         >
                                             <div className="p-8 border-b border-border bg-muted/30 flex items-center justify-between shrink-0">
@@ -2038,6 +2102,7 @@ export default function CMSPage() {
                                             </div>
 
                                             <div className="flex-1 overflow-y-auto p-10 space-y-12 bg-muted/5 custom-scrollbar">
+                                                <AutoScroller trigger={editingFooterCluster?.idx} />
                                                 <div className="flex flex-col gap-4">
                                                     <label className="text-[10px] font-black uppercase text-primary  flex items-center gap-2">
                                                         <Tag size={12} /> Group Title
@@ -2263,13 +2328,201 @@ export default function CMSPage() {
                                 </div>
 
                                 {/* 2. SOCIAL ORCHESTRATION CROSS-LINKING */}
-                                <div className="flex justify-center mt-12 pb-20">
-                                    <p className="text-[10px] font-black uppercase text-muted-foreground opacity-30 tracking-[0.4em]">Social Channel Orchestration has been migrated to Footer Settings</p>
-                                </div>
                             </div>
                         </div>
                     )}
                 </motion.div>
+            </AnimatePresence>
+
+            {/* CATEGORY EDITOR DRAWER (Integrated) */}
+            <AnimatePresence>
+                {editingCategory && !editingCategory._type && (
+                    <div className="fixed inset-0 z-[1000] flex justify-end">
+                        <motion.div
+                            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                            onClick={() => setEditingCategory(null)}
+                            className="absolute inset-0 bg-black/60 backdrop-blur-xl"
+                        />
+                        <motion.div
+                            initial={{ x: "100%" }}
+                            animate={{ x: 0 }}
+                            exit={{ x: "100%" }}
+                            transition={{ type: "spring", damping: 40, stiffness: 400 }}
+                            ref={drawerRef}
+                            className="relative h-full w-full lg:max-w-2xl bg-card border-l border-border shadow-2xl flex flex-col"
+                        >
+                            <div className="p-8 md:p-10 border-b border-border bg-muted/30 flex items-center justify-between sticky top-0 z-50 backdrop-blur-xl">
+                                <div className="flex flex-col">
+                                    <span className="text-[10px] font-black uppercase tracking-[0.2em] text-primary">Category Management</span>
+                                    <h4 className="text-2xl font-black uppercase tracking-tighter truncate max-w-[300px]">{editingCategory.name || "NEW CATEGORY"}</h4>
+                                </div>
+                                <div className="flex items-center gap-3">
+                                    <Button
+                                        onClick={() => {
+                                            if (editingCategory.id) handleUpdate("categories", editingCategory);
+                                            else handleCreate("categories", editingCategory);
+                                            setEditingCategory(null);
+                                        }}
+                                        className="h-12 px-6 rounded-xl bg-primary text-white font-black uppercase tracking-widest text-[10px] shadow-lg hover:scale-105 transition-all"
+                                    >
+                                        <Save size={16} className="mr-2" /> SAVE
+                                    </Button>
+                                    <button onClick={() => setEditingCategory(null)} className="w-12 h-12 bg-muted/10 border border-border rounded-xl flex items-center justify-center hover:bg-rose-500 hover:text-white transition-all">
+                                        <X size={20} />
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div className="flex-1 p-10 space-y-10 overflow-y-auto no-scrollbar">
+                                <AutoScroller trigger={editingCategory?.id || "new-category"} />
+                                <div className="space-y-3">
+                                    <label className="text-[10px] font-black uppercase opacity-40">Category Name</label>
+                                    <Input
+                                        value={editingCategory.name || ""}
+                                        onChange={(e) => setEditingCategory({ ...editingCategory, name: e.target.value })}
+                                        className="h-12 border-border font-black text-xs uppercase"
+                                    />
+                                </div>
+
+                                <div className="space-y-4">
+                                    <label className="text-[10px] font-black uppercase opacity-40">Visual Representation</label>
+                                    <ImageManager
+                                        label="Category Cover"
+                                        value={editingCategory.imageUrl || ""}
+                                        onChange={(val: string) => setEditingCategory({ ...editingCategory, imageUrl: val })}
+                                    />
+                                </div>
+                                <div className="grid grid-cols-1 gap-2 p-4 rounded-2xl bg-muted/5 border border-border/50">
+                                    <div className="flex items-center gap-4 px-1">
+                                        <div className="flex flex-col min-w-[100px] flex-1">
+                                            <span className="text-[9px] font-black uppercase tracking-tight">Active Status</span>
+                                            <span className="text-[6px] opacity-30 uppercase font-black leading-none tracking-widest ">Live Storefront</span>
+                                        </div>
+                                        <input
+                                            type="checkbox"
+                                            checked={!!editingCategory.isActive}
+                                            onChange={(e) => setEditingCategory({ ...editingCategory, isActive: e.target.checked })}
+                                            className="w-5 h-5 rounded border-2 border-primary/20 bg-muted/20 accent-primary cursor-pointer transition-all hover:scale-110"
+                                        />
+                                    </div>
+                                </div>
+
+
+                            </div>
+
+                            <div className="p-10 border-t border-border bg-card">
+                                <Button
+                                    onClick={() => {
+                                        if (editingCategory.id) {
+                                            handleUpdate("categories", editingCategory);
+                                        } else {
+                                            handleCreate("categories", editingCategory);
+                                        }
+                                        setEditingCategory(null);
+                                    }}
+                                    className="h-16 w-full rounded-2xl bg-primary text-white font-black uppercase tracking-widest text-[10px] shadow-2xl shadow-primary/30"
+                                >
+                                    <Save size={16} className="mr-2" /> SAVE CATEGORY SETTINGS
+                                </Button>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
+
+            {/* BRAND EDITOR DRAWER */}
+            <AnimatePresence>
+                {editingCategory?._type === 'brand' && (
+                    <div className="fixed inset-0 z-[1000] flex justify-end">
+                        <motion.div
+                            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                            onClick={() => setEditingCategory(null)}
+                            className="absolute inset-0 bg-black/60 backdrop-blur-xl"
+                        />
+                        <motion.div
+                            initial={{ x: "100%" }}
+                            animate={{ x: 0 }}
+                            exit={{ x: "100%" }}
+                            transition={{ type: "spring", damping: 40, stiffness: 400 }}
+                            ref={drawerRef}
+                            className="relative h-full w-full lg:max-w-xl bg-card border-l border-border shadow-2xl flex flex-col"
+                        >
+                            <div className="p-8 md:p-10 border-b border-border bg-muted/30 flex items-center justify-between sticky top-0 z-50 backdrop-blur-xl">
+                                <div className="flex flex-col">
+                                    <span className="text-[10px] font-black uppercase tracking-[0.2em] text-primary">Brand Orchestration</span>
+                                    <h4 className="text-2xl font-black uppercase tracking-tighter truncate max-w-[250px]">{editingCategory.name || "NEW BRAND"}</h4>
+                                </div>
+                                <div className="flex items-center gap-3">
+                                    <Button
+                                        onClick={() => {
+                                            if (editingCategory.id) handleUpdate("brands", editingCategory);
+                                            else handleCreate("brands", editingCategory);
+                                            setEditingCategory(null);
+                                        }}
+                                        className="h-12 px-6 rounded-xl bg-primary text-white font-black uppercase tracking-widest text-[10px] shadow-lg hover:scale-105 transition-all"
+                                    >
+                                        <Save size={16} className="mr-2" /> SAVE
+                                    </Button>
+                                    <button onClick={() => setEditingCategory(null)} className="w-12 h-12 bg-muted/10 border border-border rounded-xl flex items-center justify-center hover:bg-rose-500 hover:text-white transition-all">
+                                        <X size={20} />
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div className="flex-1 p-10 space-y-10 overflow-y-auto no-scrollbar bg-muted/5">
+                                <AutoScroller trigger={editingCategory?.id || "new-brand"} />
+                                <div className="space-y-3">
+                                    <label className="text-[10px] font-black uppercase opacity-40">Official Identity (Name)</label>
+                                    <Input
+                                        value={editingCategory.name || ""}
+                                        onChange={(e) => setEditingCategory({ ...editingCategory, name: e.target.value })}
+                                        className="h-14 border-border font-black text-xs uppercase bg-background shadow-sm"
+                                    />
+                                </div>
+
+                                <div className="space-y-4">
+                                    <label className="text-[10px] font-black uppercase opacity-40">Digital Asset (Logo)</label>
+                                    <ImageManager
+                                        label="Brand Logo"
+                                        value={editingCategory.imageUrl || ""}
+                                        onChange={(val: string) => setEditingCategory({ ...editingCategory, imageUrl: val })}
+                                    />
+                                </div>
+
+                                <div className="grid grid-cols-1 gap-2 p-6 rounded-3xl bg-white border border-border shadow-sm">
+                                    <div className="flex items-center gap-4">
+                                        <div className="flex flex-col flex-1 gap-1">
+                                            <span className="text-[10px] font-black uppercase tracking-tight">Active Status</span>
+                                            <span className="text-[8px] opacity-40 uppercase font-bold tracking-widest ">Visible in brand carousels</span>
+                                        </div>
+                                        <input
+                                            type="checkbox"
+                                            checked={!!editingCategory.isActive}
+                                            onChange={(e) => setEditingCategory({ ...editingCategory, isActive: e.target.checked })}
+                                            className="w-6 h-6 rounded-xl border-2 border-primary/20 bg-muted/20 accent-primary cursor-pointer transition-all hover:scale-110"
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="p-10 border-t border-border bg-card">
+                                <Button
+                                    onClick={() => {
+                                        if (editingCategory.id) {
+                                            handleUpdate("brands", editingCategory);
+                                        } else {
+                                            handleCreate("brands", editingCategory);
+                                        }
+                                        setEditingCategory(null);
+                                    }}
+                                    className="h-16 w-full rounded-2xl bg-primary text-white font-black uppercase tracking-widest text-[10px] shadow-2xl shadow-primary/30"
+                                >
+                                    <Save size={16} className="mr-2" /> FINALIZE BRAND
+                                </Button>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
             </AnimatePresence>
 
             {/* PAGE EDITOR DRAWER */}
@@ -2286,7 +2539,8 @@ export default function CMSPage() {
                             animate={{ x: 0 }}
                             exit={{ x: "100%" }}
                             transition={{ type: "spring", damping: 40, stiffness: 400 }}
-                            className="relative h-full w-full lg:max-w-[800px] bg-card border-l border-border shadow-[-40px_0_120px_rgba(0,0,0,0.5)] flex flex-col overflow-y-auto"
+                            ref={drawerRef}
+                            className="relative h-full w-full lg:max-w-[800px] bg-card border-l border-border shadow-[-40px_0_120px_rgba(0,0,0,0.5)] flex flex-col"
                         >
                             <div className="p-6 md:p-10 border-b border-border bg-muted/30 flex flex-wrap lg:flex-nowrap items-center justify-between gap-6 sticky top-0 z-50 backdrop-blur-xl">
                                 <div className="flex items-center gap-4 lg:gap-6">
@@ -2306,15 +2560,16 @@ export default function CMSPage() {
                                         }}
                                         className="h-12 lg:h-14 flex-1 lg:flex-none px-6 lg:px-8 rounded-2xl bg-primary text-white font-black  uppercase tracking-widest text-[10px] shadow-xl shadow-primary/20 hover:scale-[1.05] transition-all"
                                     >
-                                        <Save size={16} className="mr-2" /> SAVE PAGE
+                                        <Save size={16} className="mr-2" /> SAVE
                                     </Button>
-                                    <button onClick={() => setEditingCategory(null)} className="w-12 h-12 lg:w-14 lg:h-14 bg-muted/20 border border-border rounded-2xl flex items-center justify-center hover:bg-red-500 hover:text-white transition-all">
+                                    <button onClick={() => setEditingCategory(null)} className="w-12 h-12 lg:w-14 lg:h-14 bg-muted/20 border border-border rounded-2xl flex items-center justify-center hover:bg-rose-500 hover:text-white transition-all">
                                         <X size={24} />
                                     </button>
                                 </div>
                             </div>
 
-                            <div className="flex-1 p-6 lg:p-12 space-y-10 lg:space-y-12">
+                            <div className="flex-1 p-6 lg:p-12 space-y-10 lg:space-y-12 overflow-y-auto">
+                                <AutoScroller trigger={editingCategory?.id || "new-page"} />
                                 {/* Page Status Editor: Moved to Top */}
                                 <div className="flex items-center justify-between p-8 bg-slate-950 text-white rounded-[2rem] shadow-2xl border border-white/5 relative overflow-hidden group">
                                     <div className="absolute top-0 right-0 w-32 h-32 bg-primary/20 rounded-full blur-[60px] opacity-0 group-hover:opacity-100 transition-opacity" />

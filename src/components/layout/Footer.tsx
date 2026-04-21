@@ -76,7 +76,7 @@ export const Footer = ({ initialSettings }: { initialSettings?: any }) => {
                     <div className="flex flex-col gap-6" suppressHydrationWarning>
                         <Link href="/" className="flex items-center gap-3" suppressHydrationWarning>
                             <div suppressHydrationWarning className="relative w-12 h-12 shrink-0">
-                                <Image src="/favicon.png" alt="S" fill className="object-contain" />
+                                <Image src="/favicon.png" alt="S" fill sizes="48px" className="object-contain" />
                             </div>
                             <div suppressHydrationWarning className="flex flex-col leading-[0.75] py-2">
                                 <span className="font-black text-3xl md:text-5xl tracking-tighter text-foreground ">

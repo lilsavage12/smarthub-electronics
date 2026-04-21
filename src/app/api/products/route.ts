@@ -20,8 +20,7 @@ function parseProduct(product: any, promotions: any[] = []) {
     }
 
     const finalImages = parsedImages.length > 0 ? parsedImages : (product.image ? [product.image] : [])
-    const rawCat = (product.category || "Smartphones").trim()
-    const normalizedCategory = rawCat.toLowerCase().includes("phone") ? "Smartphones" : (rawCat.charAt(0).toUpperCase() + rawCat.slice(1))
+    const normalizedCategory = (product.category || "Uncategorized").trim()
 
     // Unified filter across all promotion sources
     const productPromos = promotions.map(p => ({
@@ -70,11 +69,12 @@ export async function GET(req: Request) {
     try {
         const { searchParams } = new URL(req.url)
         const category = searchParams.get("category")
+        const q = searchParams.get("q")
         const limitStr = searchParams.get("limit")
         const showAll = searchParams.get("all") === "true"
         const limit = limitStr ? parseInt(limitStr) : 100
 
-        console.log(`Supabase: Product fetch request - Category: ${category || 'ALL'}, Limit: ${limit}`)
+        console.log(`Supabase: Product fetch request - Category: ${category || 'ALL'}, Q: ${q || 'None'}, Limit: ${limit}`)
         
         // 1. Fetch Cloud Products from Supabase with Variants
         let query = supabaseAdmin
@@ -85,6 +85,10 @@ export async function GET(req: Request) {
         
         if (category) {
             query = query.eq('category', category)
+        }
+
+        if (q) {
+            query = query.or(`name.ilike.%${q}%,brand.ilike.%${q}%,category.ilike.%${q}%`)
         }
 
         const { data: products, error: productsError } = await query
@@ -150,55 +154,53 @@ export async function POST(req: Request) {
     let body: any = {}
     try {
         body = await req.json()
+        console.log(`[POST /api/products] Payload size: ${JSON.stringify(body).length} bytes`);
         const { variants, specs, images, ...productData } = body
+        console.log(`[POST /api/products] Category to save: "${productData.category}"`);
 
-        console.log(`Supabase: Initiating new product creation for "${productData.name}"`)
-        require('fs').appendFileSync('tmp/api_payload_debug.log', JSON.stringify(productData, null, 2) + '\n');
-        console.log("DEBUG: Reloading API context...")
+        console.log(`Supabase: STEP 1: Creating product "${productData.brand} ${productData.model}"...`)
 
         // 1. Create Product
-        // 1. Explicitly select valid database columns to avoid SQL errors from extra fields
-        const validProductData: any = {
-            id: crypto.randomUUID(),
-            name: productData.name,
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-            description: productData.description,
-            price: Number(productData.price),
-            image: productData.image,
-            category: productData.category,
-            brand: productData.brand,
-            stock: Number(productData.stock) || 0,
-            isNew: Boolean(productData.isNew),
-            isSale: Boolean(productData.isSale) || !!productData.discountPrice || !!productData.discountPercent,
-            discount: productData.discountPercent ? Number(productData.discountPercent) : (productData.discountPrice ? Math.round(((Number(productData.price) - Number(productData.discountPrice)) / Number(productData.price)) * 100) : null),
-            galleryImages: JSON.stringify(images || []),
-            specs: JSON.stringify(specs || {}),
-            isFeatured: Boolean(productData.isFeatured),
-            sku: productData.sku || null,
-            condition: productData.condition || 'New',
-            quickDescription: productData.quickDescription || null
-        };
-
-        console.log("DEBUG: Sending to Supabase:", JSON.stringify(validProductData, null, 2));
-        require('fs').appendFileSync('tmp/valid_product_debug.log', JSON.stringify(validProductData, null, 2) + '\n');
-
         const { data: product, error: productError } = await supabaseAdmin
             .from('Product')
-            .insert(validProductData)
+            .insert([{
+                id: crypto.randomUUID(),
+                name: (productData.name || `${productData.brand} ${productData.model}`).trim(),
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString(),
+                description: productData.description || "",
+                price: Number(productData.price) || 0,
+                image: productData.image || "",
+                category: productData.category || "General",
+                brand: productData.brand || "",
+                stock: Number(productData.stock) || 0,
+                isNew: Boolean(productData.isNew),
+                isSale: Boolean(productData.isSale) || !!productData.discountPrice || !!productData.discountPercent,
+                discount: productData.discountPercent ? Number(productData.discountPercent) : (productData.discountPrice ? Math.round(((Number(productData.price) - Number(productData.discountPrice)) / Number(productData.price)) * 100) : null),
+                galleryImages: JSON.stringify(images || []),
+                specs: typeof specs === 'string' ? specs : JSON.stringify(specs || {}),
+                isFeatured: Boolean(productData.isFeatured),
+                sku: productData.sku || null,
+                condition: productData.condition || 'New',
+                quickDescription: productData.quickDescription || null
+            }])
             .select()
-            .single()
+            .single();
 
-        if (productError) throw productError
+        if (productError) {
+            console.error("[POST /api/products] STEP 1 FAILED:", productError);
+            throw new Error(`Product creation failed: ${productError.message}`);
+        }
 
-        // 2. Create Variants using the new decentralized architecture
+        // 2. Create Variants
         if (variants && variants.length > 0) {
+            console.log(`Supabase: STEP 2: Creating ${variants.length} variants...`)
             const variantsToInsert = variants.map((v: any) => ({
                 id: crypto.randomUUID(),
                 productId: product.id,
                 ram: v.ram || "",
                 storage: v.storage || "",
-                color: "", // Suppressing legacy column NOT NULL constraint
+                color: "", 
                 price: v.price ? Math.round(parseFloat(v.price)) : null,
                 productColors: JSON.stringify(v.productColors || []),
                 customFields: JSON.stringify(v.customFields || []),
@@ -210,19 +212,18 @@ export async function POST(req: Request) {
                 .insert(variantsToInsert)
             
             if (variantsError) {
-                console.error("Supabase: Primary variants creation failure:", variantsError)
-                // Continue since parent product was created
+                console.error("Supabase: STEP 2 WARNING:", variantsError.message)
             }
         }
 
+        console.log(`Supabase: PRODUCT CREATED SUCCESS.`)
         return NextResponse.json(parseProduct(product), { status: 201 })
     } catch (error: any) {
-        try { require('fs').appendFileSync('tmp/api_trace.log', `\n[POST ERROR ${new Date().toISOString()}]: ${error.stack || error.message}\nPAYLOAD: ${JSON.stringify(body || {}, null, 2)}\n`) } catch {}
-        console.error("Supabase Database Creation Failure:", error)
+        console.error(`[POST ERROR /api/products]:`, error.message)
         return NextResponse.json({ 
             error: "Database Error: Product creation failed",
-            details: error.message 
+            details: error.message,
+            stack: error.stack?.split('\n')[0]
         }, { status: 500 })
     }
 }
-

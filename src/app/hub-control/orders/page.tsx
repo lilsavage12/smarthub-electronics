@@ -13,6 +13,7 @@ import { motion, AnimatePresence } from "framer-motion"
 import { toast } from "react-hot-toast"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
+import { AutoScroller } from "@/components/admin/AutoScroller"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { cn } from "@/lib/utils"
@@ -125,6 +126,8 @@ export default function OrdersPage() {
         const interval = setInterval(fetchOrders, 10000) // Poll every 10s
         return () => clearInterval(interval)
     }, [])
+
+    // Old auto-scroll effect removed
 
     const handleUpdateTracking = async () => {
         if (!selectedOrder) return
