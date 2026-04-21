@@ -1822,6 +1822,12 @@ export default function ProductsPage() {
                                                         <Reorder.Item 
                                                             key={url} 
                                                             value={url} 
+                                                            whileDrag={{ 
+                                                                scale: 1.1, 
+                                                                zIndex: 50, 
+                                                                boxShadow: "0 10px 30px rgba(0,0,0,0.3)" 
+                                                            }}
+                                                            transition={{ type: "spring", stiffness: 300, damping: 30 }}
                                                             className="aspect-square relative rounded-xl overflow-hidden border border-border group cursor-grab active:cursor-grabbing"
                                                         >
                                                             <Image src={url} fill className="object-cover pointer-events-none select-none" alt="product" />

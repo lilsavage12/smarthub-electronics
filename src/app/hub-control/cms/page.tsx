@@ -1128,63 +1128,6 @@ export default function CMSPage() {
 
                                             {/* Body */}
                                             <div className="flex-1 overflow-y-auto overflow-x-hidden flex flex-col">
-                                                {/* Panoramic Preview with Clipping Guard */}
-                                                <div className="w-full p-6 md:p-10 bg-black/40 border-b border-border flex flex-col gap-6">
-                                                    <div className="flex items-center justify-between">
-                                                        <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/60 ">Panoramic Preview (1920x600 Guide)</span>
-                                                    </div>
-
-                                                    <div className="relative w-full h-[600px] overflow-hidden rounded-3xl border border-border/20 bg-black group/preview">
-                                                        {editingBanner.imageUrl ? (
-                                                            <div className="absolute inset-0 flex items-center justify-center">
-                                                                {/* Full Image Dimmed Background (Shows what is cut off) */}
-                                                                <img
-                                                                    src={
-                                                                        (typeof editingBanner.imageUrl === 'string' && editingBanner.imageUrl.trim().length > 0) ? (
-                                                                            (editingBanner.imageUrl.startsWith('http') || editingBanner.imageUrl.startsWith('/') || editingBanner.imageUrl.startsWith('data:'))
-                                                                                ? editingBanner.imageUrl
-                                                                                : `https://${editingBanner.imageUrl}`
-                                                                        ) : "https://images.unsplash.com/photo-1498050108023-c5249f4df085"
-                                                                    }
-                                                                    className="w-full h-full object-contain opacity-20 blur-sm transition-all duration-700"
-                                                                    alt="Cut-off Reference"
-                                                                />
-
-                                                                {/* Sharp Safe-Area Viewport (480px height crop) */}
-                                                                <div className="absolute inset-x-0 h-[480px] border-y-2 border-primary/40 shadow-[0_0_100px_rgba(0,0,0,0.8)] overflow-hidden flex items-center justify-center">
-                                                                    <div className="absolute top-2 left-4 z-50 px-3 py-1 bg-primary text-white text-[8px] font-black uppercase tracking-widest rounded-full opacity-80">Visible Horizon</div>
-                                                                    <img
-                                                                        src={
-                                                                            (typeof editingBanner.imageUrl === 'string' && editingBanner.imageUrl.trim().length > 0) ? (
-                                                                                (editingBanner.imageUrl.startsWith('http') || editingBanner.imageUrl.startsWith('/') || editingBanner.imageUrl.startsWith('data:'))
-                                                                                    ? editingBanner.imageUrl
-                                                                                    : `https://${editingBanner.imageUrl}`
-                                                                            ) : "https://images.unsplash.com/photo-1498050108023-c5249f4df085"
-                                                                        }
-                                                                        className={`w-full h-full ${editingBanner.scalingMode === "fill" ? "object-cover" : "object-contain"} transition-all duration-700`}
-                                                                        alt="Visual Preview"
-                                                                    />
-
-                                                                    {/* Hero Text Preview overlay within the safe area */}
-                                                                    <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-12 gap-4">
-                                                                        {editingBanner.title && (
-                                                                            <h4 className="font-black  tracking-tighter uppercase text-xl sm:text-4xl leading-[0.9] max-w-sm text-white drop-shadow-2xl">
-                                                                                {editingBanner.title}
-                                                                            </h4>
-                                                                        )}
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-                                                        ) : (
-                                                            <div className="w-full h-full flex items-center justify-center bg-muted/20">
-                                                                <ImageIcon className="w-16 h-16 text-muted-foreground/30 opacity-20" />
-                                                            </div>
-                                                        )}
-                                                    </div>
-
-                                                    {/* POSITIONAL SETTINGS (REMOVED) */}
-                                                </div>
-
                                                 {/* Configuration */}
                                                 <div className="w-full p-6 md:p-10 bg-card">
                                                     <div className="flex flex-col gap-12">
@@ -1365,6 +1308,12 @@ export default function CMSPage() {
                                                 <Reorder.Item
                                                     key={sec.id}
                                                     value={sec}
+                                                    whileDrag={{ 
+                                                        scale: 1.02, 
+                                                        zIndex: 50, 
+                                                        boxShadow: "0 20px 50px rgba(0,0,0,0.2)" 
+                                                    }}
+                                                    transition={{ type: "spring", stiffness: 300, damping: 30 }}
                                                     className={cn(
                                                         "group p-3 rounded-xl border-2 transition-all flex items-center justify-between gap-4 relative overflow-hidden cursor-grab active:cursor-grabbing",
                                                         sec.isActive

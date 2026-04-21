@@ -76,14 +76,14 @@ export function HeroSection({ banners = [] }: { banners: any[] }) {
                             <h1 className="text-5xl md:text-9xl font-black font-outfit uppercase tracking-tighter leading-[0.85] text-white drop-shadow-2xl">
                                 {slide.title}
                             </h1>
-                            {slide.link && (
+                            {(slide.buttonLink || slide.link) && (
                                 <motion.div 
                                     initial={{ opacity: 0, y: 20 }}
                                     animate={{ opacity: 1, y: 0 }}
                                     transition={{ delay: 0.2 }}
                                 >
                                     <Link 
-                                        href={slide.link}
+                                        href={slide.buttonLink || slide.link}
                                         className={cn(
                                             "mt-6 inline-flex items-center gap-4 px-8 py-4 sm:px-10 sm:py-5 rounded-2xl md:rounded-3xl hover:scale-105 active:scale-95 transition-all shadow-xl shadow-black/20 group w-fit",
                                             slide.buttonText ? "bg-white text-black" : "bg-primary text-primary-foreground"
