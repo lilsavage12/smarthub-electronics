@@ -241,7 +241,7 @@ export const ProductCard = ({ product, viewMode = "grid", dark = false }: { prod
                             alt={product.name}
                             fill
                             className={cn(
-                                "object-contain p-6 md:p-8 transition-all duration-1000",
+                                "object-contain p-4 md:p-5 transition-all duration-1000",
                                 isHovered ? "scale-110" : "scale-100"
                             )}
                         />
@@ -271,6 +271,11 @@ export const ProductCard = ({ product, viewMode = "grid", dark = false }: { prod
                                 <Sparkles size={12} /> NEW
                             </div>
                         )}
+                        {(product.isHot || product.isFeatured) && (
+                            <div className="bg-orange-600 text-white text-[10px] font-black px-3 py-1.5 rounded-full uppercase tracking-widest shadow-xl flex items-center gap-1.5 border-r border-b border-white/10 transition-all duration-300">
+                                <TrendingUp size={12} /> HOT
+                            </div>
+                        )}
                     </div>
 
                     <div className="absolute inset-x-0 bottom-0 z-40 p-4 translate-y-full group-hover/card:translate-y-0 transition-transform duration-500 bg-gradient-to-t from-slate-900/80 to-transparent">
@@ -289,7 +294,7 @@ export const ProductCard = ({ product, viewMode = "grid", dark = false }: { prod
                     </div>
                 </div>
 
-                <div suppressHydrationWarning className="flex flex-col flex-1 p-6 gap-4">
+                <div suppressHydrationWarning className="flex flex-col flex-1 p-4 md:p-5 gap-3">
                     <div className="flex flex-col gap-1" suppressHydrationWarning>
                         <span suppressHydrationWarning className="text-[10px] font-black uppercase tracking-widest text-muted-foreground opacity-60 ">{product.brand || product.category}</span>
                         <h3 suppressHydrationWarning className={cn("text-sm font-black tracking-tighter uppercase leading-tight line-clamp-2 min-h-[2.5rem]", dark ? "text-white" : "text-foreground")}>

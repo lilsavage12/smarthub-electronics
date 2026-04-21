@@ -25,14 +25,14 @@ export function ProductSection({
     if (products.length === 0) return null
 
     return (
-        <section className="section-container py-12">
+        <section className="section-container py-8 md:py-10">
             <div className="flex flex-col gap-12">
                 {/* Optional Top Banner */}
                 {banner?.image && (
                     <motion.div 
                         initial={{ opacity: 0, scale: 0.98 }}
                         whileInView={{ opacity: 1, scale: 1 }}
-                        className="relative w-full h-[300px] md:h-[450px] rounded-[3rem] overflow-hidden group shadow-2xl"
+                        className="relative w-full h-[250px] md:h-[400px] rounded-[2.5rem] overflow-hidden group shadow-2xl"
                     >
                         <img src={banner.image} className="absolute inset-0 w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105" />
                         <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/40 to-transparent flex flex-col justify-center p-12 md:p-20">
@@ -50,7 +50,7 @@ export function ProductSection({
                 )}
 
                 <div className="flex flex-col md:flex-row md:items-end justify-between gap-8 border-b border-border/10 pb-8">
-                    <h2 className="text-4xl md:text-7xl font-black tracking-tighter uppercase leading-none text-foreground">{title}</h2>
+                    <h2 className="text-3xl md:text-5xl lg:text-6xl font-black tracking-tighter uppercase leading-none text-foreground">{title}</h2>
                     
                     <Link 
                         href={viewAllLink}
@@ -61,7 +61,7 @@ export function ProductSection({
                     </Link>
                 </div>
 
-                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-6 md:gap-8">
+                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 md:gap-4 lg:gap-5">
                     {products.map((p, idx) => (
                         <motion.div
                             key={p.id || idx}

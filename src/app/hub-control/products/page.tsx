@@ -13,7 +13,8 @@ import { useRouter } from "next/navigation"
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { AutoScroller } from "@/components/admin/AutoScroller"
-import { motion, AnimatePresence } from "framer-motion"
+import { motion, AnimatePresence, Reorder } from "framer-motion"
+
 import { toast } from "react-hot-toast"
 import Image from "next/image"
 import Link from "next/link"
@@ -1811,40 +1812,24 @@ export default function ProductsPage() {
 
                                         {expandedSections.includes("images") && (
                                             <motion.div initial={{ opacity: 0, height: "auto" }} animate={{ opacity: 1, height: "auto" }} className="flex flex-col gap-4">
-                                                <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
+                                                <Reorder.Group 
+                                                    axis="x" 
+                                                    values={newProduct.images} 
+                                                    onReorder={(newImgs) => setNewProduct({ ...newProduct, images: newImgs })}
+                                                    className="grid grid-cols-2 md:grid-cols-6 gap-4"
+                                                >
                                                     {newProduct.images.map((url, i) => (
-                                                        <div key={i} className="aspect-square relative rounded-xl overflow-hidden border border-border group">
-                                                            <Image src={url} fill className="object-cover" alt="product" />
+                                                        <Reorder.Item 
+                                                            key={url} 
+                                                            value={url} 
+                                                            className="aspect-square relative rounded-xl overflow-hidden border border-border group cursor-grab active:cursor-grabbing"
+                                                        >
+                                                            <Image src={url} fill className="object-cover pointer-events-none select-none" alt="product" />
                                                             <div className="absolute inset-0 bg-slate-900/40 opacity-0 group-hover:opacity-100 flex items-center justify-center gap-2 transition-all">
-                                                                {i > 0 && (
-                                                                    <button
-                                                                        type="button"
-                                                                        onClick={() => {
-                                                                            const imgs = [...newProduct.images];
-                                                                            [imgs[i - 1], imgs[i]] = [imgs[i], imgs[i - 1]];
-                                                                            setNewProduct({ ...newProduct, images: imgs });
-                                                                        }}
-                                                                        className="w-8 h-8 rounded-full bg-white text-slate-900 flex items-center justify-center shadow-lg hover:scale-110 active:scale-95 transition-all"
-                                                                    >
-                                                                        <ChevronDown className="rotate-90" size={14} />
-                                                                    </button>
-                                                                )}
-                                                                {i < newProduct.images.length - 1 && (
-                                                                    <button
-                                                                        type="button"
-                                                                        onClick={() => {
-                                                                            const imgs = [...newProduct.images];
-                                                                            [imgs[i + 1], imgs[i]] = [imgs[i], imgs[i + 1]];
-                                                                            setNewProduct({ ...newProduct, images: imgs });
-                                                                        }}
-                                                                        className="w-8 h-8 rounded-full bg-white text-slate-900 flex items-center justify-center shadow-lg hover:scale-110 active:scale-95 transition-all"
-                                                                    >
-                                                                        <ChevronDown className="-rotate-90" size={14} />
-                                                                    </button>
-                                                                )}
                                                                 <button
                                                                     type="button"
-                                                                    onClick={() => {
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
                                                                         const imgs = [...newProduct.images];
                                                                         imgs.splice(i, 1);
                                                                         setNewProduct({ ...newProduct, images: imgs });
@@ -1854,135 +1839,137 @@ export default function ProductsPage() {
                                                                     <Trash2 size={14} />
                                                                 </button>
                                                             </div>
-                                                        </div>
+                                                        </Reorder.Item>
                                                     ))}
-                                                    <div className="md:col-span-full relative flex flex-col gap-4">
-                                                        <div className="flex items-center justify-between px-2">
-                                                            <div className="flex flex-col">
-                                                                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-900">Asset Management</span>
-                                                                <span className="text-[8px] font-bold text-muted-foreground uppercase tracking-widest opacity-40">Choose to upload new or reuse existing</span>
-                                                            </div>
-                                                            <button 
-                                                                type="button"
-                                                                onClick={() => setShowLibrary(!showLibrary)}
-                                                                className={cn(
-                                                                    "h-10 px-6 rounded-full flex items-center justify-center gap-2 text-[9px] font-black uppercase tracking-widest transition-all border",
-                                                                    showLibrary 
-                                                                        ? "bg-slate-900 text-white border-slate-900" 
-                                                                        : "bg-primary/5 text-primary border-primary/20 hover:bg-primary/10"
-                                                                )}
-                                                            >
-                                                                <Archive size={12} /> {showLibrary ? "BACK TO UPLOADER" : "OPEN ASSET LIBRARY"}
-                                                            </button>
+                                                </Reorder.Group>
+
+                                                <div className="md:col-span-full relative flex flex-col gap-4">
+                                                    <div className="flex items-center justify-between px-2">
+                                                        <div className="flex flex-col">
+                                                            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-900">Asset Management</span>
+                                                            <span className="text-[8px] font-bold text-muted-foreground uppercase tracking-widest opacity-40">Choose to upload new or reuse existing</span>
                                                         </div>
-
-                                                        <AnimatePresence mode="wait">
-                                                            {showLibrary ? (
-                                                                <motion.div 
-                                                                    key="library"
-                                                                    initial={{ opacity: 0, y: 20 }}
-                                                                    animate={{ opacity: 1, y: 0 }}
-                                                                    exit={{ opacity: 0, y: 20 }}
-                                                                    className="relative group/library overflow-hidden rounded-[2.5rem] bg-slate-900/[0.02] border-2 border-slate-900/5 p-8 flex flex-col gap-6"
-                                                                >
-                                                                    <div className="flex items-center justify-between">
-                                                                        <div className="flex items-center gap-2">
-                                                                            <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
-                                                                            <span className="text-[9px] font-black uppercase tracking-[0.3em] text-slate-500">Global Repository ({library.length})</span>
-                                                                        </div>
-                                                                        <div className="relative flex-1 max-w-xs ml-4">
-                                                                            <Search size={12} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground opacity-40" />
-                                                                            <input 
-                                                                                type="text"
-                                                                                placeholder="SEARCH REPOSITORY..."
-                                                                                value={librarySearch}
-                                                                                onChange={(e) => setLibrarySearch(e.target.value)}
-                                                                                className="w-full h-8 pl-9 pr-4 bg-white/50 border border-slate-200 rounded-full text-[9px] font-bold uppercase tracking-widest outline-none focus:border-primary/30 transition-all"
-                                                                            />
-                                                                        </div>
-                                                                        {loadingLibrary && <Loader2 size={14} className="animate-spin text-primary" />}
-                                                                    </div>
-                                                                    
-                                                                    <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-4 max-h-[300px] overflow-y-auto pr-4 custom-scrollbar">
-                                                                        {library.filter(img => (img.name || "").toLowerCase().includes(librarySearch.toLowerCase())).map((img, i) => (
-                                                                            <button
-                                                                                key={i}
-                                                                                type="button"
-                                                                                onClick={() => {
-                                                                                    if (!newProduct.images.includes(img.url)) {
-                                                                                        setNewProduct(prev => ({ ...prev, images: [...prev.images, img.url] }));
-                                                                                        toast.success("Asset added to product");
-                                                                                    } else {
-                                                                                        toast.error("Asset already added");
-                                                                                    }
-                                                                                }}
-                                                                                className={cn(
-                                                                                    "aspect-square rounded-2xl border-2 transition-all p-2 bg-white hover:scale-105 active:scale-95 group/libItem relative overflow-hidden",
-                                                                                    newProduct.images.includes(img.url) ? "border-primary shadow-xl shadow-primary/10" : "border-transparent opacity-60 hover:opacity-100 hover:border-slate-200"
-                                                                                )}
-                                                                            >
-                                                                                <img src={img.url} alt="" className="w-full h-full object-contain" />
-                                                                                {newProduct.images.includes(img.url) && (
-                                                                                    <div className="absolute inset-0 bg-primary/20 flex items-center justify-center">
-                                                                                        <Check size={16} strokeWidth={4} className="text-primary" />
-                                                                                    </div>
-                                                                                )}
-                                                                            </button>
-                                                                        ))}
-                                                                        {library.length === 0 && !loadingLibrary && (
-                                                                            <div className="col-span-full py-12 flex flex-col items-center justify-center opacity-20 grayscale">
-                                                                                <ImageIcon size={40} />
-                                                                                <span className="text-[9px] font-black uppercase tracking-[0.5em] mt-4">Empty Repository</span>
-                                                                            </div>
-                                                                        )}
-                                                                    </div>
-                                                                </motion.div>
-                                                            ) : (
-                                                                <motion.div
-                                                                    key="uploader"
-                                                                    initial={{ opacity: 0, y: -20 }}
-                                                                    animate={{ opacity: 1, y: 0 }}
-                                                                    exit={{ opacity: 0, y: -20 }}
-                                                                    className="relative group/uploader overflow-hidden rounded-[2.5rem] bg-slate-900/[0.02] border-2 border-dashed border-slate-900/5 hover:border-primary/20 hover:bg-primary/[0.02] transition-all duration-500 p-8 flex flex-col items-center justify-center text-center gap-4"
-                                                                >
-                                                                    <div className="w-16 h-16 rounded-full bg-white shadow-xl shadow-slate-900/5 flex items-center justify-center text-primary group-hover/uploader:scale-110 group-hover/uploader:rotate-12 transition-all duration-500">
-                                                                        <ImageIcon size={28} strokeWidth={1.5} />
-                                                                    </div>
-                                                                    <div className="flex flex-col gap-1 max-w-[280px]">
-                                                                        <h4 className="text-[12px] font-black uppercase tracking-[0.2em] text-slate-900">Universal Asset Portal</h4>
-                                                                        <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest opacity-40 leading-relaxed">
-                                                                            Drop your masters here. <br />
-                                                                            <span className="text-primary opacity-60">Paste from clipboard</span> or browse locally.
-                                                                        </p>
-                                                                    </div>
-                                                                    <div className="h-px w-24 bg-slate-900/5 my-2" />
-                                                                    <label
-                                                                        htmlFor="product-image-upload"
-                                                                        className="relative h-12 px-10 rounded-full bg-slate-900 text-white flex items-center justify-center gap-3 cursor-pointer hover:bg-slate-800 hover:scale-105 active:scale-95 transition-all shadow-2xl shadow-slate-900/20"
-                                                                    >
-                                                                        <Plus size={16} strokeWidth={3} />
-                                                                        <span className="text-[10px] font-black uppercase tracking-[0.2em]">Select Assets</span>
-                                                                        <input
-                                                                            id="product-image-upload"
-                                                                            type="file"
-                                                                            multiple
-                                                                            onChange={handleImageUpload}
-                                                                            className="hidden"
-                                                                            accept="image/*"
-                                                                        />
-                                                                    </label>
-
-                                                                    <div className="absolute top-6 left-6 w-3 h-3 border-t-2 border-l-2 border-slate-900/10 rounded-tl-sm" />
-                                                                    <div className="absolute top-6 right-6 w-3 h-3 border-t-2 border-r-2 border-slate-900/10 rounded-tr-sm" />
-                                                                    <div className="absolute bottom-6 left-6 w-3 h-3 border-b-2 border-l-2 border-slate-900/10 rounded-bl-sm" />
-                                                                    <div className="absolute bottom-6 right-6 w-3 h-3 border-b-2 border-r-2 border-slate-900/10 rounded-br-sm" />
-                                                                </motion.div>
+                                                        <button 
+                                                            type="button"
+                                                            onClick={() => setShowLibrary(!showLibrary)}
+                                                            className={cn(
+                                                                "h-10 px-6 rounded-full flex items-center justify-center gap-2 text-[9px] font-black uppercase tracking-widest transition-all border",
+                                                                showLibrary 
+                                                                    ? "bg-slate-900 text-white border-slate-900" 
+                                                                    : "bg-primary/5 text-primary border-primary/20 hover:bg-primary/10"
                                                             )}
-                                                        </AnimatePresence>
+                                                        >
+                                                            <Archive size={12} /> {showLibrary ? "BACK TO UPLOADER" : "OPEN ASSET LIBRARY"}
+                                                        </button>
                                                     </div>
+
+                                                    <AnimatePresence mode="wait">
+                                                        {showLibrary ? (
+                                                            <motion.div 
+                                                                key="library"
+                                                                initial={{ opacity: 0, y: 20 }}
+                                                                animate={{ opacity: 1, y: 0 }}
+                                                                exit={{ opacity: 0, y: 20 }}
+                                                                className="relative group/library overflow-hidden rounded-[2.5rem] bg-slate-900/[0.02] border-2 border-slate-900/5 p-8 flex flex-col gap-6"
+                                                            >
+                                                                <div className="flex items-center justify-between">
+                                                                    <div className="flex items-center gap-2">
+                                                                        <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+                                                                        <span className="text-[9px] font-black uppercase tracking-[0.3em] text-slate-500">Global Repository ({library.length})</span>
+                                                                    </div>
+                                                                    <div className="relative flex-1 max-w-xs ml-4">
+                                                                        <Search size={12} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground opacity-40" />
+                                                                        <input 
+                                                                            type="text" 
+                                                                            placeholder="SEARCH REPOSITORY..."
+                                                                            value={librarySearch}
+                                                                            onChange={(e) => setLibrarySearch(e.target.value)}
+                                                                            className="w-full h-8 pl-9 pr-4 bg-white/50 border border-slate-200 rounded-full text-[9px] font-bold uppercase tracking-widest outline-none focus:border-primary/30 transition-all"
+                                                                        />
+                                                                    </div>
+                                                                </div>
+
+                                                                <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-4 max-h-[300px] overflow-y-auto pr-4 custom-scrollbar">
+                                                                    {library.filter(img => (img.name || "").toLowerCase().includes(librarySearch.toLowerCase())).map((img, i) => (
+                                                                        <button
+                                                                            key={i}
+                                                                            type="button"
+                                                                            onClick={() => {
+                                                                                if (!newProduct.images.includes(img.url)) {
+                                                                                    setNewProduct(prev => ({ ...prev, images: [...prev.images, img.url] }));
+                                                                                    toast.success("Asset added to product");
+                                                                                } else {
+                                                                                    toast.error("Asset already added");
+                                                                                }
+                                                                            }}
+                                                                            className={cn(
+                                                                                "aspect-square rounded-2xl border-2 transition-all p-2 bg-white hover:scale-105 active:scale-95 group/libItem relative overflow-hidden",
+                                                                                newProduct.images.includes(img.url) ? "border-primary shadow-xl shadow-primary/10" : "border-transparent opacity-60 hover:opacity-100 hover:border-slate-200"
+                                                                            )}
+                                                                        >
+                                                                            <img src={img.url} alt="" className="w-full h-full object-contain" />
+                                                                            {newProduct.images.includes(img.url) && (
+                                                                                <div className="absolute inset-0 bg-primary/20 flex items-center justify-center">
+                                                                                    <Check size={16} strokeWidth={4} className="text-primary" />
+                                                                                </div>
+                                                                            )}
+                                                                        </button>
+                                                                    ))}
+                                                                    {library.length === 0 && !loadingLibrary && (
+                                                                        <div className="col-span-full py-12 flex flex-col items-center justify-center opacity-20 grayscale">
+                                                                            <ImageIcon size={40} />
+                                                                            <span className="text-[9px] font-black uppercase tracking-[0.5em] mt-4">Empty Repository</span>
+                                                                        </div>
+                                                                    )}
+                                                                </div>
+                                                            </motion.div>
+                                                        ) : (
+                                                            <motion.div
+                                                                key="uploader"
+                                                                initial={{ opacity: 0, y: -20 }}
+                                                                animate={{ opacity: 1, y: 0 }}
+                                                                exit={{ opacity: 0, y: -20 }}
+                                                                className="relative group/uploader overflow-hidden rounded-[2.5rem] bg-slate-900/[0.02] border-2 border-dashed border-slate-900/5 hover:border-primary/20 hover:bg-primary/[0.02] transition-all duration-500 p-8 flex flex-col items-center justify-center text-center gap-4"
+                                                            >
+                                                                <div className="w-16 h-16 rounded-full bg-white shadow-xl shadow-slate-900/5 flex items-center justify-center text-primary group-hover/uploader:scale-110 group-hover/uploader:rotate-12 transition-all duration-500">
+                                                                    <ImageIcon size={28} strokeWidth={1.5} />
+                                                                </div>
+                                                                <div className="flex flex-col gap-1 max-w-[280px]">
+                                                                    <h4 className="text-[12px] font-black uppercase tracking-[0.2em] text-slate-900">Universal Asset Portal</h4>
+                                                                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest opacity-40 leading-relaxed">
+                                                                        Drop your masters here. <br />
+                                                                        <span className="text-primary opacity-60">Paste from clipboard</span> or browse locally.
+                                                                    </p>
+                                                                </div>
+                                                                <div className="h-px w-24 bg-slate-900/5 my-2" />
+                                                                <label
+                                                                    htmlFor="product-image-upload"
+                                                                    className="relative h-12 px-10 rounded-full bg-slate-900 text-white flex items-center justify-center gap-3 cursor-pointer hover:bg-slate-800 hover:scale-105 active:scale-95 transition-all shadow-2xl shadow-slate-900/20"
+                                                                >
+                                                                    <Plus size={16} strokeWidth={3} />
+                                                                    <span className="text-[10px] font-black uppercase tracking-[0.2em]">Select Assets</span>
+                                                                    <input
+                                                                        id="product-image-upload"
+                                                                        type="file"
+                                                                        multiple
+                                                                        onChange={handleImageUpload}
+                                                                        className="hidden"
+                                                                        accept="image/*"
+                                                                    />
+                                                                </label>
+
+                                                                <div className="absolute top-6 left-6 w-3 h-3 border-t-2 border-l-2 border-slate-900/10 rounded-tl-sm" />
+                                                                <div className="absolute top-6 right-6 w-3 h-3 border-t-2 border-r-2 border-slate-900/10 rounded-tr-sm" />
+                                                                <div className="absolute bottom-6 left-6 w-3 h-3 border-b-2 border-l-2 border-slate-900/10 rounded-bl-sm" />
+                                                                <div className="absolute bottom-6 right-6 w-3 h-3 border-b-2 border-r-2 border-slate-900/10 rounded-br-sm" />
+                                                            </motion.div>
+                                                        )}
+                                                    </AnimatePresence>
                                                 </div>
                                             </motion.div>
                                         )}
+
+
                                     </div>
                                 </form>
                             </div>

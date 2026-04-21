@@ -13,7 +13,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { toast } from "react-hot-toast"
-import { motion, AnimatePresence } from "framer-motion"
+import { motion, AnimatePresence, Reorder } from "framer-motion"
 import { AutoScroller } from "@/components/admin/AutoScroller"
 
 const WhatsAppIcon = ({ size = 20, className }: { size?: number, className?: string }) => (
@@ -1340,7 +1340,17 @@ export default function CMSPage() {
                                         </div>
                                     </div>
                                 ) : (
-                                    <div className="flex flex-col gap-3">
+                                    <Reorder.Group 
+                                        axis="y" 
+                                        values={data.hpConfig.sections} 
+                                        onReorder={(newSects) => {
+                                            setData((prev: any) => ({ 
+                                                ...prev, 
+                                                hpConfig: { ...prev.hpConfig, sections: newSects } 
+                                            }));
+                                        }}
+                                        className="flex flex-col gap-3"
+                                    >
                                         {data.hpConfig.sections.map((sec: any, idx: number) => {
                                             const typeColors: Record<string, string> = {
                                                 featured_products: "blue",
@@ -1352,11 +1362,11 @@ export default function CMSPage() {
                                             };
                                             const themeColor = typeColors[sec.type] || "blue";
                                             return (
-                                                <motion.div
+                                                <Reorder.Item
                                                     key={sec.id}
-                                                    layout
+                                                    value={sec}
                                                     className={cn(
-                                                        "group p-3 rounded-xl border-2 transition-all flex items-center justify-between gap-4 relative overflow-hidden",
+                                                        "group p-3 rounded-xl border-2 transition-all flex items-center justify-between gap-4 relative overflow-hidden cursor-grab active:cursor-grabbing",
                                                         sec.isActive
                                                             ? `bg-${themeColor}-500/5 border-${themeColor}-500/30 shadow-md hover:border-${themeColor}-500/60`
                                                             : "bg-muted/40 border-dashed border-border opacity-60"
@@ -1367,25 +1377,41 @@ export default function CMSPage() {
                                                         <div className={`absolute left-0 top-0 bottom-0 w-2 bg-${themeColor}-500 opacity-20`} />
                                                     )}
 
-                                                    <div className="flex items-center gap-4 z-10">
+                                                    <div className="flex items-center gap-4 z-10 pointer-events-none select-none">
                                                         <div className="flex flex-col items-center bg-background/50 p-1.5 rounded-xl border border-border/40 shadow-inner">
-                                                            <button onClick={() => {
-                                                                if (idx > 0) {
-                                                                    const newSects = [...data.hpConfig.sections];
-                                                                    [newSects[idx], newSects[idx - 1]] = [newSects[idx - 1], newSects[idx]];
-                                                                    setData((prev: any) => ({ ...prev, hpConfig: { ...prev.hpConfig, sections: newSects } }));
-                                                                }
-                                                            }} disabled={idx === 0} className="p-1.5 hover:text-primary transition-colors disabled:opacity-20"><MoveUp size={16} /></button>
+                                                            <button 
+                                                                type="button"
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    if (idx > 0) {
+                                                                        const newSects = [...data.hpConfig.sections];
+                                                                        [newSects[idx], newSects[idx - 1]] = [newSects[idx - 1], newSects[idx]];
+                                                                        setData((prev: any) => ({ ...prev, hpConfig: { ...prev.hpConfig, sections: newSects } }));
+                                                                    }
+                                                                }} 
+                                                                disabled={idx === 0} 
+                                                                className="p-1.5 hover:text-primary transition-colors disabled:opacity-20 pointer-events-auto"
+                                                            >
+                                                                <MoveUp size={16} />
+                                                            </button>
                                                             <div className="w-4 h-px bg-border/40 my-1" />
-                                                            <button onClick={() => {
-                                                                if (idx < data.hpConfig.sections.length - 1) {
-                                                                    const newSects = [...data.hpConfig.sections];
-                                                                    [newSects[idx], newSects[idx + 1]] = [newSects[idx + 1], newSects[idx]];
-                                                                    setData((prev: any) => ({ ...prev, hpConfig: { ...prev.hpConfig, sections: newSects } }));
-                                                                }
-                                                            }} disabled={idx === data.hpConfig.sections.length - 1} className="p-1.5 hover:text-primary transition-colors disabled:opacity-20"><MoveDown size={16} /></button>
+                                                            <button 
+                                                                type="button"
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    if (idx < data.hpConfig.sections.length - 1) {
+                                                                        const newSects = [...data.hpConfig.sections];
+                                                                        [newSects[idx], newSects[idx + 1]] = [newSects[idx + 1], newSects[idx]];
+                                                                        setData((prev: any) => ({ ...prev, hpConfig: { ...prev.hpConfig, sections: newSects } }));
+                                                                    }
+                                                                }} 
+                                                                disabled={idx === data.hpConfig.sections.length - 1} 
+                                                                className="p-1.5 hover:text-primary transition-colors disabled:opacity-20 pointer-events-auto"
+                                                            >
+                                                                <MoveDown size={16} />
+                                                            </button>
                                                         </div>
-                                                                <div className="flex flex-col gap-1">
+                                                        <div className="flex flex-col gap-1">
                                                             <div className="flex items-center gap-2">
                                                                 <span className={`text-[9px] font-black uppercase tracking-[0.2em] text-${themeColor}-500 bg-${themeColor}-500/10 px-3 py-1 rounded-full border border-${themeColor}-500/20`}>
                                                                     {sec.type.replace('_', ' ')}
@@ -1446,11 +1472,12 @@ export default function CMSPage() {
                                                     </div>
 
                                                     {/* Background decorative element */}
-                                                    <div className={`absolute -right-4 -bottom-4 w-32 h-32 bg-${themeColor}-500/5 rounded-full blur-3xl`} />
-                                                </motion.div>
+                                                    <div className={`absolute -right-4 -bottom-4 w-32 h-32 bg-${themeColor}-500/5 rounded-full blur-3xl pointer-events-none`} />
+                                                </Reorder.Item>
                                             );
                                         })}
-                                    </div>
+                                    </Reorder.Group>
+
                                 )}
                             </div>
 
