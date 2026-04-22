@@ -18,7 +18,7 @@ export const SideFilter = ({ brands = [], categories = [], activeFilters, setAct
     isMobile?: boolean,
     maxProductPrice?: number
 }) => {
-    const [expandedSections, setExpandedSections] = useState(["brand", "category", "price", "mobile"])
+    const [expandedSections, setExpandedSections] = useState(["sort", "brand", "category", "price", "mobile"])
 
     const toggleSection = (section: string) => {
         setExpandedSections(prev =>
@@ -93,6 +93,39 @@ export const SideFilter = ({ brands = [], categories = [], activeFilters, setAct
                     </button>
                 </div>
             )}
+
+            {/* Section: Sort By */}
+            <div className="flex flex-col gap-5" suppressHydrationWarning>
+                <button
+                    className="flex items-center justify-between font-black text-[10px] tracking-widest uppercase group"
+                    onClick={() => toggleSection("sort")}
+                >
+                    <div suppressHydrationWarning className="flex items-center gap-2">
+                        <Zap className="w-4 h-4 text-primary group-hover:scale-110 transition-transform" />
+                        Sort Catalog
+                    </div>
+                    <ChevronDown className={cn("w-3.5 h-3.5 transition-transform", expandedSections.includes("sort") ? "rotate-180" : "")} />
+                </button>
+                {expandedSections.includes("sort") && (
+                    <div className="flex flex-col gap-2 p-2 bg-white/20 dark:bg-black/20 backdrop-blur-sm rounded-b-xl">
+                        {[
+                            { id: "price_desc", label: "PRICE: HIGH TO LOW" },
+                            { id: "price_asc", label: "PRICE: LOW TO HIGH" },
+                            { id: "newest", label: "NEWEST ARRIVALS" },
+                            { id: "popularity", label: "POPULARITY" },
+                            { id: "discount", label: "DISCOUNTS" }
+                        ].map((opt) => (
+                            <FilterButton
+                                key={opt.id}
+                                active={activeFilters.sortBy === opt.id}
+                                onClick={() => setActiveFilters({ ...activeFilters, sortBy: opt.id })}
+                            >
+                                {opt.label}
+                            </FilterButton>
+                        ))}
+                    </div>
+                )}
+            </div>
 
             {/* Section: Dynamic Brands */}
             <div className="flex flex-col gap-5" suppressHydrationWarning>
@@ -217,7 +250,7 @@ export const SideFilter = ({ brands = [], categories = [], activeFilters, setAct
                             </div>
                             <div className="flex justify-between text-[8px] font-black text-muted-foreground uppercase opacity-40">
                                 <span>0 KSh</span>
-                                <span>{(maxProductPrice / 1000).toFixed(0)}K KSh</span>
+                                <span>{Math.round(maxProductPrice).toLocaleString()} KSh</span>
                             </div>
                         </div>
 

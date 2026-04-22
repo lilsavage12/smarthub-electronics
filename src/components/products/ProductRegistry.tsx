@@ -25,22 +25,36 @@ export function ProductRegistry({ initialProducts, cmsData: initialCmsData }: Pr
     const [currentPage, setCurrentPage] = useState(1)
     const PRODUCTS_PER_PAGE = 48
 
-    const maxProductPrice = React.useMemo(() => {
-        const prices = allProducts.map(p => Number(p.price || 0)).filter(p => p > 0)
-        return prices.length > 0 ? Math.ceil(Math.max(...prices) / 1000) * 1000 : 1000000
-    }, [allProducts])
-
     // Persistent Filter State
     const [activeFilters, setActiveFilters] = useState({
         q: searchParams.get("q") || "",
         brands: [...new Set([...searchParams.getAll("brands"), ...searchParams.getAll("brand")])],
         categories: [...new Set([...searchParams.getAll("categories"), ...searchParams.getAll("category")])],
         minPrice: parseInt(searchParams.get("minPrice") || "0"),
-        maxPrice: parseInt(searchParams.get("maxPrice") || "9999999"),
-        rating: 0,
+        maxPrice: parseInt(searchParams.get("maxPrice") || "0"),
         inStock: false,
-        onSale: false
+        onSale: false,
+        sortBy: searchParams.get("sortBy") || "price_desc"
     })
+
+    const maxProductPrice = React.useMemo(() => {
+        // Filter by category/brand ONLY to get the relative ceiling for this subset
+        const subset = allProducts.filter(p => {
+            const matchesBrand = activeFilters.brands.length === 0 || activeFilters.brands.includes(p.brand)
+            const matchesCategory = activeFilters.categories.length === 0 || activeFilters.categories.includes(p.category)
+            return matchesBrand && matchesCategory
+        })
+        const target = subset.length > 0 ? subset : allProducts
+        const prices = target.map(p => Number(p.price || 0)).filter(p => p > 0)
+        return prices.length > 0 ? Math.ceil(Math.max(...prices)) : 1000000
+    }, [allProducts, activeFilters.brands, activeFilters.categories])
+
+    // Initialize maxPrice based on actual products if not set
+    useEffect(() => {
+        if (activeFilters.maxPrice === 0 && maxProductPrice > 0) {
+            setActiveFilters(prev => ({ ...prev, maxPrice: maxProductPrice }))
+        }
+    }, [maxProductPrice])
 
     // Re-sync if server data changes (though unlikely in same session)
     useEffect(() => {
@@ -53,7 +67,8 @@ export function ProductRegistry({ initialProducts, cmsData: initialCmsData }: Pr
         activeFilters.brands.forEach(b => params.append("brands", b))
         activeFilters.categories.forEach(c => params.append("categories", c))
         if (activeFilters.minPrice > 0) params.set("minPrice", activeFilters.minPrice.toString())
-        if (activeFilters.maxPrice < 1000000) params.set("maxPrice", activeFilters.maxPrice.toString())
+        if (activeFilters.maxPrice < maxProductPrice && activeFilters.maxPrice > 0) params.set("maxPrice", activeFilters.maxPrice.toString())
+        if (activeFilters.sortBy && activeFilters.sortBy !== "price_desc") params.set("sortBy", activeFilters.sortBy)
 
         const query = params.toString()
         router.replace(query ? `?${query}` : "/products", { scroll: false })
@@ -75,11 +90,26 @@ export function ProductRegistry({ initialProducts, cmsData: initialCmsData }: Pr
 
             return matchesBrand && matchesCategory && matchesPrice && matchesStock && matchesSearch
         }).sort((a, b) => {
+            // Priority 1: Stock Status (In Stock First)
             const aS = (Number(a.stock) || 0) > 0 ? 0 : 1
             const bS = (Number(b.stock) || 0) > 0 ? 0 : 1
-            return aS - bS
+            if (aS !== bS) return aS - bS
+
+            // Priority 2: Single Custom Sort
+            switch (activeFilters.sortBy) {
+                case 'price_asc': return (a.price || 0) - (b.price || 0)
+                case 'price_desc': return (b.price || 0) - (a.price || 0)
+                case 'popularity': return (b.orderCount || 0) - (a.orderCount || 0)
+                case 'discount': 
+                    const aD = Number(a.discount || a.discountPrice || 0)
+                    const bD = Number(b.discount || b.discountPrice || 0)
+                    return bD - aD
+                case 'newest':
+                    return new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()
+                default: return 0
+            }
         })
-    }, [activeFilters, allProducts])
+    }, [activeFilters, allProducts, maxProductPrice])
 
     return (
         <div className="min-h-screen bg-background text-foreground pb-40" suppressHydrationWarning>
