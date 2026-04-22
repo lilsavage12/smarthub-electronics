@@ -1812,42 +1812,69 @@ export default function ProductsPage() {
 
                                         {expandedSections.includes("images") && (
                                             <motion.div initial={{ opacity: 0, height: "auto" }} animate={{ opacity: 1, height: "auto" }} className="flex flex-col gap-4">
-                                                <Reorder.Group 
-                                                    axis="x" 
-                                                    values={newProduct.images} 
-                                                    onReorder={(newImgs) => setNewProduct({ ...newProduct, images: newImgs })}
-                                                    className="grid grid-cols-2 md:grid-cols-6 gap-4"
-                                                >
-                                                    {newProduct.images.map((url, i) => (
-                                                        <Reorder.Item 
-                                                            key={url} 
-                                                            value={url} 
-                                                            whileDrag={{ 
-                                                                scale: 1.1, 
-                                                                zIndex: 50, 
-                                                                boxShadow: "0 10px 30px rgba(0,0,0,0.3)" 
-                                                            }}
-                                                            transition={{ type: "spring", stiffness: 300, damping: 30 }}
-                                                            className="aspect-square relative rounded-xl overflow-hidden border border-border group cursor-grab active:cursor-grabbing"
-                                                        >
-                                                            <Image src={url} fill className="object-cover pointer-events-none select-none" alt="product" />
-                                                            <div className="absolute inset-0 bg-slate-900/40 opacity-0 group-hover:opacity-100 flex items-center justify-center gap-2 transition-all">
-                                                                <button
-                                                                    type="button"
-                                                                    onClick={(e) => {
-                                                                        e.stopPropagation();
+                                                <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
+                                                    <AnimatePresence mode="popLayout">
+                                                        {newProduct.images.map((url, i) => (
+                                                            <motion.div 
+                                                                key={url} 
+                                                                layout
+                                                                initial={{ opacity: 0, scale: 0.8 }}
+                                                                animate={{ opacity: 1, scale: 1 }}
+                                                                exit={{ opacity: 0, scale: 0.8 }}
+                                                                whileDrag={{ 
+                                                                    scale: 1.1, 
+                                                                    zIndex: 50, 
+                                                                    boxShadow: "0 20px 40px rgba(0,0,0,0.4)" 
+                                                                }}
+                                                                drag
+                                                                dragConstraints={{ left: 0, right: 0, top: 0, bottom: 0 }}
+                                                                dragElastic={1}
+                                                                onDragEnd={(_, info) => {
+                                                                    // Simplified collision detection for reordering
+                                                                    const threshold = 50;
+                                                                    if (Math.abs(info.offset.x) > threshold || Math.abs(info.offset.y) > threshold) {
                                                                         const imgs = [...newProduct.images];
-                                                                        imgs.splice(i, 1);
-                                                                        setNewProduct({ ...newProduct, images: imgs });
-                                                                    }}
-                                                                    className="w-8 h-8 rounded-full bg-red-600 text-white flex items-center justify-center shadow-lg hover:scale-110 active:scale-95 transition-all"
-                                                                >
-                                                                    <Trash2 size={14} />
-                                                                </button>
-                                                            </div>
-                                                        </Reorder.Item>
-                                                    ))}
-                                                </Reorder.Group>
+                                                                        const directionX = info.offset.x > 0 ? 1 : -1;
+                                                                        const directionY = info.offset.y > 0 ? 1 : -1;
+                                                                        
+                                                                        // Roughly calculate new index based on offset
+                                                                        // Since it's a grid, this is complex with just offset. 
+                                                                        // Let's use a simpler swap: if moved right/down, move forward.
+                                                                        let newIndex = i;
+                                                                        if (Math.abs(info.offset.x) > Math.abs(info.offset.y)) {
+                                                                            newIndex = i + directionX;
+                                                                        } else {
+                                                                            newIndex = i + (directionY * 6); // 6 is items per row
+                                                                        }
+                                                                        
+                                                                        if (newIndex >= 0 && newIndex < imgs.length && newIndex !== i) {
+                                                                            const [removed] = imgs.splice(i, 1);
+                                                                            imgs.splice(newIndex, 0, removed);
+                                                                            setNewProduct({ ...newProduct, images: imgs });
+                                                                        }
+                                                                    }
+                                                                }}
+                                                                className="aspect-square relative rounded-xl overflow-hidden border border-border group cursor-grab active:cursor-grabbing bg-white"
+                                                            >
+                                                                <Image src={url} fill className="object-cover pointer-events-none select-none" alt="product" />
+                                                                <div className="absolute inset-0 bg-slate-900/40 opacity-0 group-hover:opacity-100 flex items-center justify-center gap-2 transition-all">
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={(e) => {
+                                                                            e.stopPropagation();
+                                                                            const imgs = [...newProduct.images];
+                                                                            imgs.splice(i, 1);
+                                                                            setNewProduct({ ...newProduct, images: imgs });
+                                                                        }}
+                                                                        className="w-8 h-8 rounded-full bg-red-600 text-white flex items-center justify-center shadow-lg hover:scale-110 active:scale-95 transition-all pointer-events-auto"
+                                                                    >
+                                                                        <Trash2 size={14} />
+                                                                    </button>
+                                                                </div>
+                                                            </motion.div>
+                                                        ))}
+                                                    </AnimatePresence>
+                                                </div>
 
                                                 <div className="md:col-span-full relative flex flex-col gap-4">
                                                     <div className="flex items-center justify-between px-2">

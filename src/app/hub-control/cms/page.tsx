@@ -2,19 +2,129 @@
 
 import React, { useState, useEffect, useRef } from "react"
 import { cn } from "@/lib/utils"
-import {
+import { 
     Plus, Trash2, Edit2, Save, X, MoveUp, MoveDown, Archive, Settings2,
     Zap, ShieldCheck, Truck, Activity, Box, Tag, Star, Mail, Loader2, Maximize, Minimize, Smartphone, BarChart3, Package, Phone, Clock, TrendingUp,
     Navigation, Search, Link as LinkIcon, MoveRight, Upload, Clipboard, ImageOff, FileText, Info as InfoIcon,
     LayoutDashboard as Layout, Image as ImageIcon, Settings as SettingsIcon, Share2, RefreshCw, Sparkles, Percent,
-    Facebook, Instagram, Twitter, MessageCircle, Music2, Globe, ChevronLeft, ChevronRight
+    Facebook, Instagram, Twitter, MessageCircle, Music2, Globe, ChevronLeft, ChevronRight, GripVertical
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { toast } from "react-hot-toast"
-import { motion, AnimatePresence, Reorder } from "framer-motion"
+import { motion, AnimatePresence, Reorder, useDragControls } from "framer-motion"
 import { AutoScroller } from "@/components/admin/AutoScroller"
+
+const normalizeUrl = (url: string) => {
+    if (!url) return "/#";
+    if (url.startsWith("/") || url.startsWith("http") || url.startsWith("#")) return url;
+    return `https://${url}`;
+};
+
+const DraggableSection = ({ sec, idx, total, onUpdate, onDelete, onEdit, onManualMove }: any) => {
+    const controls = useDragControls();
+    const typeColors: Record<string, string> = {
+        featured_products: "blue",
+        flash_deals: "rose",
+        promo_banner: "purple",
+        categories: "emerald",
+        brand_showcase: "slate",
+        trust_bar: "rose"
+    };
+    const themeColor = typeColors[sec.type] || "blue";
+
+    return (
+        <Reorder.Item
+            key={sec.id}
+            value={sec}
+            dragListener={false}
+            dragControls={controls}
+            whileDrag={{ 
+                scale: 1.02, 
+                zIndex: 50, 
+                boxShadow: "0 20px 50px rgba(0,0,0,0.2)" 
+            }}
+            transition={{ type: "spring", stiffness: 300, damping: 30 }}
+            className={cn(
+                "group p-3 rounded-xl border-2 transition-all flex items-center justify-between gap-4 relative overflow-hidden",
+                sec.isActive
+                    ? `bg-${themeColor}-500/5 border-${themeColor}-500/30 shadow-md hover:border-${themeColor}-500/60`
+                    : "bg-muted/40 border-dashed border-border opacity-60"
+            )}
+        >
+            <div className="flex items-center gap-4 z-10 select-none">
+                <div 
+                    onPointerDown={(e) => controls.start(e)}
+                    className="p-2 cursor-grab active:cursor-grabbing hover:bg-muted rounded-lg transition-colors text-muted-foreground/40 hover:text-primary"
+                >
+                    <GripVertical size={20} />
+                </div>
+                
+                <div className="flex flex-col items-center bg-background/50 p-1.5 rounded-xl border border-border/40 shadow-inner">
+                    <button 
+                        type="button"
+                        onClick={() => onManualMove(-1)} 
+                        disabled={idx === 0} 
+                        className="p-1.5 hover:text-primary transition-colors disabled:opacity-20"
+                    >
+                        <MoveUp size={16} />
+                    </button>
+                    <div className="w-4 h-px bg-border/40 my-1" />
+                    <button 
+                        type="button"
+                        onClick={() => onManualMove(1)} 
+                        disabled={idx === total - 1} 
+                        className="p-1.5 hover:text-primary transition-colors disabled:opacity-20"
+                    >
+                        <MoveDown size={16} />
+                    </button>
+                </div>
+
+                <div className="flex flex-col gap-1">
+                    <div className="flex items-center gap-2">
+                        <span className={`text-[9px] font-black uppercase tracking-[0.2em] text-${themeColor}-500 bg-${themeColor}-500/10 px-3 py-1 rounded-full border border-${themeColor}-500/20`}>
+                            {sec.type.replace('_', ' ')}
+                        </span>
+                        <span className={`bg-${themeColor}-500 text-slate-950 px-4 py-1 rounded-full text-xs font-black uppercase shadow-lg shadow-${themeColor}-500/20 ring-2 ring-white/50`}>
+                            POS {idx + 1}
+                        </span>
+                    </div>
+                    <h4 className="text-sm font-black uppercase tracking-tighter leading-none italic">{sec.title || "Untitled Block"}</h4>
+                </div>
+            </div>
+
+            <div className="flex items-center gap-3 z-10">
+                <button
+                    onClick={() => onUpdate({ ...sec, isActive: !sec.isActive })}
+                    className={cn(
+                        "h-9 px-6 rounded-lg text-[10px] font-black tracking-widest transition-all shadow-lg",
+                        sec.isActive ? `bg-${themeColor}-500 text-white` : "bg-rose-600 text-white"
+                    )}
+                >
+                    {sec.isActive ? "ACTIVE" : "HIDDEN"}
+                </button>
+
+                <div className="flex items-center gap-2">
+                    <button
+                        onClick={onEdit}
+                        className={`w-10 h-10 bg-${themeColor}-500/10 text-${themeColor}-500 border border-${themeColor}-500/20 rounded-xl flex items-center justify-center hover:bg-${themeColor}-500 hover:text-white transition-all shadow-sm`}
+                    >
+                        <Settings2 size={16} />
+                    </button>
+                    <button
+                        onClick={onDelete}
+                        className="w-10 h-10 bg-rose-500/10 text-rose-500 rounded-xl flex items-center justify-center hover:bg-rose-500 hover:text-white transition-all border border-rose-500/20 shadow-sm"
+                    >
+                        <Trash2 size={16} />
+                    </button>
+                </div>
+            </div>
+            <div className={`absolute -right-4 -bottom-4 w-32 h-32 bg-${themeColor}-500/5 rounded-full blur-3xl pointer-events-none`} />
+        </Reorder.Item>
+    );
+};
+
 
 const WhatsAppIcon = ({ size = 20, className }: { size?: number, className?: string }) => (
     <svg viewBox="0 0 24 24" width={size} height={size} fill="currentColor" className={className}>
@@ -1294,137 +1404,35 @@ export default function CMSPage() {
                                         }}
                                         className="flex flex-col gap-3"
                                     >
-                                        {data.hpConfig.sections.map((sec: any, idx: number) => {
-                                            const typeColors: Record<string, string> = {
-                                                featured_products: "blue",
-                                                flash_deals: "rose",
-                                                promo_banner: "purple",
-                                                categories: "emerald",
-                                                brand_showcase: "slate",
-                                                trust_bar: "rose"
-                                            };
-                                            const themeColor = typeColors[sec.type] || "blue";
-                                            return (
-                                                <Reorder.Item
-                                                    key={sec.id}
-                                                    value={sec}
-                                                    whileDrag={{ 
-                                                        scale: 1.02, 
-                                                        zIndex: 50, 
-                                                        boxShadow: "0 20px 50px rgba(0,0,0,0.2)" 
-                                                    }}
-                                                    transition={{ type: "spring", stiffness: 300, damping: 30 }}
-                                                    className={cn(
-                                                        "group p-3 rounded-xl border-2 transition-all flex items-center justify-between gap-4 relative overflow-hidden cursor-grab active:cursor-grabbing",
-                                                        sec.isActive
-                                                            ? `bg-${themeColor}-500/5 border-${themeColor}-500/30 shadow-md hover:border-${themeColor}-500/60`
-                                                            : "bg-muted/40 border-dashed border-border opacity-60"
-                                                    )}
-                                                >
-                                                    {/* Accent gradient for active items */}
-                                                    {sec.isActive && (
-                                                        <div className={`absolute left-0 top-0 bottom-0 w-2 bg-${themeColor}-500 opacity-20`} />
-                                                    )}
-
-                                                    <div className="flex items-center gap-4 z-10 pointer-events-none select-none">
-                                                        <div className="flex flex-col items-center bg-background/50 p-1.5 rounded-xl border border-border/40 shadow-inner">
-                                                            <button 
-                                                                type="button"
-                                                                onClick={(e) => {
-                                                                    e.stopPropagation();
-                                                                    if (idx > 0) {
-                                                                        const newSects = [...data.hpConfig.sections];
-                                                                        [newSects[idx], newSects[idx - 1]] = [newSects[idx - 1], newSects[idx]];
-                                                                        setData((prev: any) => ({ ...prev, hpConfig: { ...prev.hpConfig, sections: newSects } }));
-                                                                    }
-                                                                }} 
-                                                                disabled={idx === 0} 
-                                                                className="p-1.5 hover:text-primary transition-colors disabled:opacity-20 pointer-events-auto"
-                                                            >
-                                                                <MoveUp size={16} />
-                                                            </button>
-                                                            <div className="w-4 h-px bg-border/40 my-1" />
-                                                            <button 
-                                                                type="button"
-                                                                onClick={(e) => {
-                                                                    e.stopPropagation();
-                                                                    if (idx < data.hpConfig.sections.length - 1) {
-                                                                        const newSects = [...data.hpConfig.sections];
-                                                                        [newSects[idx], newSects[idx + 1]] = [newSects[idx + 1], newSects[idx]];
-                                                                        setData((prev: any) => ({ ...prev, hpConfig: { ...prev.hpConfig, sections: newSects } }));
-                                                                    }
-                                                                }} 
-                                                                disabled={idx === data.hpConfig.sections.length - 1} 
-                                                                className="p-1.5 hover:text-primary transition-colors disabled:opacity-20 pointer-events-auto"
-                                                            >
-                                                                <MoveDown size={16} />
-                                                            </button>
-                                                        </div>
-                                                        <div className="flex flex-col gap-1">
-                                                            <div className="flex items-center gap-2">
-                                                                <span className={`text-[9px] font-black uppercase tracking-[0.2em] text-${themeColor}-500 bg-${themeColor}-500/10 px-3 py-1 rounded-full border border-${themeColor}-500/20`}>
-                                                                    {sec.type.replace('_', ' ')}
-                                                                </span>
-                                                                <span className={`bg-${themeColor}-500 text-slate-950 px-4 py-1 rounded-full text-xs font-black uppercase shadow-lg shadow-${themeColor}-500/20 ring-2 ring-white/50`}>
-                                                                    POS {idx + 1}
-                                                                </span>
-                                                                {sec.type === 'featured_products' && sec.config?.source && (
-                                                                    <span className="bg-primary/5 text-primary/60 px-3 py-1 rounded-full text-[8px] font-black uppercase border border-primary/10">
-                                                                        {sec.config.source === 'new' ? 'New Arrivals' : sec.config.source === 'featured' ? 'Best Sellers' : sec.config.source}
-                                                                    </span>
-                                                                )}
-                                                            </div>
-                                                            <h4 className="text-sm font-black uppercase tracking-tighter leading-none italic group-hover:translate-x-1 transition-transform">{sec.title || "Untitled Block"}</h4>
-                                                        </div>
-                                                    </div>
-
-                                                    <div className="flex items-center gap-3 z-10">
-                                                        <div className="flex items-center bg-muted/50 p-2 rounded-xl border border-border/20 mr-4">
-                                                            <Button
-                                                                onClick={() => {
-                                                                    const sects = [...data.hpConfig.sections];
-                                                                    sects[idx].isActive = !sects[idx].isActive;
-                                                                    setData((prev: any) => ({ ...prev, hpConfig: { ...prev.hpConfig, sections: sects } }));
-                                                                }}
-                                                                variant="ghost"
-                                                                className={cn(
-                                                                    "h-9 px-6 rounded-lg text-[10px] font-black tracking-widest transition-all shadow-lg",
-                                                                    sec.isActive ? `bg-${themeColor}-500 text-white` : "bg-rose-600 text-white"
-                                                                )}
-                                                            >
-                                                                {sec.isActive ? "ACTIVE" : "HIDDEN"}
-                                                            </Button>
-                                                        </div>
-
-                                                        <div className="flex items-center gap-2">
-                                                            <button
-                                                                onClick={() => setEditingSection({ ...sec, index: idx })}
-                                                                className={`w-10 h-10 bg-${themeColor}-500/10 text-${themeColor}-500 border border-${themeColor}-500/20 rounded-xl flex items-center justify-center hover:bg-${themeColor}-500 hover:text-white transition-all shadow-sm`}
-                                                                title="Edit Section"
-                                                            >
-                                                                <Settings2 size={16} />
-                                                            </button>
-                                                            <button
-                                                                onClick={() => {
-                                                                    if (confirm("Delete this section permanently?")) {
-                                                                        const sects = data.hpConfig.sections.filter((_: any, i: number) => i !== idx);
-                                                                        setData((prev: any) => ({ ...prev, hpConfig: { ...prev.hpConfig, sections: sects } }));
-                                                                        toast.error("Section Removed");
-                                                                    }
-                                                                }}
-                                                                className="w-10 h-10 bg-rose-500/10 text-rose-500 rounded-xl flex items-center justify-center hover:bg-rose-500 hover:text-white transition-all border border-rose-500/20 shadow-sm"
-                                                                title="Remove Section"
-                                                            >
-                                                                <Trash2 size={16} />
-                                                            </button>
-                                                        </div>
-                                                    </div>
-
-                                                    {/* Background decorative element */}
-                                                    <div className={`absolute -right-4 -bottom-4 w-32 h-32 bg-${themeColor}-500/5 rounded-full blur-3xl pointer-events-none`} />
-                                                </Reorder.Item>
-                                            );
-                                        })}
+                                        {data.hpConfig.sections.map((sec: any, idx: number) => (
+                                            <DraggableSection 
+                                                key={sec.id}
+                                                sec={sec}
+                                                idx={idx}
+                                                total={data.hpConfig.sections.length}
+                                                onUpdate={(newSec: any) => {
+                                                    const sects = [...data.hpConfig.sections];
+                                                    sects[idx] = newSec;
+                                                    setData((prev: any) => ({ ...prev, hpConfig: { ...prev.hpConfig, sections: sects } }));
+                                                }}
+                                                onDelete={() => {
+                                                    if (confirm("Delete this section permanently?")) {
+                                                        const sects = data.hpConfig.sections.filter((_: any, i: number) => i !== idx);
+                                                        setData((prev: any) => ({ ...prev, hpConfig: { ...prev.hpConfig, sections: sects } }));
+                                                        toast.error("Section Removed");
+                                                    }
+                                                }}
+                                                onEdit={() => setEditingSection({ ...sec, index: idx })}
+                                                onManualMove={(dir: number) => {
+                                                    const newSects = [...data.hpConfig.sections];
+                                                    const targetIdx = idx + dir;
+                                                    if (targetIdx >= 0 && targetIdx < newSects.length) {
+                                                        [newSects[idx], newSects[targetIdx]] = [newSects[targetIdx], newSects[idx]];
+                                                        setData((prev: any) => ({ ...prev, hpConfig: { ...prev.hpConfig, sections: newSects } }));
+                                                    }
+                                                }}
+                                            />
+                                        ))}
                                     </Reorder.Group>
 
                                 )}

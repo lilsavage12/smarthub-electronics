@@ -7,6 +7,12 @@ import Link from "next/link"
 import { ChevronRight, ChevronLeft, ArrowRight } from "lucide-react"
 import { cn } from "@/lib/utils"
 
+const normalizeUrl = (url: string) => {
+    if (!url) return "/#";
+    if (url.startsWith("/") || url.startsWith("http") || url.startsWith("#")) return url;
+    return `https://${url}`;
+};
+
 export function HeroSection({ banners = [] }: { banners: any[] }) {
     const [currentSlide, setCurrentSlide] = useState(0)
     const activeBanners = banners.filter(b => b.isActive).sort((a, b) => (a.order || 0) - (b.order || 0))
@@ -83,7 +89,7 @@ export function HeroSection({ banners = [] }: { banners: any[] }) {
                                     transition={{ delay: 0.2 }}
                                 >
                                     <Link 
-                                        href={slide.buttonLink || slide.link}
+                                        href={normalizeUrl(slide.buttonLink || slide.link)}
                                         className={cn(
                                             "mt-6 inline-flex items-center gap-4 px-8 py-4 sm:px-10 sm:py-5 rounded-2xl md:rounded-3xl hover:scale-105 active:scale-95 transition-all shadow-xl shadow-black/20 group w-fit",
                                             slide.buttonText ? "bg-white text-black" : "bg-primary text-primary-foreground"

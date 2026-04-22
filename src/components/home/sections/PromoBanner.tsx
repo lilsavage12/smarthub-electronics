@@ -6,6 +6,12 @@ import Link from "next/link"
 import { ArrowRight } from "lucide-react"
 import { cn } from "@/lib/utils"
 
+const normalizeUrl = (url: string) => {
+    if (!url) return "/#";
+    if (url.startsWith("/") || url.startsWith("http") || url.startsWith("#")) return url;
+    return `https://${url}`;
+};
+
 export function PromoBanner({ 
     title, 
     subtitle, 
@@ -51,7 +57,7 @@ export function PromoBanner({
                     </div>
                     
                     <Link 
-                        href={link}
+                        href={normalizeUrl(link)}
                         className={cn(
                             "w-fit px-10 py-5 rounded-full text-[10px] font-black uppercase tracking-widest flex items-center gap-3 transition-all",
                             dark ? "bg-white text-black hover:bg-primary hover:text-white" : "bg-black text-white hover:bg-primary"
@@ -64,3 +70,4 @@ export function PromoBanner({
         </section>
     )
 }
+
