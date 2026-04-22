@@ -113,7 +113,7 @@ export function ProductRegistry({ initialProducts, cmsData: initialCmsData }: Pr
 
     return (
         <div className="min-h-screen bg-background text-foreground pb-40" suppressHydrationWarning>
-            <div className="max-w-7xl mx-auto px-6 flex flex-col gap-12 pt-10" suppressHydrationWarning>
+            <div className="max-w-7xl mx-auto px-6 flex flex-col gap-6 pt-6" suppressHydrationWarning>
 
                 {/* MOBILE SEARCH BAR - COMPACT VERSION */}
                 <div className="lg:hidden w-full mb-2">
@@ -132,7 +132,7 @@ export function ProductRegistry({ initialProducts, cmsData: initialCmsData }: Pr
                 </div>
 
                 {/* 1. Page Header */}
-                <div className="flex flex-col md:flex-row md:items-end justify-between gap-8 border-b border-border/50 pb-12" suppressHydrationWarning>
+                <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 border-b border-border/50 pb-6" suppressHydrationWarning>
                     <div className="flex flex-col gap-4">
                         <h1 className="text-5xl md:text-7xl font-black  tracking-tighter uppercase leading-none font-outfit">Shop <span className="text-primary ">All</span></h1>
                         <p className="text-[10px] font-black uppercase tracking-[0.4em] opacity-40 ">Browse our full range of products and devices.</p>
@@ -147,7 +147,7 @@ export function ProductRegistry({ initialProducts, cmsData: initialCmsData }: Pr
                 </div>
 
 
-                <div className="flex flex-col lg:flex-row gap-16 relative" suppressHydrationWarning>
+                <div className="flex flex-col lg:flex-row gap-8 relative" suppressHydrationWarning>
                     <aside className="hidden lg:block w-72 flex-shrink-0 sticky top-48 h-[calc(100vh-240px)] overflow-y-auto custom-scrollbar pr-4">
                         <SideFilter
                             brands={Array.from(new Set([

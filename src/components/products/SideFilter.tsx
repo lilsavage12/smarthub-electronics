@@ -72,7 +72,7 @@ export const SideFilter = ({ brands = [], categories = [], activeFilters, setAct
         <div
             suppressHydrationWarning
             className={cn(
-                "flex flex-col gap-10 animate-in fade-in duration-500",
+                "flex flex-col gap-6 animate-in fade-in duration-500",
                 isMobile ? "pb-20" : "slide-in-from-left"
             )}
         >
@@ -95,7 +95,7 @@ export const SideFilter = ({ brands = [], categories = [], activeFilters, setAct
             )}
 
             {/* Section: Sort By */}
-            <div className="flex flex-col gap-5" suppressHydrationWarning>
+            <div className="flex flex-col gap-3" suppressHydrationWarning>
                 <button
                     className="flex items-center justify-between font-black text-[10px] tracking-widest uppercase group"
                     onClick={() => toggleSection("sort")}
@@ -128,7 +128,7 @@ export const SideFilter = ({ brands = [], categories = [], activeFilters, setAct
             </div>
 
             {/* Section: Dynamic Brands */}
-            <div className="flex flex-col gap-5" suppressHydrationWarning>
+            <div className="flex flex-col gap-3" suppressHydrationWarning>
                 <button
                     className="flex items-center justify-between font-black text-[10px] tracking-widest uppercase group"
                     onClick={() => toggleSection("brand")}
@@ -164,7 +164,7 @@ export const SideFilter = ({ brands = [], categories = [], activeFilters, setAct
             </div>
 
             {/* Section: Categories */}
-            <div className="flex flex-col gap-5" suppressHydrationWarning>
+            <div className="flex flex-col gap-3" suppressHydrationWarning>
                 <button
                     className="flex items-center justify-between font-black text-[10px] tracking-widest uppercase group"
                     onClick={() => toggleSection("category")}
@@ -192,7 +192,7 @@ export const SideFilter = ({ brands = [], categories = [], activeFilters, setAct
             </div>
 
             {/* Section: Price Orchestration */}
-            <div className="flex flex-col gap-5">
+            <div className="flex flex-col gap-3">
                 <button
                     className="flex items-center justify-between font-black text-[10px] tracking-widest uppercase "
                     onClick={() => toggleSection("price")}
