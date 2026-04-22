@@ -60,10 +60,11 @@ export function PromoBanner({
                         href={normalizeUrl(link)}
                         className={cn(
                             "w-fit px-10 py-5 rounded-full text-[10px] font-black uppercase tracking-widest flex items-center gap-3 transition-all",
+                            "opacity-0 group-hover:opacity-100 duration-300",
                             dark ? "bg-white text-black hover:bg-primary hover:text-white" : "bg-black text-white hover:bg-primary"
                         )}
                     >
-                        {buttonText} <ArrowRight size={14} />
+                        EXPLORE <ArrowRight size={14} />
                     </Link>
                 </div>
             </motion.div>

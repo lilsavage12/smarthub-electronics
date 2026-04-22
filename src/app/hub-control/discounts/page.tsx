@@ -18,8 +18,10 @@ import { useRef } from "react"
 
 export default function DiscountsPage() {
     const [discounts, setDiscounts] = useState<any[]>([])
+    const [categories, setCategories] = useState<any[]>([])
+    const [brands, setBrands] = useState<any[]>([])
     const [loadingParams, setLoadingParams] = useState(true)
-    const [newDiscount, setNewDiscount] = useState<{ id?: string, code: string, campaign: string, type: string, value: string, maxUses: string, minPurchase?: string, startDate?: string, endDate?: string, isActive?: boolean }>({ 
+    const [newDiscount, setNewDiscount] = useState<{ id?: string, code: string, campaign: string, type: string, value: string, maxUses: string, minPurchase?: string, startDate?: string, endDate?: string, isActive?: boolean, applicableCategories?: string[], applicableBrands?: string[] }>({ 
         code: "", 
         campaign: "",
         type: "Percentage", 
@@ -28,7 +30,9 @@ export default function DiscountsPage() {
         minPurchase: "", 
         startDate: new Date().toISOString().split('T')[0], 
         endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-        isActive: true 
+        isActive: true,
+        applicableCategories: [],
+        applicableBrands: []
     })
 
     const [isNewCodeOpen, setIsNewCodeOpen] = useState(false)
@@ -44,7 +48,9 @@ export default function DiscountsPage() {
             minPurchase: "", 
             startDate: new Date().toISOString().split('T')[0], 
             endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-            isActive: true 
+            isActive: true,
+            applicableCategories: [],
+            applicableBrands: []
         })
         setIsNewCodeOpen(true)
     }
@@ -56,13 +62,18 @@ export default function DiscountsPage() {
 
     const fetchAllData = async () => {
         try {
-            const discRes = await fetch("/api/discounts")
+            const [discRes, cmsRes] = await Promise.all([
+                fetch("/api/discounts"),
+                fetch("/api/cms/homepage")
+            ])
             if (discRes.ok) {
                 const data = await discRes.json()
                 setDiscounts(data)
-            } else {
-                const err = await discRes.json()
-                toast.error(`Discounts: ${err.details || "Load Error"}`)
+            }
+            if (cmsRes.ok) {
+                const cmsData = await cmsRes.json()
+                setCategories(cmsData.categories || [])
+                setBrands(cmsData.brands || [])
             }
         } catch (error) {
             console.error("Data fetch error:", error)
@@ -121,7 +132,9 @@ export default function DiscountsPage() {
             minPurchase: disc.minPurchase ? disc.minPurchase.toString() : "",
             startDate: disc.startDate ? new Date(disc.startDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
             endDate: disc.endDate ? new Date(disc.endDate).toISOString().split('T')[0] : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-            isActive: disc.status === "Active"
+            isActive: disc.status === "Active",
+            applicableCategories: Array.isArray(disc.applicableCategories) ? disc.applicableCategories : (typeof disc.applicableCategories === 'string' ? JSON.parse(disc.applicableCategories) : []),
+            applicableBrands: Array.isArray(disc.applicableBrands) ? disc.applicableBrands : (typeof disc.applicableBrands === 'string' ? JSON.parse(disc.applicableBrands) : [])
         })
         setIsEditCodeOpen(true)
     }
@@ -150,7 +163,9 @@ export default function DiscountsPage() {
                 endDate: newDiscount.endDate === "NEVER" ? null : new Date(newDiscount.endDate || (Date.now() + 30 * 24 * 60 * 60 * 1000)).toISOString(),
                 minPurchase: newDiscount.minPurchase ? parseFloat(newDiscount.minPurchase) : 0,
                 status: newDiscount.isActive ? "Active" : "Inactive",
-                maxUses: newDiscount.maxUses ? parseInt(newDiscount.maxUses) : null
+                maxUses: newDiscount.maxUses ? parseInt(newDiscount.maxUses) : null,
+                applicableCategories: newDiscount.applicableCategories,
+                applicableBrands: newDiscount.applicableBrands
             } as any
 
 
@@ -372,6 +387,67 @@ export default function DiscountsPage() {
                                                 value={newDiscount.minPurchase}
                                                 onChange={(e) => setNewDiscount({ ...newDiscount, minPurchase: e.target.value })}
                                             />
+                                        </div>
+                                    </div>
+
+                                    <div className="grid grid-cols-2 gap-8">
+                                         <div className="flex flex-col gap-3">
+                                            <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest ml-1 flex items-center justify-between">
+                                                Applicable Categories
+                                                <span className="text-[8px] opacity-40">Optional</span>
+                                            </label>
+                                            <div className="flex flex-wrap gap-2 p-4 bg-muted/20 border border-border rounded-xl min-h-[4rem]">
+                                                {categories.map(cat => (
+                                                    <button
+                                                        key={cat.id}
+                                                        onClick={() => {
+                                                            const current = newDiscount.applicableCategories || [];
+                                                            const next = current.includes(cat.name) 
+                                                                ? current.filter(c => c !== cat.name)
+                                                                : [...current, cat.name];
+                                                            setNewDiscount({ ...newDiscount, applicableCategories: next });
+                                                        }}
+                                                        className={cn(
+                                                            "px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all border",
+                                                            (newDiscount.applicableCategories || []).includes(cat.name)
+                                                                ? "bg-primary text-white border-primary shadow-lg shadow-primary/20"
+                                                                : "bg-background text-muted-foreground border-border hover:border-primary/40"
+                                                        )}
+                                                    >
+                                                        {cat.name}
+                                                    </button>
+                                                ))}
+                                                {categories.length === 0 && <span className="text-[8px] text-muted-foreground uppercase py-2">Loading categories...</span>}
+                                            </div>
+                                        </div>
+                                         <div className="flex flex-col gap-3">
+                                            <label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest ml-1 flex items-center justify-between">
+                                                Applicable Brands
+                                                <span className="text-[8px] opacity-40">Optional</span>
+                                            </label>
+                                            <div className="flex flex-wrap gap-2 p-4 bg-muted/20 border border-border rounded-xl min-h-[4rem]">
+                                                {brands.map(brand => (
+                                                    <button
+                                                        key={brand.id}
+                                                        onClick={() => {
+                                                            const current = newDiscount.applicableBrands || [];
+                                                            const next = current.includes(brand.name) 
+                                                                ? current.filter(b => b !== brand.name)
+                                                                : [...current, brand.name];
+                                                            setNewDiscount({ ...newDiscount, applicableBrands: next });
+                                                        }}
+                                                        className={cn(
+                                                            "px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all border",
+                                                            (newDiscount.applicableBrands || []).includes(brand.name)
+                                                                ? "bg-primary text-white border-primary shadow-lg shadow-primary/20"
+                                                                : "bg-background text-muted-foreground border-border hover:border-primary/40"
+                                                        )}
+                                                    >
+                                                        {brand.name}
+                                                    </button>
+                                                ))}
+                                                {brands.length === 0 && <span className="text-[8px] text-muted-foreground uppercase py-2">Loading brands...</span>}
+                                            </div>
                                         </div>
                                     </div>
 

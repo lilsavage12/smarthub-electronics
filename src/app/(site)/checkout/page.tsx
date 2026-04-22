@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useEffect } from "react"
+import React, { useState, useEffect, useMemo } from "react"
 import Link from "next/link"
 import Image from "next/image"
 import { motion, AnimatePresence } from "framer-motion"
@@ -29,7 +29,8 @@ interface Address {
 }
 
 export default function CheckoutPage() {
-    const { items, totalPrice, totalItems, clearCart } = useCart()
+    const { items: allItems, totalPrice, totalItems, clearCart } = useCart()
+    const items = useMemo(() => allItems.filter(i => i.selected !== false), [allItems])
     const { user } = useAuth()
     const router = useRouter()
     const [step, setStep] = useState(1)
@@ -68,7 +69,15 @@ export default function CheckoutPage() {
     const [isLoadingZones, setIsLoadingZones] = useState(false)
 
     const [promoCode, setPromoCode] = useState("")
-    const [appliedDiscount, setAppliedDiscount] = useState<{ code: string, percent: number, name?: string } | null>(null)
+    const [appliedDiscount, setAppliedDiscount] = useState<{ 
+        code: string, 
+        percent: number, 
+        name?: string,
+        type?: string,
+        value?: string | number,
+        applicableCategories?: string[],
+        applicableBrands?: string[]
+    } | null>(null)
 
     useEffect(() => {
         if (user) {
@@ -165,12 +174,16 @@ export default function CheckoutPage() {
             const res = await fetch("/api/discounts/validate", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ code: promoCode })
+                body: JSON.stringify({ 
+                    code: promoCode,
+                    items: items,
+                    subtotal: subtotal
+                })
             })
             
             const data = await res.json()
             if (res.ok) {
-                setAppliedDiscount({ code: data.code, percent: data.percent, name: data.name })
+                setAppliedDiscount({ ...data })
                 toast.success(`${data.name || data.value} discount applied`, { id: tid })
             } else {
                 toast.error(data.error || "That code didn't work", { id: tid })
@@ -181,8 +194,31 @@ export default function CheckoutPage() {
     }
 
     const subtotal = totalPrice()
-    const shipping = deliveryFee
-    const discountAmount = appliedDiscount ? Math.round(subtotal * (appliedDiscount.percent / 100)) : 0
+    const isFreeShipping = appliedDiscount?.type === "Free Shipping"
+    const shipping = isFreeShipping ? 0 : deliveryFee
+    const discountAmount = useMemo(() => {
+        if (!appliedDiscount || isFreeShipping) return 0
+        
+        const hasCategories = (appliedDiscount.applicableCategories || []).length > 0
+        const hasBrands = (appliedDiscount.applicableBrands || []).length > 0
+        
+        if (hasCategories || hasBrands) {
+            // Calculate discount only on eligible items
+            const eligibleTotal = items.reduce((acc, item) => {
+                const categoryMatch = !hasCategories || appliedDiscount.applicableCategories?.includes(item.category || "")
+                const brandMatch = !hasBrands || appliedDiscount.applicableBrands?.includes(item.brand || "")
+                
+                if (categoryMatch && brandMatch) {
+                    return acc + (item.price * item.quantity)
+                }
+                return acc
+            }, 0)
+            return Math.round(eligibleTotal * (appliedDiscount.percent / 100))
+        }
+        
+        // Global discount
+        return Math.round(subtotal * (appliedDiscount.percent / 100))
+    }, [appliedDiscount, items, subtotal, isFreeShipping])
     const finalTotal = subtotal - discountAmount + shipping
 
     const handleCompleteOrder = async () => {

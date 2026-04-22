@@ -17,6 +17,7 @@ interface WishlistStore {
     isInWishlist: (productId: string) => boolean
     removeItem: (productId: string, userId?: string) => Promise<void>
     loadWishlist: (userId: string) => Promise<void>
+    hydrateItems: () => Promise<void>
 }
 
 export const useWishlist = create<WishlistStore>()(
@@ -26,16 +27,34 @@ export const useWishlist = create<WishlistStore>()(
             isLoaded: false,
 
             loadWishlist: async (userId: string) => {
-                if (!userId) return
+                get().hydrateItems(); // Use hydrate instead of fake endpoint
+            },
+            
+            hydrateItems: async () => {
+                const current = get().items;
+                const missingIds = current.filter(i => !i.name).map(i => i.productId || i.id);
+                if (missingIds.length === 0) {
+                    set({ isLoaded: true })
+                    return;
+                }
+                
                 try {
-                    const res = await fetch(`/api/wishlist?userId=${userId}`)
+                    const res = await fetch(`/api/products?ids=${missingIds.join(',')}&limit=100`);
                     if (res.ok) {
-                        const data = await res.json()
-                        set({ items: data, isLoaded: true })
+                        const fetchedProducts = await res.json();
+                        const hydratedItems = current.map(item => {
+                            const match = fetchedProducts.find((p: any) => p.id === (item.productId || item.id));
+                            if (match) return { ...(item.productId ? item : { productId: match.id, id: match.id }), ...match };
+                            return item;
+                        });
+                        // Filter out items that still have no name (deleted products)
+                        set({ items: hydratedItems.filter(i => i.name), isLoaded: true });
+                    } else {
+                        set({ isLoaded: true });
                     }
                 } catch (err) {
-                    console.error("Wishlist sync failed", err)
-                    set({ isLoaded: true })
+                    console.error("Hydration failed", err);
+                    set({ isLoaded: true });
                 }
             },
             

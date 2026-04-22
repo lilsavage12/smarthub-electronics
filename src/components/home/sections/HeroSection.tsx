@@ -87,19 +87,20 @@ export function HeroSection({ banners = [] }: { banners: any[] }) {
                                     initial={{ opacity: 0, y: 20 }}
                                     animate={{ opacity: 1, y: 0 }}
                                     transition={{ delay: 0.2 }}
+                                    className="opacity-0 group-hover:opacity-100 transition-opacity duration-300"
                                 >
                                     <Link 
                                         href={normalizeUrl(slide.buttonLink || slide.link)}
                                         className={cn(
-                                            "mt-6 inline-flex items-center gap-4 px-8 py-4 sm:px-10 sm:py-5 rounded-2xl md:rounded-3xl hover:scale-105 active:scale-95 transition-all shadow-xl shadow-black/20 group w-fit",
+                                            "mt-6 inline-flex items-center gap-4 px-8 py-4 sm:px-10 sm:py-5 rounded-2xl md:rounded-3xl hover:scale-105 active:scale-95 transition-all shadow-xl shadow-black/20 group/btn w-fit",
                                             slide.buttonText ? "bg-white text-black" : "bg-primary text-primary-foreground"
                                         )}
                                         style={slide.primaryColor && slide.buttonText ? { backgroundColor: slide.primaryColor, color: '#fff' } : {}}
                                     >
                                         <span className="text-[10px] sm:text-xs font-black uppercase tracking-widest leading-none">
-                                            {slide.buttonText || "DISCOVER NOW"}
+                                            EXPLORE
                                         </span>
-                                        <ArrowRight size={18} className="group-hover:translate-x-2 transition-transform" />
+                                        <ArrowRight size={18} className="group-hover/btn:translate-x-2 transition-transform" />
                                     </Link>
                                 </motion.div>
                             )}

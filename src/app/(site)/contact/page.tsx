@@ -18,6 +18,7 @@ export default function ContactPage() {
     const [formData, setFormData] = useState({
         name: "",
         email: "",
+        phone: "",
         subject: "",
         message: ""
     })
@@ -52,7 +53,7 @@ export default function ContactPage() {
         e.preventDefault()
 
         // Basic validation
-        if (!formData.name || !formData.email || !formData.subject || !formData.message) {
+        if (!formData.name || !formData.email || !formData.phone || !formData.subject || !formData.message) {
             toast.error("Please fill in all required fields")
             return
         }
@@ -76,7 +77,7 @@ export default function ContactPage() {
 
             if (res.ok) {
                 toast.success("Message successfully sent. Our support team will respond shortly.", { id: toastId })
-                setFormData({ name: "", email: "", subject: "", message: "" })
+                setFormData({ name: "", email: "", phone: "", subject: "", message: "" })
             } else {
                 const error = await res.json()
                 throw new Error(error.error || "Failed to send message")
@@ -211,6 +212,18 @@ export default function ContactPage() {
                                         className="h-14 rounded-2xl bg-muted/50 border-border/50 text-xs font-bold uppercase placeholder:text-muted-foreground/30 px-6 focus:ring-primary/20"
                                     />
                                 </div>
+                            </div>
+
+                            <div className="flex flex-col gap-2">
+                                <label htmlFor="phone" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-2">Phone Number</label>
+                                <Input
+                                    id="phone"
+                                    name="phone"
+                                    value={formData.phone}
+                                    onChange={handleChange}
+                                    placeholder="+254 7XX XXX XXX"
+                                    className="h-14 rounded-2xl bg-muted/50 border-border/50 text-xs font-bold uppercase placeholder:text-muted-foreground/30 px-6 focus:ring-primary/20"
+                                />
                             </div>
 
                             <div className="flex flex-col gap-2">

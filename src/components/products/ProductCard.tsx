@@ -179,7 +179,9 @@ export const ProductCard = ({ product, viewMode = "grid", dark = false }: { prod
             price: discountedPrice,
             quantity: 1,
             image: product.image,
-            stock: product.stock
+            stock: product.stock,
+            category: product.category,
+            brand: product.brand
         }, user?.id)
         toast.success("Added to cart!")
     }
@@ -194,7 +196,9 @@ export const ProductCard = ({ product, viewMode = "grid", dark = false }: { prod
             price: discountedPrice,
             quantity: 1,
             image: product.image,
-            stock: product.stock
+            stock: product.stock,
+            category: product.category,
+            brand: product.brand
         }, user?.id)
     }
 

@@ -8,7 +8,11 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: "Unauthorized access" }, { status: 401 })
         }
         const body = await req.json()
-        const { code, type, value, maxUses, startDate, endDate, minPurchase, campaign, status } = body
+        const { 
+            code, type, value, maxUses, startDate, endDate, 
+            minPurchase, campaign, status, 
+            applicableCategories, applicableBrands 
+        } = body
 
         // 1. Check for duplicate code
         const { data: cloudExisting, error: checkError } = await supabaseAdmin
@@ -26,15 +30,20 @@ export async function POST(req: Request) {
         const { data: discount, error } = await supabaseAdmin
             .from('Discount')
             .insert({
+                id: crypto.randomUUID(),
                 code,
                 type,
                 value, // Keep as string format (e.g. "15%", "$100")
                 maxUses: maxUses ? parseInt(maxUses) : null,
-                startDate: new Date(startDate || Date.now()),
-                endDate: endDate ? new Date(endDate) : null,
+                startDate: startDate ? new Date(startDate).toISOString() : new Date().toISOString(),
+                endDate: endDate ? new Date(endDate).toISOString() : null,
                 minPurchase: minPurchase ? parseFloat(minPurchase) : 0,
                 campaign: campaign || "General Promotion",
-                status: status || "Active"
+                status: status || "Active",
+                applicableCategories: applicableCategories || [],
+                applicableBrands: applicableBrands || [],
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString()
             })
             .select()
             .single()

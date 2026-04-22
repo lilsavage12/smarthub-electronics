@@ -82,6 +82,14 @@ export async function GET(req: Request) {
             .select('*, variants:ProductVariant(*)')
             .order('createdAt', { ascending: false })
             .limit(limit)
+
+        const idsString = searchParams.get("ids")
+        if (idsString) {
+            const idList = idsString.split(',').map(i => i.trim()).filter(Boolean)
+            if (idList.length > 0) {
+                query = query.in('id', idList)
+            }
+        }
         
         if (category) {
             query = query.eq('category', category)

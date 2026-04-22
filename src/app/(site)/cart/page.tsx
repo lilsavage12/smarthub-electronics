@@ -10,12 +10,26 @@ import { useAuth } from "@/lib/auth-store"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 
+const slugify = (text: string) => {
+    if (!text) return 'item';
+    return text.toString().toLowerCase()
+        .replace(/\s+/g, '-')
+        .replace(/[^\w\-]+/g, '')
+        .replace(/\-\-+/g, '-')
+        .replace(/^-+/, '')
+        .replace(/-+$/, '');
+};
+
 export default function CartPage() {
-    const { items, removeItem, updateQuantity, totalPrice, totalItems } = useCart()
+    const { items, removeItem, updateQuantity, totalPrice, totalItems, toggleItemSelection, toggleSelectAll, hydrateCart } = useCart()
     const { user } = useAuth()
     const [promoInput, setPromoInput] = React.useState("")
     const [activeDiscount, setActiveDiscount] = React.useState<{ type: string, value: string, code: string, name?: string } | null>(null)
     const [verifyingPromo, setVerifyingPromo] = React.useState(false)
+
+    React.useEffect(() => {
+        hydrateCart();
+    }, [hydrateCart]);
 
     const rawTotal = totalPrice()
     const shipping = rawTotal > 0 ? 0 : 0 // Free for now
@@ -112,6 +126,20 @@ export default function CartPage() {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 lg:items-start">
                 {/* Item List */}
                 <div className="lg:col-span-2 flex flex-col gap-4">
+                    {items.length > 0 && (
+                        <div className="flex items-center justify-between pb-2">
+                            <label className="flex items-center gap-2 cursor-pointer group">
+                                <input 
+                                    type="checkbox" 
+                                    checked={items.every(i => i.selected !== false)}
+                                    onChange={toggleSelectAll}
+                                    className="w-5 h-5 rounded border-border accent-primary cursor-pointer"
+                                />
+                                <span className="text-xs font-black uppercase text-muted-foreground group-hover:text-foreground transition-colors mt-0.5">Select All Items</span>
+                            </label>
+                            <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">{items.filter(i => i.selected !== false).length} Selected</span>
+                        </div>
+                    )}
                     <AnimatePresence mode="popLayout">
                         {items.map((item) => (
                             <motion.div
@@ -122,13 +150,21 @@ export default function CartPage() {
                                 exit={{ opacity: 0, scale: 0.98 }}
                                 className="flex flex-col md:flex-row items-center gap-5 p-4 bg-muted/20 border border-border rounded-2xl hover:bg-muted/30 transition-all group"
                             >
-                                <div className="w-24 h-24 md:w-28 md:h-28 relative bg-background rounded-xl border border-border p-3 flex-shrink-0 group-hover:shadow-lg transition-all overflow-hidden">
+                                <input 
+                                    type="checkbox"
+                                    checked={item.selected !== false}
+                                    onChange={() => toggleItemSelection(item.id)}
+                                    className="w-6 h-6 rounded border-border accent-primary cursor-pointer shrink-0 md:ml-2"
+                                />
+                                <Link href={`/products/${slugify(item.name)}--${item.productId || item.id}`} className="w-24 h-24 md:w-28 md:h-28 relative bg-background rounded-xl border border-border p-3 flex-shrink-0 group-hover:shadow-lg transition-all overflow-hidden">
                                     <Image src={item.image} alt={item.name} fill className="object-contain p-1.5 group-hover:scale-105 transition-transform duration-500" />
-                                </div>
+                                </Link>
 
                                 <div className="flex-1 flex flex-col gap-1 w-full text-center md:text-left">
                                     <div className="flex items-center justify-between">
-                                        <h3 className="text-base font-black font-outfit uppercase  leading-tight hover:text-primary transition-colors cursor-pointer">{item.name}</h3>
+                                        <Link href={`/products/${slugify(item.name)}--${item.productId || item.id}`}>
+                                            <h3 className="text-base font-black font-outfit uppercase  leading-tight hover:text-primary transition-colors cursor-pointer">{item.name}</h3>
+                                        </Link>
                                         <button onClick={() => removeItem(item.id, user?.id)} className="text-muted-foreground hover:text-red-500 p-1.5 transition-colors">
                                             <Trash2 className="w-4 h-4" />
                                         </button>
@@ -191,8 +227,17 @@ export default function CartPage() {
                         </div>
 
                         <div className="flex flex-col gap-3">
-                            <Link href="/checkout" className="w-full">
-                                <Button variant="premium" size="lg" className="w-full h-14 rounded-xl text-xs-fluid font-black  tracking-widest uppercase shadow-xl shadow-primary/20">
+                            <Link href="/checkout" onClick={(e) => {
+                                if (items.filter(i => i.selected !== false).length === 0) {
+                                    e.preventDefault();
+                                }
+                            }} className="w-full">
+                                <Button 
+                                    disabled={items.filter(i => i.selected !== false).length === 0}
+                                    variant="premium" 
+                                    size="lg" 
+                                    className="w-full h-14 rounded-xl text-xs-fluid font-black tracking-widest uppercase shadow-xl shadow-primary/20"
+                                >
                                     CHECKOUT NOW
                                 </Button>
                             </Link>

@@ -12,16 +12,16 @@ import { toast } from "react-hot-toast"
 import { ProductCard } from "@/components/products/ProductCard"
 
 export default function WishlistPage() {
-    const { items, removeItem, loadWishlist, isLoaded } = useWishlist()
+    const { items, removeItem, hydrateItems, isLoaded } = useWishlist()
     const { user } = useAuth()
 
     useEffect(() => {
-        if (user?.id && !isLoaded) {
-            loadWishlist(user.id)
+        if (!isLoaded) {
+            hydrateItems()
         }
-    }, [user?.id, isLoaded, loadWishlist])
+    }, [isLoaded, hydrateItems])
 
-    if (!isLoaded && user?.id) {
+    if (!isLoaded) {
         return (
             <div className="min-h-[60vh] flex flex-col items-center justify-center gap-4 mt-[80px]">
                 <Loader2 className="w-10 h-10 text-primary animate-spin" />
@@ -63,14 +63,14 @@ export default function WishlistPage() {
 
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-6">
                 <AnimatePresence mode="popLayout">
-                    {items.map((item) => {
+                    {items.filter(item => item.name).map((item) => {
                         const productObject = {
                             id: item.productId || item.id,
-                            name: item.name || "Premium Product",
-                            image: item.image || "/images/placeholder.png",
+                            name: item.name,
+                            image: item.image || "/favicon.ico",
                             price: item.price || 0,
-                            brand: item.brand || "SMARTHUB",
-                            stock: 10,
+                            brand: item.brand,
+                            stock: item.stock || 10,
                             isSale: false,
                             discount: 0,
                             promotions: [],

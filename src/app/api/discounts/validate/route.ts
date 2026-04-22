@@ -3,7 +3,7 @@ import { supabase } from "@/lib/supabase"
 
 export async function POST(req: Request) {
     try {
-        const { code } = await req.json()
+        const { code, items, subtotal } = await req.json()
         if (!code) return NextResponse.json({ error: "No code provided" }, { status: 400 })
 
         const { data: discount, error } = await supabase
@@ -25,6 +25,27 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: "This code has reached its usage limit" }, { status: 400 })
         }
 
+        // 1. Check Min Purchase
+        if (discount.minPurchase && subtotal < discount.minPurchase) {
+            return NextResponse.json({ error: `Minimum purchase of KSh ${discount.minPurchase.toLocaleString()} required` }, { status: 400 })
+        }
+
+        // 2. Check Categories/Brands if restricted
+        const restrictedCategories = Array.isArray(discount.applicableCategories) ? discount.applicableCategories : (typeof discount.applicableCategories === 'string' ? JSON.parse(discount.applicableCategories) : [])
+        const restrictedBrands = Array.isArray(discount.applicableBrands) ? discount.applicableBrands : (typeof discount.applicableBrands === 'string' ? JSON.parse(discount.applicableBrands) : [])
+
+        if (restrictedCategories.length > 0 || restrictedBrands.length > 0) {
+            const hasMatch = items?.some((item: any) => {
+                const categoryMatch = restrictedCategories.length === 0 || restrictedCategories.includes(item.category)
+                const brandMatch = restrictedBrands.length === 0 || restrictedBrands.includes(item.brand)
+                return categoryMatch && brandMatch
+            })
+
+            if (!hasMatch) {
+                return NextResponse.json({ error: "This code is not applicable to any items in your cart" }, { status: 400 })
+            }
+        }
+
         let percent = 0
         if (discount.type === "Percentage") {
             // Support both "15%" string and number
@@ -40,7 +61,9 @@ export async function POST(req: Request) {
             name: discount.campaign,
             type: discount.type,
             value: discount.value,
-            percent: percent
+            percent: percent,
+            applicableCategories: restrictedCategories,
+            applicableBrands: restrictedBrands
         })
     } catch (error) {
         console.error("Supabase Promo Validation Error:", error)

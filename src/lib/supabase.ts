@@ -7,7 +7,6 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
 // Server-side admin client (can bypass RLS)
 // Note: Requires SUPABASE_SERVICE_ROLE_KEY in .env
-export const supabaseAdmin = createClient(
-  supabaseUrl,
-  process.env.SUPABASE_SERVICE_ROLE_KEY || supabaseAnonKey
-)
+export const supabaseAdmin = typeof window === 'undefined' 
+    ? createClient(supabaseUrl, process.env.SUPABASE_SERVICE_ROLE_KEY || supabaseAnonKey)
+    : supabase;

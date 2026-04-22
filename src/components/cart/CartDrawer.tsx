@@ -11,10 +11,24 @@ import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { toast } from "react-hot-toast"
 
+const slugify = (text: string) => {
+    if (!text) return 'item';
+    return text.toString().toLowerCase()
+        .replace(/\s+/g, '-')
+        .replace(/[^\w\-]+/g, '')
+        .replace(/\-\-+/g, '-')
+        .replace(/^-+/, '')
+        .replace(/-+$/, '');
+};
+
 export function CartDrawer() {
-    const { items, removeItem, updateQuantity, totalPrice, totalItems, isCartOpen, setCartOpen } = useCart()
+    const { items, removeItem, updateQuantity, totalPrice, totalItems, isCartOpen, setCartOpen, toggleItemSelection, toggleSelectAll, hydrateCart } = useCart()
     const { user } = useAuth()
     const [verifyingPromo, setVerifyingPromo] = React.useState(false)
+
+    React.useEffect(() => {
+        if (isCartOpen) hydrateCart();
+    }, [isCartOpen, hydrateCart]);
 
     const rawTotal = totalPrice()
     const finalTotal = rawTotal // Simplified for drawer, discounts can be handled in checkout or here later
@@ -59,6 +73,20 @@ export function CartDrawer() {
 
                 {/* Items */}
                 <div className="flex-1 overflow-y-auto p-8 space-y-6 scrollbar-thin scrollbar-thumb-primary/10">
+                    {items.length > 0 && (
+                        <div className="flex items-center justify-between pb-4 border-b border-border/50">
+                            <label className="flex items-center gap-2 cursor-pointer group">
+                                <input 
+                                    type="checkbox" 
+                                    checked={items.every(i => i.selected !== false)}
+                                    onChange={toggleSelectAll}
+                                    className="w-4 h-4 rounded border-border accent-primary cursor-pointer"
+                                />
+                                <span className="text-[10px] font-black uppercase text-muted-foreground group-hover:text-foreground transition-colors">Select All</span>
+                            </label>
+                            <span className="text-[10px] font-black text-muted-foreground">{items.filter(i => i.selected !== false).length} Selected</span>
+                        </div>
+                    )}
                     {items.length === 0 ? (
                         <div className="h-full flex flex-col items-center justify-center text-center gap-6">
                             <div className="bg-muted p-10 rounded-[3rem] border border-border opacity-20">
@@ -83,14 +111,22 @@ export function CartDrawer() {
                                     animate={{ opacity: 1, x: 0 }}
                                     exit={{ opacity: 0, scale: 0.95 }}
                                     transition={{ delay: idx * 0.05 }}
-                                    className="flex items-center gap-5 group"
+                                    className="flex items-center gap-4 group"
                                 >
-                                    <div className="w-20 h-20 bg-muted/20 border border-border rounded-2xl p-2 relative shrink-0 group-hover:border-primary/40 transition-colors">
+                                    <input 
+                                        type="checkbox"
+                                        checked={item.selected !== false}
+                                        onChange={() => toggleItemSelection(item.id)}
+                                        className="w-5 h-5 rounded border-border accent-primary cursor-pointer shrink-0"
+                                    />
+                                    <Link href={`/products/${slugify(item.name)}--${item.productId || item.id}`} onClick={() => setCartOpen(false)} className="w-20 h-20 bg-muted/20 border border-border rounded-2xl p-2 relative shrink-0 group-hover:border-primary/40 transition-colors">
                                         <Image src={item.image} alt={item.name} fill className="object-contain p-2" />
-                                    </div>
+                                    </Link>
                                     <div className="flex-1 min-w-0 flex flex-col gap-1">
                                         <div className="flex items-start justify-between gap-4">
-                                            <h4 className="text-[13px] font-black uppercase  tracking-tight leading-tight truncate">{item.name}</h4>
+                                            <Link href={`/products/${slugify(item.name)}--${item.productId || item.id}`} onClick={() => setCartOpen(false)}>
+                                                <h4 className="text-[13px] font-black uppercase  tracking-tight leading-tight truncate hover:text-primary transition-colors">{item.name}</h4>
+                                            </Link>
                                             <button 
                                                 onClick={() => removeItem(item.id, user?.id)}
                                                 className="text-muted-foreground hover:text-red-500 transition-colors"
@@ -145,8 +181,19 @@ export function CartDrawer() {
                         </div>
 
                         <div className="grid grid-cols-1 gap-3">
-                            <Link href="/checkout" onClick={() => setCartOpen(false)}>
-                                <Button variant="premium" size="lg" className="h-16 w-full rounded-2xl font-black  uppercase tracking-widest text-sm shadow-xl shadow-primary/20 hover:scale-[1.02] transition-all">
+                            <Link href="/checkout" onClick={(e) => {
+                                if (items.filter(i => i.selected !== false).length === 0) {
+                                    e.preventDefault();
+                                } else {
+                                    setCartOpen(false);
+                                }
+                            }}>
+                                <Button 
+                                    disabled={items.filter(i => i.selected !== false).length === 0}
+                                    variant="premium" 
+                                    size="lg" 
+                                    className="h-16 w-full rounded-2xl font-black uppercase tracking-widest text-sm shadow-xl shadow-primary/20 hover:scale-[1.02] transition-all"
+                                >
                                     INITIALIZE CHECKOUT <ArrowRight className="ml-3 w-5 h-5" />
                                 </Button>
                             </Link>

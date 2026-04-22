@@ -13,8 +13,12 @@ export interface CartItem {
     image: string
     color?: string
     storage?: string
+    ram?: string
     stock?: number
+    category?: string
+    brand?: string
     promotions?: any[]
+    selected?: boolean
 }
 
 interface CartStore {
@@ -32,6 +36,9 @@ interface CartStore {
     removeItem: (id: string, userId?: string) => Promise<void>
     updateQuantity: (id: string, qty: number, userId?: string) => Promise<void>
     clearCart: (userId?: string) => Promise<void>
+    toggleItemSelection: (id: string) => void
+    toggleSelectAll: () => void
+    hydrateCart: () => Promise<void>
     
     // Discount Actions
     applyDiscount: (code: string, type: 'PERCENTAGE' | 'FIXED', value: number) => void
@@ -57,7 +64,7 @@ export const useCart = create<CartStore>()(
                 const currentQty = existing ? existing.quantity : 0
                 const requestedAdd = product.quantity || 1
                 
-                const availableStock = product.stock !== undefined ? product.stock : Infinity
+                const availableStock = product.stock !== undefined && product.stock !== null ? Number(product.stock) : Infinity
                 if (currentQty + requestedAdd > availableStock) {
                     const message = availableStock <= 0 
                         ? `ASSET OUT OF SYNC: NO UNITS AVAILABLE.`
@@ -84,7 +91,8 @@ export const useCart = create<CartStore>()(
                             price: product.price,
                             originalPrice: product.originalPrice || product.price,
                             quantity: requestedAdd,
-                            stock: availableStock
+                            stock: availableStock,
+                            selected: true
                         }] 
                     })
                 }
@@ -105,7 +113,7 @@ export const useCart = create<CartStore>()(
                     return
                 }
 
-                const availableStock = item.stock !== undefined ? item.stock : Infinity
+                const availableStock = item.stock !== undefined && item.stock !== null ? Number(item.stock) : Infinity
                 if (qty > availableStock) {
                     const message = availableStock <= 0 
                         ? `ASSET OUT OF SYNC: NO UNITS AVAILABLE.`
@@ -126,11 +134,75 @@ export const useCart = create<CartStore>()(
                 set({ items: [], discount: null })
             },
             
+            toggleItemSelection: (id: string) => {
+                set({
+                    items: get().items.map((i) => i.id === id ? { ...i, selected: i.selected === false ? true : false } : i)
+                })
+            },
+
+            toggleSelectAll: () => {
+                const items = get().items;
+                const allSelected = items.every(i => i.selected !== false);
+                set({
+                    items: items.map(i => ({ ...i, selected: !allSelected }))
+                });
+            },
+
+            hydrateCart: async () => {
+                const current = get().items;
+                if (current.length === 0) return;
+                try {
+                    const ids = Array.from(new Set(current.map(i => i.productId || i.id))).join(',');
+                    const res = await fetch(`/api/products?ids=${ids}&limit=100`);
+                    if (res.ok) {
+                        const products = await res.json();
+                        const updatedItems = current.map(item => {
+                            const pId = item.productId || item.id;
+                            const liveProduct = products.find((p: any) => p.id === pId);
+                            if (!liveProduct) return null; // Product deleted
+                            // Try to find the matching variant for price and stock safely
+                            let resolvedPrice = liveProduct.price;
+                            let resolvedStock = liveProduct.stock;
+                            if (item.storage || item.ram) {
+                                const variant = (liveProduct.variants || []).find((v: any) => 
+                                    (item.storage ? String(v.storage) === String(item.storage) : true) && 
+                                    (item.ram ? String(v.ram) === String(item.ram) : true)
+                                );
+                                if (variant) {
+                                    if (Number(variant.price) > 0) resolvedPrice = Number(variant.price);
+                                    if (variant.stock !== undefined && variant.stock !== null) resolvedStock = Number(variant.stock);
+                                }
+                            }
+                            
+                            // Re-apply dynamic discounts to the live price
+                            const dbDiscount = Number(liveProduct.discount || 0);
+                            const promoDiscount = (liveProduct.promotions || []).reduce((max: number, p: any) => p.type === 'PERCENTAGE' ? Math.max(max, Number(p.value) || 0) : max, 0);
+                            const maxDiscount = Math.max(dbDiscount, promoDiscount);
+                            if (maxDiscount > 0) {
+                                resolvedPrice = Math.round(Number(resolvedPrice) * (1 - maxDiscount / 100));
+                            }
+
+                            return {
+                                ...item,
+                                price: Number(resolvedPrice),
+                                stock: resolvedStock !== undefined && resolvedStock !== null ? Number(resolvedStock) : undefined,
+                                name: item.name || liveProduct.name,
+                                image: item.image || liveProduct.image,
+                                promotions: liveProduct.promotions || []
+                            };
+                        }).filter(Boolean) as CartItem[];
+                        set({ items: updatedItems });
+                    }
+                } catch (e) {
+                    console.error("Hydrating cart failed", e);
+                }
+            },
+
             applyDiscount: (code, type, value) => set({ discount: { code, type, value } }),
             removeDiscount: () => set({ discount: null }),
             
-            totalItems: () => get().items.reduce((acc: number, item: CartItem) => acc + item.quantity, 0),
-            totalPrice: () => get().items.reduce((acc: number, item: CartItem) => {
+            totalItems: () => get().items.filter(i => i.selected !== false).reduce((acc: number, item: CartItem) => acc + item.quantity, 0),
+            totalPrice: () => get().items.filter(i => i.selected !== false).reduce((acc: number, item: CartItem) => {
                 const itemPrice = calculateFinalPrice(item.price, item.promotions)
                 return acc + (itemPrice * item.quantity)
             }, 0),

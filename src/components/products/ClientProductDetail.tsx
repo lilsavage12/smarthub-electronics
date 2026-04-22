@@ -208,6 +208,8 @@ export default function ClientProductDetail({ product, relatedProducts }: Client
             ram: selectedVariant?.ram,
             stock: currentStockAvailable,
             originalPrice: originalPrice,
+            category: product.category,
+            brand: product.brand,
             promotions: product.promotions
         }, user?.id)
         toast.success("Added to cart!")
@@ -231,6 +233,8 @@ export default function ClientProductDetail({ product, relatedProducts }: Client
             ram: selectedVariant?.ram,
             stock: currentStockAvailable,
             originalPrice: originalPrice,
+            category: product.category,
+            brand: product.brand,
             promotions: product.promotions
         }, user?.id)
     }
@@ -273,6 +277,7 @@ export default function ClientProductDetail({ product, relatedProducts }: Client
                                                 className="object-contain"
                                                 priority={idx === 0}
                                                 quality={100}
+                                                unoptimized={true}
                                                 sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 800px"
                                             />
                                         </div>
@@ -326,6 +331,7 @@ export default function ClientProductDetail({ product, relatedProducts }: Client
                                     fill
                                     className="object-contain p-2"
                                     sizes="100px"
+                                    unoptimized={true}
                                 />
                             </button>
                         ))}
