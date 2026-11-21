@@ -4,6 +4,7 @@ import Link from "next/link"
 import { supabaseAdmin } from "@/lib/supabase"
 import ClientProductDetail from "@/components/products/ClientProductDetail"
 import { notFound } from "next/navigation"
+import fallbackProducts from "@/lib/fallback-products.json"
 
 // Enable ISR (Every 1 hour)
 export const revalidate = 3600
@@ -11,7 +12,14 @@ export const revalidate = 3600
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<any> {
     const { id: rawId } = await params
     const id = rawId.includes('--') ? rawId.split('--').pop() : rawId
-    const { data: product } = await supabaseAdmin.from('Product').select('name').eq('id', id).maybeSingle()
+    let product: any = null
+    try {
+        const { data } = await supabaseAdmin.from('Product').select('name').eq('id', id).maybeSingle()
+        if (data) product = data
+    } catch {}
+    if (!product) {
+        product = (fallbackProducts as any[]).find(p => p.id === id)
+    }
     
     return {
         title: product?.name || "Product Details",
@@ -19,14 +27,21 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
 }
 
 export async function generateStaticParams() {
-    const { data: products } = await supabaseAdmin
-        .from('Product')
-        .select('id, name')
-        .order('createdAt', { ascending: false })
-        .limit(50)
+    let products: any[] = []
+    try {
+        const { data } = await supabaseAdmin
+            .from('Product')
+            .select('id, name')
+            .order('createdAt', { ascending: false })
+            .limit(50)
+        if (data && data.length > 0) products = data
+    } catch {}
+    if (products.length === 0) {
+        products = fallbackProducts as any[]
+    }
     
-    return (products || []).map(p => ({
-        id: `${p.name.toLowerCase().replace(/ /g, '-') || 'product'}--${p.id}`,
+    return products.map(p => ({
+        id: `${p.name?.toLowerCase().replace(/ /g, '-') || 'product'}--${p.id}`,
     }))
 }
 
@@ -39,8 +54,16 @@ export default async function ProductPage({ params }: { params: Promise<{ id: st
         console.log(`Server Prefetching SKU: ${id}`)
         
         // 1. Primary Product Data
-        const { data: product, error: pErr } = await supabaseAdmin.from('Product').select('*, variants:ProductVariant(*)').eq('id', id).maybeSingle()
-        if (!product || pErr) return notFound()
+        let product: any = null
+        try {
+            const { data, error: pErr } = await supabaseAdmin.from('Product').select('*, variants:ProductVariant(*)').eq('id', id).maybeSingle()
+            if (!pErr && data) product = data
+        } catch {}
+
+        if (!product) {
+            product = (fallbackProducts as any[]).find(p => p.id === id)
+        }
+        if (!product) return notFound()
 
         // 2. Enforce Visibility Rules
         let parsedSpecs = {} as any
@@ -63,7 +86,11 @@ export default async function ProductPage({ params }: { params: Promise<{ id: st
         ])
 
         // Filter out hidden related products
-        const filteredRelated = (relatedResults || []).filter(p => {
+        const rawRelated = (relatedResults && relatedResults.length > 0)
+            ? relatedResults
+            : (fallbackProducts as any[]).filter(p => p.id !== id)
+
+        const filteredRelated = rawRelated.filter(p => {
             let s = {} as any
             const specsStr = typeof p.specs === "string" ? p.specs : JSON.stringify(p.specs || {})
             try { s = JSON.parse(specsStr) } catch { s = {} }

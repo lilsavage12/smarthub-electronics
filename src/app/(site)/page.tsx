@@ -1,6 +1,7 @@
 import React from "react"
 import { supabaseAdmin } from "@/lib/supabase"
 import { ClientHome } from "@/components/home/ClientHome"
+import fallbackProducts from "@/lib/fallback-products.json"
 
 export const dynamic = "force-dynamic"
 
@@ -57,8 +58,9 @@ export default async function Home() {
             popularityMap.set(productId, (popularityMap.get(productId) || 0) + 1)
         })
 
-        // Enriched Dataset Serialization
-        const enrichedProducts = (products || []).map((p: any) => {
+        // Enriched Dataset Serialization (falls back to bundled catalog if DB returns empty)
+        const rawProducts = (products && products.length > 0) ? products : (fallbackProducts as any[])
+        const enrichedProducts = rawProducts.map((p: any) => {
             let parsedSpecs: any = {}
             if (typeof p.specs === "string" && p.specs.length > 2) {
                 try { parsedSpecs = JSON.parse(p.specs) } catch { parsedSpecs = {} }
@@ -128,6 +130,29 @@ export default async function Home() {
         return <ClientHome allProducts={enrichedProducts} cmsData={cmsData} hpConfig={hpConfig} />
     } catch (e: any) {
         console.error("Home render failure:", e)
-        return <ClientHome allProducts={[]} />
+        const enrichedFallback = (fallbackProducts as any[]).map((p: any) => {
+            let parsedSpecs: any = {}
+            if (typeof p.specs === "string" && p.specs.length > 2) {
+                try { parsedSpecs = JSON.parse(p.specs) } catch { parsedSpecs = {} }
+            } else {
+                parsedSpecs = p.specs || {}
+            }
+            const gallery = Array.isArray(p.galleryImages) 
+                ? p.galleryImages 
+                : (typeof p.galleryImages === "string" ? (JSON.parse(p.galleryImages || "[]")) : [])
+            return {
+                ...p,
+                name: (p.name || "").trim(),
+                brand: (p.brand || "").trim(),
+                price: Number(p.price || 2500),
+                originalPrice: null,
+                stock: Number(p.stock || 17),
+                orderCount: 0,
+                specs: parsedSpecs,
+                galleryImages: gallery,
+                promotions: []
+            }
+        })
+        return <ClientHome allProducts={enrichedFallback} />
     }
 }

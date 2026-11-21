@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import { supabaseAdmin } from "@/lib/supabase"
+import fallbackProducts from "@/lib/fallback-products.json"
 export const dynamic = "force-dynamic"
 
 // Helper: safely parse specs and images JSON strings back to objects
@@ -148,13 +149,14 @@ export async function GET(req: Request) {
             return !p.specs?.identity?.isHidden
         })
 
+        if (filteredProducts.length === 0) {
+            return NextResponse.json(fallbackProducts)
+        }
+
         return NextResponse.json(filteredProducts)
     } catch (error: any) {
         console.error("Supabase Database Fetch Failure:", error)
-        return NextResponse.json({ 
-            error: "Database Error: Failed to fetch product data",
-            details: error.message || error 
-        }, { status: 500 })
+        return NextResponse.json(fallbackProducts)
     }
 }
 

@@ -2,6 +2,7 @@ import { Suspense } from "react"
 import { Smartphone } from "lucide-react"
 import { ProductRegistry } from "@/components/products/ProductRegistry"
 import { supabaseAdmin } from "@/lib/supabase"
+import fallbackProducts from "@/lib/fallback-products.json"
 
 export const dynamic = "force-dynamic"
 
@@ -32,8 +33,9 @@ export default async function ProductsPage() {
         supabaseAdmin.from('Promotion').select('*, products:PromotionProduct(*)').eq('isActive', true)
     ])
 
-    // Final Enrichment
-    const enrichedProducts = (products || []).map(p => {
+    // Final Enrichment (with fallback if database returns empty)
+    const rawProducts = (products && products.length > 0) ? products : (fallbackProducts as any[])
+    const enrichedProducts = rawProducts.map(p => {
         const productPromos = (promos || [])
             .filter(pr => pr.productId === p.id || pr.products?.some((pp: any) => pp.productId === p.id))
             .map(pr => ({ ...pr, discount: pr.discount || pr.value }))
