@@ -16,14 +16,14 @@ import { cn } from "@/lib/utils"
 import { ChevronDown, ChevronUp } from "lucide-react"
 
 function ProductFolder({ product, units, totalStock, onUpdate, isSaving }: any) {
-    const [isExpanded, setIsExpanded] = useState(false)
+    const [isExpanded, setIsExpanded] = useState(true)
 
     return (
         <div className="bg-card rounded-[2rem] border border-border shadow-sm overflow-hidden flex flex-col transition-all">
             {/* Folder Header */}
             <button 
                 onClick={() => setIsExpanded(!isExpanded)}
-                className="p-6 sm:p-8 bg-muted/30 border-b border-border flex flex-col sm:flex-row sm:items-center justify-between gap-6 hover:bg-muted/50 transition-all text-left"
+                className="p-6 sm:p-8 bg-muted/30 border-b border-border flex flex-col sm:flex-row sm:items-center justify-between gap-6 hover:bg-muted/50 transition-all text-left cursor-pointer"
             >
                 <div className="flex items-center gap-6">
                     <div className="h-20 w-20 bg-white rounded-3xl relative overflow-hidden border border-border shadow-inner flex-shrink-0">
@@ -43,12 +43,12 @@ function ProductFolder({ product, units, totalStock, onUpdate, isSaving }: any) 
                         <div className="flex items-center gap-4 mt-3">
                             <div className="flex items-center gap-2">
                                 <Box size={14} className="text-muted-foreground opacity-40" />
-                                <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Total: {totalStock} Units</span>
+                                <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest font-mono">Total: {totalStock} Units</span>
                             </div>
                             <div className="flex items-center gap-2">
                                 <Tag size={14} className="text-muted-foreground opacity-40" />
                                 <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
-                                    {Array.from(new Set(units.map((u: any) => u.variantId).filter(Boolean))).length} VARIANTS / {Array.from(new Set(units.map((u: any) => u.colorName).filter(Boolean))).length} COLORS
+                                    5 SIZES (S · M · L · XL · XXL)
                                 </span>
                             </div>
                         </div>
@@ -59,7 +59,7 @@ function ProductFolder({ product, units, totalStock, onUpdate, isSaving }: any) 
                     <div className="hidden sm:flex items-center gap-3 px-6 border-r border-border/50">
                         {totalStock <= 0 ? (
                             <span className="text-red-600 text-[10px] font-black uppercase tracking-widest">Out of Stock</span>
-                        ) : totalStock <= 10 ? (
+                        ) : totalStock <= 5 ? (
                             <span className="text-orange-600 text-[10px] font-black uppercase tracking-widest">Replenish Soon</span>
                         ) : (
                             <span className="text-green-600 text-[10px] font-black uppercase tracking-widest">Healthy</span>
@@ -74,97 +74,73 @@ function ProductFolder({ product, units, totalStock, onUpdate, isSaving }: any) 
                 </div>
             </button>
 
-            {/* Folder Content (Categorized Selection) */}
+            {/* Folder Content: 5 Sizes Breakdown */}
             {isExpanded && (
-                <div className="flex flex-col gap-8 p-4 sm:p-8 bg-muted/10 animate-in fade-in slide-in-from-top-4 duration-300">
-                    {/* Base Model Section */}
-                    {units.some((u: any) => u.type === "Base Color") && (
-                        <div className="flex flex-col gap-4">
-                            <div className="flex items-center gap-3 px-2">
-                                <Box size={16} className="text-primary" />
-                                <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-foreground">Base Model Distribution</h4>
-                                <div className="h-px flex-1 bg-border/50" />
-                            </div>
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                {units.filter((u: any) => u.type === "Base Color").map((unit: any) => (
-                                    <StockTile key={unit.id} unit={unit} onUpdate={onUpdate} isSaving={isSaving} showAllocation />
-                                ))}
-                            </div>
+                <div className="flex flex-col gap-6 p-4 sm:p-8 bg-muted/10 animate-in fade-in slide-in-from-top-4 duration-300">
+                    <div className="flex items-center justify-between px-2">
+                        <div className="flex items-center gap-3">
+                            <Box size={16} className="text-primary" />
+                            <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-foreground">
+                                Size Inventory Breakdown (S, M, L, XL, XXL)
+                            </h4>
                         </div>
-                    )}
+                        <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest font-mono">
+                            Total Units: {totalStock}
+                        </span>
+                    </div>
 
-                    {/* Variants Section */}
-                    {units.some((u: any) => u.type === "Variant Color" || u.type === "Variant") && (
-                        <div className="flex flex-col gap-4">
-                            <div className="flex items-center gap-3 px-2">
-                                <Zap size={16} className="text-primary" />
-                                <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-foreground">Hardware Variant Configurations</h4>
-                                <div className="h-px flex-1 bg-border/50" />
-                            </div>
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                {units.filter((u: any) => u.type === "Variant Color" || u.type === "Variant").map((unit: any) => (
-                                    <StockTile key={unit.id} unit={unit} onUpdate={onUpdate} isSaving={isSaving} />
-                                ))}
-                            </div>
-                        </div>
-                    )}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+                        {units.map((unit: any) => (
+                            <StockTile key={unit.id} unit={unit} onUpdate={onUpdate} isSaving={isSaving} />
+                        ))}
+                    </div>
                 </div>
             )}
         </div>
     )
 }
 
-function StockTile({ unit, onUpdate, isSaving, showAllocation = false }: any) {
+function StockTile({ unit, onUpdate, isSaving }: any) {
+    const isOut = unit.stock <= 0
+    const isLow = !isOut && unit.stock <= 3
+
     return (
         <div 
             className={cn(
-                "p-5 rounded-[1.5rem] border border-border/50 bg-white flex flex-col gap-4 hover:border-primary/30 transition-all group shadow-sm",
-                unit.stock <= 0 && "bg-red-500/[0.02] border-red-500/10"
+                "p-5 rounded-[1.5rem] border border-border/50 bg-white dark:bg-[#121215] flex flex-col gap-4 hover:border-primary/40 transition-all group shadow-sm",
+                isOut && "bg-red-500/[0.03] border-red-500/20"
             )}
         >
-            <div className="flex items-center gap-4">
-                <div className="h-12 w-12 bg-white rounded-xl relative overflow-hidden border border-border/40 shrink-0">
-                    <Image 
-                        src={unit.image || "/images/placeholder.png"} 
-                        fill 
-                        alt="U" 
-                        className="object-contain p-1 group-hover:scale-125 transition-transform duration-500" 
-                    />
-                </div>
-                <div className="flex flex-col min-w-0 flex-1">
-                    <div className="flex items-center justify-between">
-                        <span className="text-[9px] font-black text-muted-foreground uppercase tracking-widest opacity-40 leading-none">{unit.type}</span>
-                        {unit.stock <= 0 ? (
-                            <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
-                        ) : unit.stock <= 10 ? (
-                            <div className="w-2 h-2 rounded-full bg-orange-500" />
-                        ) : (
-                            <div className="w-2 h-2 rounded-full bg-green-500" />
-                        )}
+            <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2.5">
+                    <div className="w-9 h-9 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center font-black text-xs text-primary font-f1 tracking-wider">
+                        {unit.size || unit.identifier.replace("Size ", "")}
                     </div>
-                    <span className="text-xs font-black text-foreground tracking-tight uppercase truncate mt-1">{unit.identifier}</span>
+                    <div className="flex flex-col">
+                        <span className="text-[9px] font-black text-muted-foreground uppercase tracking-widest opacity-60 leading-none">SIZE</span>
+                        <span className="text-sm font-black text-foreground tracking-tight uppercase font-f1 mt-0.5">
+                            {unit.identifier}
+                        </span>
+                    </div>
                 </div>
+
+                {isOut ? (
+                    <span className="text-[9px] font-black px-2 py-0.5 rounded-full bg-red-500/10 text-red-500 uppercase tracking-widest">Out</span>
+                ) : isLow ? (
+                    <span className="text-[9px] font-black px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-500 uppercase tracking-widest">Low</span>
+                ) : (
+                    <span className="text-[9px] font-black px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-500 uppercase tracking-widest">In Stock</span>
+                )}
             </div>
 
             <div className="h-px w-full bg-border/40" />
 
-            {showAllocation && (
-                <div className="flex items-center justify-between px-2 mb-[-8px]">
-                    <span className="text-[8px] font-bold text-muted-foreground uppercase tracking-widest opacity-40 italic">
-                        POOL TOTAL: {unit.totalPool}
-                    </span>
-                    <span className="text-[8px] font-bold text-muted-foreground uppercase tracking-widest opacity-40 italic">
-                        ALLOCATED: {unit.allocated}
-                    </span>
-                </div>
-            )}
-
-            <div className="flex items-center justify-between bg-muted/30 rounded-2xl p-2 border border-border/60 shadow-inner">
+            <div className="flex items-center justify-between bg-muted/40 rounded-2xl p-2 border border-border/60 shadow-inner">
                 <div className="pl-3 flex flex-col">
-                    <span className="text-[8px] font-black uppercase tracking-[0.2em] text-muted-foreground opacity-40 leading-none">In Stock</span>
+                    <span className="text-[8px] font-black uppercase tracking-[0.2em] text-muted-foreground opacity-50 leading-none">Current Stock</span>
                     <span className={cn(
-                        "text-xs font-black mt-1",
-                        unit.stock <= 0 ? "text-red-600" : unit.stock <= 10 ? "text-orange-600" : "text-green-600"
+                        "text-xs font-black mt-1 font-mono",
+                        isOut ? "text-red-500" : isLow ? "text-amber-500" : "text-emerald-500"
                     )}>
                         {unit.stock} UNITS
                     </span>
@@ -172,22 +148,23 @@ function StockTile({ unit, onUpdate, isSaving, showAllocation = false }: any) {
                 <div className="relative">
                     <Input
                         type="number"
+                        min="0"
                         defaultValue={unit.stock}
-                        className="w-20 h-10 bg-white border-none text-center font-black text-sm rounded-xl focus:ring-2 focus:ring-primary/20 shadow-sm"
+                        className="w-20 h-10 bg-white dark:bg-[#1a1a1f] border-none text-center font-black text-sm rounded-xl focus:ring-2 focus:ring-primary/20 shadow-sm"
                         onBlur={(e) => {
-                            const val = parseInt(e.target.value)
+                            const val = parseInt(e.target.value) || 0
                             if (val !== unit.stock) onUpdate(unit, val)
                         }}
                         onKeyDown={(e) => {
                             if (e.key === 'Enter') {
-                                const val = parseInt((e.target as any).value)
+                                const val = parseInt((e.target as any).value) || 0
                                 onUpdate(unit, val)
                                 ;(e.target as any).blur()
                             }
                         }}
                     />
                     {isSaving === unit.id && (
-                        <div className="absolute inset-0 bg-white/80 rounded-xl flex items-center justify-center">
+                        <div className="absolute inset-0 bg-white/80 dark:bg-black/80 rounded-xl flex items-center justify-center">
                             <RefreshCcw size={14} className="animate-spin text-primary" />
                         </div>
                     )}
@@ -202,7 +179,7 @@ export default function StockManagerPage() {
     const [isLoading, setIsLoading] = useState(true)
     const [searchQuery, setSearchQuery] = useState("")
     const [isSaving, setIsSaving] = useState<string | null>(null) // ID of item being saved
-    const [filter, setFilter] = useState<"All" | "Low Stock" | "Out of Stock" | "With Variants" | "With Colors">("All")
+    const [filter, setFilter] = useState<"All" | "In Stock" | "Low Stock" | "Out of Stock">("All")
     const [selectedBrand, setSelectedBrand] = useState("All")
     const [selectedCategory, setSelectedCategory] = useState("All")
     const [activeTab, setActiveTab] = useState<"stock" | "ledger" | "insights">("stock")
@@ -248,111 +225,31 @@ export default function StockManagerPage() {
     const brands = useMemo(() => ["All", ...Array.from(new Set(products.map(p => p.brand).filter(Boolean)))].sort(), [products])
     const categories = useMemo(() => ["All", ...Array.from(new Set(products.map(p => p.category).filter(Boolean)))].sort(), [products])
 
-    // Flattening logic to create "Physical Items" (Stock Units) with Pool Deduction logic
+    const SIZES = useMemo(() => ["S", "M", "L", "XL", "XXL"], [])
+
+    // Flattening logic to create Physical Size Stock Units per product
     const stockUnits = useMemo(() => {
         const units: any[] = []
 
         products.forEach(p => {
             const specs = typeof p.specs === 'string' ? JSON.parse(p.specs || '{}') : (p.specs || {})
-            const colors = specs.productColors || []
-            const variants = p.variants || []
+            const sizeMap = specs.sizes || {}
 
-            const hasColors = colors.length > 0
-            const hasVariants = variants.length > 0
-
-            // Property Filtering logic
-            if (filter === "With Variants" && !hasVariants) return
-            if (filter === "With Colors" && !hasColors) return
-
-            // 1. Capture Hardware Variants First (to know allocations)
-            const variantUnits: any[] = []
-            if (hasVariants) {
-                variants.forEach((v: any) => {
-                    const vColors = v.productColors || []
-                    if (vColors.length > 0) {
-                        vColors.forEach((vc: any, vcIdx: number) => {
-                            // Try to find the matching color image from the base specs.productColors pool
-                            const matchingBaseColor = colors.find((c: any) => c.color?.toLowerCase() === vc.color?.toLowerCase())
-                            variantUnits.push({
-                                id: `${v.id}-vc-${vcIdx}`,
-                                productId: p.id,
-                                variantId: v.id,
-                                type: "Variant Color",
-                                name: p.name,
-                                brand: p.brand,
-                                category: p.category,
-                                image: vc.image || matchingBaseColor?.image || p.image,
-                                stock: parseInt(vc.stock) || 0,
-                                identifier: `${v.ram}/${v.storage} - ${vc.color}`,
-                                colorName: vc.color,
-                                variantObj: v
-                            })
-                        })
-                    } else {
-                        variantUnits.push({
-                            id: v.id,
-                            productId: p.id,
-                            variantId: v.id,
-                            type: "Variant",
-                            name: p.name,
-                            brand: p.brand,
-                            category: p.category,
-                            image: p.image,
-                            stock: parseInt(v.stock) || 0,
-                            identifier: `${v.ram}/${v.storage}`,
-                            variantObj: v
-                        })
-                    }
-                })
-            }
-
-            // 2. Capture Top-Level Colors (Base Colors) with Deduction logic
-            if (hasColors) {
-                colors.forEach((c: any, idx: number) => {
-                    // Find all variants of this same color
-                    const allocatedToVariants = variantUnits
-                        .filter(vu => vu.colorName?.toLowerCase() === c.color?.toLowerCase())
-                        .reduce((acc, vu) => acc + vu.stock, 0)
-                    
-                    const totalPool = parseInt(c.stock) || 0
-                    const remainder = Math.max(0, totalPool - allocatedToVariants)
-
-                    units.push({
-                        id: `${p.id}-color-${idx}`,
-                        productId: p.id,
-                        type: "Base Color",
-                        name: p.name,
-                        brand: p.brand,
-                        category: p.category,
-                        image: c.image || p.image,
-                        stock: remainder, // Show what's left for the base model
-                        totalPool: totalPool, // Store the master pool size
-                        allocated: allocatedToVariants,
-                        identifier: c.color,
-                        colorIndex: idx,
-                        colorName: c.color
-                    })
-                })
-            }
-
-            // Add the variant units we collected
-            units.push(...variantUnits)
-
-            // 3. Fallback to Base Model if nothing else
-            if (!hasColors && !hasVariants) {
+            SIZES.forEach(size => {
+                const stock = sizeMap[size] !== undefined ? (parseInt(sizeMap[size]) || 0) : 0
                 units.push({
-                    id: p.id,
+                    id: `${p.id}-size-${size}`,
                     productId: p.id,
-                    type: "Standard",
+                    type: "Size Stock",
                     name: p.name,
                     brand: p.brand,
                     category: p.category,
                     image: p.image,
-                    stock: p.stock,
-                    identifier: "Standard",
-                    path: "base"
+                    stock: stock,
+                    size: size,
+                    identifier: `Size ${size}`
                 })
-            }
+            })
         })
 
         return units.filter(u => {
@@ -365,11 +262,12 @@ export default function StockManagerPage() {
 
             if (!matchesBrand || !matchesCategory) return false
 
-            if (filter === "Low Stock") return matchesSearch && u.stock > 0 && u.stock <= 10
+            if (filter === "Low Stock") return matchesSearch && u.stock > 0 && u.stock <= 3
             if (filter === "Out of Stock") return matchesSearch && u.stock <= 0
+            if (filter === "In Stock") return matchesSearch && u.stock > 0
             return matchesSearch
         })
-    }, [products, searchQuery, filter, selectedBrand, selectedCategory])
+    }, [products, searchQuery, filter, selectedBrand, selectedCategory, SIZES])
 
     const handleUpdateStock = async (unit: any, newStock: number) => {
         setIsSaving(unit.id)
@@ -379,63 +277,22 @@ export default function StockManagerPage() {
             if (!product) throw new Error("Product not found")
 
             const specs = typeof product.specs === 'string' ? JSON.parse(product.specs || '{}') : { ...product.specs }
-            const variants = [...(product.variants || [])]
+            const currentSizes = { ...(specs.sizes || {}) }
+            const cleanStock = Math.max(0, parseInt(newStock as any) || 0)
+            
+            currentSizes[unit.size] = cleanStock
+            specs.sizes = currentSizes
 
-            if (unit.type === "Standard") {
-                product.stock = newStock
-            } else if (unit.type === "Base Color") {
-                // The 'newStock' provided is the remainder (entry-level base model).
-                // We add the allocated variant stock to get the NEW total pool for this color.
-                const newTotalPool = newStock + unit.allocated
-                specs.productColors[unit.colorIndex].stock = String(newTotalPool)
-                
-                // Recalculate global product stock from the master color pools
-                product.stock = specs.productColors.reduce((acc: number, c: any) => acc + (parseInt(c.stock) || 0), 0)
-            } else if (unit.type === "Variant") {
-                const vIdx = variants.findIndex(v => v.id === unit.variantId)
-                if (vIdx !== -1) {
-                    variants[vIdx].stock = String(newStock)
-                    product.stock = variants.reduce((acc: number, v: any) => acc + (parseInt(v.stock) || 0), 0)
-                }
-            } else if (unit.type === "Variant Color") {
-                const vIdx = variants.findIndex(v => v.id === unit.variantId)
-                if (vIdx !== -1) {
-                    const vc = [...(variants[vIdx].productColors || [])]
-                    const vcIdx = vc.findIndex(c => c.color === unit.colorName)
-                    if (vcIdx !== -1) {
-                        const oldVal = parseInt(vc[vcIdx].stock) || 0
-                        const diff = newStock - oldVal
-                        
-                        vc[vcIdx].stock = String(newStock)
-                        variants[vIdx].productColors = vc
-                        
-                        // Recalculate variant's own stock
-                        variants[vIdx].stock = vc.reduce((acc: number, c: any) => acc + (parseInt(c.stock) || 0), 0)
-                        
-                        // Sync with Master Pool in specs if it exists
-                        const poolIdx = specs.productColors?.findIndex((c: any) => c.color?.toLowerCase() === unit.colorName?.toLowerCase())
-                        if (poolIdx !== -1 && specs.productColors) {
-                            const currentPool = parseInt(specs.productColors[poolIdx].stock) || 0
-                            specs.productColors[poolIdx].stock = String(currentPool + diff)
-                        }
-
-                        // Sync global stock
-                        if (specs.productColors?.length > 0) {
-                            product.stock = specs.productColors.reduce((acc: number, c: any) => acc + (parseInt(c.stock) || 0), 0)
-                        } else {
-                            product.stock = variants.reduce((acc: number, v: any) => acc + (parseInt(v.stock) || 0), 0)
-                        }
-                    }
-                }
-            }
+            // Recalculate global product stock as the exact sum of all sizes
+            const newTotalStock = SIZES.reduce((acc, s) => acc + (parseInt(currentSizes[s]) || 0), 0)
+            product.stock = newTotalStock
 
             const res = await fetch(`/api/products/${product.id}`, {
                 method: "PATCH",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
-                    stock: product.stock,
-                    specs: specs,
-                    variants: variants
+                    stock: newTotalStock,
+                    specs: specs
                 })
             })
 
@@ -448,16 +305,15 @@ export default function StockManagerPage() {
                 body: JSON.stringify({
                     productId: product.id,
                     productName: unit.name,
-                    variantId: unit.variantId || null,
                     identifier: unit.identifier,
                     previousStock: unit.stock,
-                    newStock: newStock,
+                    newStock: cleanStock,
                 })
             }).catch(() => {})
             
             // Local update to avoid full refetch
-            setProducts(prev => prev.map(p => p.id === product.id ? { ...product, specs, variants } : p))
-            toast.success(`Stock updated: ${unit.name} (${unit.identifier})`)
+            setProducts(prev => prev.map(p => p.id === product.id ? { ...product, stock: newTotalStock, specs } : p))
+            toast.success(`${unit.name} (${unit.identifier}) set to ${cleanStock} units`)
         } catch (error) {
             toast.error("Update failed")
         } finally {
@@ -555,7 +411,7 @@ export default function StockManagerPage() {
                             <div className="relative flex-1 w-full md:max-w-md">
                                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
                                 <Input
-                                    placeholder="Search model, SKU or color..."
+                                    placeholder="Search apparel, team, or size..."
                                     className="w-full h-12 bg-muted border-none pl-12 rounded-xl text-sm font-medium"
                                     value={searchQuery}
                                     onChange={(e) => setSearchQuery(e.target.value)}
@@ -563,7 +419,7 @@ export default function StockManagerPage() {
                             </div>
                             <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-2 md:pb-0">
                                 <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mr-2 whitespace-nowrap">Show:</span>
-                                {(["All", "Low Stock", "Out of Stock", "With Variants", "With Colors"] as any[]).map((f) => (
+                                {(["All", "In Stock", "Low Stock", "Out of Stock"] as any[]).map((f) => (
                                     <Button
                                         key={f}
                                         onClick={() => setFilter(f)}
@@ -629,69 +485,6 @@ export default function StockManagerPage() {
                             }).map((product) => {
                                 const units = stockUnits.filter(u => u.productId === product.id)
                                 const totalStock = units.reduce((acc, u) => acc + u.stock, 0)
-                                const isSimple = units.length === 1
-
-                                if (isSimple) {
-                                    const unit = units[0]
-                                    return (
-                                        <div
-                                            key={product.id}
-                                            className={cn(
-                                                "group bg-card p-4 rounded-[2rem] border border-border flex flex-col sm:flex-row sm:items-center justify-between gap-6 hover:shadow-lg transition-all",
-                                                unit.stock <= 0 && "border-red-500/20 bg-red-500/[0.01]"
-                                            )}
-                                        >
-                                            <div className="flex items-center gap-5">
-                                                <div className="h-16 w-16 bg-muted rounded-2xl relative overflow-hidden border border-border flex-shrink-0">
-                                                    <Image
-                                                        src={unit.image || "/images/placeholder.png"}
-                                                        fill
-                                                        alt="P"
-                                                        sizes="64px"
-                                                        className="object-contain p-2 group-hover:scale-110 transition-transform duration-500"
-                                                    />
-                                                </div>
-                                                <div className="flex flex-col">
-                                                    <div className="flex items-center gap-2">
-                                                        <span className="text-[10px] font-black text-primary uppercase leading-none">{product.brand}</span>
-                                                        <span className="text-[8px] font-black px-1.5 py-0.5 rounded uppercase bg-slate-100 text-slate-500">Standard</span>
-                                                    </div>
-                                                    <h3 className="text-sm font-black text-foreground truncate mt-1 uppercase">{product.name}</h3>
-                                                </div>
-                                            </div>
-                                            <div className="flex items-center gap-6">
-                                                <div className="flex flex-col items-end gap-1 px-4 border-r border-border/50">
-                                                    <span className="text-[9px] font-black uppercase tracking-widest text-muted-foreground opacity-40">Availability</span>
-                                                    <span className={cn(
-                                                        "text-[10px] font-black uppercase",
-                                                        unit.stock <= 0 ? "text-red-500" : unit.stock <= 10 ? "text-orange-500" : "text-green-500"
-                                                    )}>
-                                                        {unit.stock <= 0 ? "Out of Stock" : unit.stock <= 10 ? "Low Stock" : "In Stock"}
-                                                    </span>
-                                                </div>
-                                                <div className="flex flex-col items-end gap-2">
-                                                    <div className="relative">
-                                                        <Input
-                                                            type="number"
-                                                            defaultValue={unit.stock}
-                                                            className="w-24 h-12 bg-muted border-none text-center font-black text-lg rounded-xl focus:ring-2 focus:ring-primary/20"
-                                                            onBlur={(e) => {
-                                                                const val = parseInt(e.target.value)
-                                                                if (val !== unit.stock) handleUpdateStock(unit, val)
-                                                            }}
-                                                        />
-                                                        {isSaving === unit.id && (
-                                                            <div className="absolute inset-0 bg-muted/80 rounded-xl flex items-center justify-center">
-                                                                <RefreshCcw size={16} className="animate-spin text-primary" />
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    )
-                                }
-
                                 return (
                                     <ProductFolder key={product.id} product={product} units={units} totalStock={totalStock} onUpdate={handleUpdateStock} isSaving={isSaving} />
                                 )

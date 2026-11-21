@@ -48,6 +48,28 @@ export const ProductCard = ({ product, viewMode = "grid", dark = false }: { prod
     const isOutOfStock = stock <= 0
     const isLowStock = !isOutOfStock && stock < 10
 
+    // Size-specific inventory map from specs.sizes
+    const sizeStockMap: Record<string, number> = useMemo(() => {
+        const specs = getSpecs(product.specs)
+        if (specs?.sizes && typeof specs.sizes === 'object') {
+            const mapped: Record<string, number> = {}
+            ;["S", "M", "L", "XL", "XXL"].forEach(s => {
+                mapped[s] = typeof specs.sizes[s] === 'number' ? specs.sizes[s] : 0
+            })
+            return mapped
+        }
+        return {
+            S: Math.floor(stock * 0.15),
+            M: Math.floor(stock * 0.30),
+            L: Math.floor(stock * 0.30),
+            XL: Math.floor(stock * 0.15),
+            XXL: Math.max(0, stock - (Math.floor(stock * 0.15) * 2 + Math.floor(stock * 0.30) * 2))
+        }
+    }, [product.specs, stock])
+
+    const currentSizeStock = sizeStockMap[selectedSize] ?? 0
+    const isSizeOutOfStock = currentSizeStock <= 0
+
     const badge = isOutOfStock
         ? { label: "SOLD OUT", cls: "bg-[#e10600]" }
         : isLowStock
@@ -59,16 +81,18 @@ export const ProductCard = ({ product, viewMode = "grid", dark = false }: { prod
                     : null
 
     const handleQuickAdd = (size: string = selectedSize, qty: number = 1) => {
-        if (isOutOfStock) {
-            toast.error(`${product.name} is currently out of stock!`, {
+        const targetStock = sizeStockMap[size] ?? 0
+        if (targetStock <= 0) {
+            toast.error(`Size ${size} for ${product.name} is currently out of stock!`, {
                 style: { background: '#101012', color: '#fff', border: '1px solid #333' }
             })
             return
         }
-        const existing = items.find(i => i.id === `${product.id}-${size}` || i.id === product.id)
+
+        const existing = items.find(i => (i.id === `${product.id}-${size}` || i.id === product.id) && (i.variant === size || !i.variant))
         const cur = existing ? existing.quantity : 0
-        if (cur + qty > stock) {
-            toast.error(`Cannot add more. Only ${stock} units available in stock.`, {
+        if (cur + qty > targetStock) {
+            toast.error(`Only ${targetStock} unit${targetStock === 1 ? '' : 's'} available in Size ${size}. You already have ${cur} in your bag.`, {
                 style: { background: '#101012', color: '#fff', border: '1px solid #333' }
             })
             return
@@ -81,7 +105,7 @@ export const ProductCard = ({ product, viewMode = "grid", dark = false }: { prod
             originalPrice: originalPrice || undefined,
             quantity: qty,
             image: product.image,
-            stock,
+            stock: targetStock,
             variant: size,
             category: product.category,
             brand: product.brand,
@@ -147,25 +171,33 @@ export const ProductCard = ({ product, viewMode = "grid", dark = false }: { prod
                                     <span className="text-[#e10600]">ADD TO CART</span>
                                 </div>
                                 <div className="flex gap-1">
-                                    {["S", "M", "L", "XL", "XXL"].map((s) => (
-                                        <button
-                                            key={s}
-                                            type="button"
-                                            onClick={(e) => {
-                                                e.stopPropagation()
-                                                setSelectedSize(s)
-                                                handleQuickAdd(s, 1)
-                                            }}
-                                            className={cn(
-                                                "flex-1 h-7 text-[10px] font-black uppercase tracking-widest border transition-colors font-f1 cursor-pointer",
-                                                selectedSize === s 
-                                                    ? "bg-[#e10600] border-[#e10600] text-white" 
-                                                    : "border-white/15 text-white/70 hover:border-white/40 bg-black/50"
-                                            )}
-                                        >
-                                            {s}
-                                        </button>
-                                    ))}
+                                    {["S", "M", "L", "XL", "XXL"].map((s) => {
+                                        const sStock = sizeStockMap[s] ?? 0
+                                        const isSoldOut = sStock <= 0
+                                        return (
+                                            <button
+                                                key={s}
+                                                type="button"
+                                                disabled={isSoldOut}
+                                                onClick={(e) => {
+                                                    e.stopPropagation()
+                                                    setSelectedSize(s)
+                                                    handleQuickAdd(s, 1)
+                                                }}
+                                                title={isSoldOut ? `Size ${s}: Out of Stock` : `Size ${s}: ${sStock} left`}
+                                                className={cn(
+                                                    "flex-1 h-7 text-[10px] font-black uppercase tracking-widest border transition-colors font-f1",
+                                                    isSoldOut
+                                                        ? "border-white/5 text-white/20 line-through cursor-not-allowed bg-black/80"
+                                                        : selectedSize === s 
+                                                            ? "bg-[#e10600] border-[#e10600] text-white cursor-pointer" 
+                                                            : "border-white/15 text-white/70 hover:border-white/40 bg-black/50 cursor-pointer"
+                                                )}
+                                            >
+                                                {s}
+                                            </button>
+                                        )
+                                    })}
                                 </div>
                             </>
                         )}
@@ -282,24 +314,38 @@ export const ProductCard = ({ product, viewMode = "grid", dark = false }: { prod
                                     <div className="space-y-2 pt-2">
                                         <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-widest text-white/50 font-f1">
                                             <span>SELECT SIZE</span>
-                                            <span className="text-white/40">{getSpecs(product.specs).colour || 'AUTHENTIC ISSUE'}</span>
+                                            <span className={isSizeOutOfStock ? "text-[#e10600] font-bold" : "text-[#00d4aa] font-bold"}>
+                                                {isSizeOutOfStock ? `SIZE ${selectedSize}: OUT OF STOCK` : `SIZE ${selectedSize}: ${currentSizeStock} UNITS AVAILABLE`}
+                                            </span>
                                         </div>
                                         <div className="grid grid-cols-5 gap-1.5">
-                                            {["S", "M", "L", "XL", "XXL"].map((s) => (
-                                                <button
-                                                    key={s}
-                                                    type="button"
-                                                    onClick={() => setSelectedSize(s)}
-                                                    className={cn(
-                                                        "h-10 text-xs font-black uppercase tracking-widest border transition-all font-f1 cursor-pointer",
-                                                        selectedSize === s
-                                                            ? "bg-[#e10600] border-[#e10600] text-white shadow-lg"
-                                                            : "border-white/15 text-white/70 hover:border-white/40 bg-black/40"
-                                                    )}
-                                                >
-                                                    {s}
-                                                </button>
-                                            ))}
+                                            {["S", "M", "L", "XL", "XXL"].map((s) => {
+                                                const sStock = sizeStockMap[s] ?? 0
+                                                const isSoldOut = sStock <= 0
+                                                return (
+                                                    <button
+                                                        key={s}
+                                                        type="button"
+                                                        onClick={() => {
+                                                            setSelectedSize(s)
+                                                            setModalQty(1)
+                                                        }}
+                                                        className={cn(
+                                                            "h-11 text-xs font-black uppercase tracking-widest border transition-all font-f1 flex flex-col items-center justify-center cursor-pointer",
+                                                            isSoldOut
+                                                                ? selectedSize === s
+                                                                    ? "border-red-500/50 bg-red-500/10 text-red-400"
+                                                                    : "border-white/5 text-white/20 line-through bg-black/60"
+                                                                : selectedSize === s
+                                                                    ? "bg-[#e10600] border-[#e10600] text-white shadow-lg"
+                                                                    : "border-white/15 text-white/70 hover:border-white/40 bg-black/40"
+                                                        )}
+                                                    >
+                                                        <span>{s}</span>
+                                                        <span className="text-[8px] opacity-60 font-mono leading-none">{sStock}</span>
+                                                    </button>
+                                                )
+                                            })}
                                         </div>
                                     </div>
 
@@ -319,8 +365,8 @@ export const ProductCard = ({ product, viewMode = "grid", dark = false }: { prod
                                             </span>
                                             <button
                                                 type="button"
-                                                disabled={modalQty >= stock || isOutOfStock}
-                                                onClick={() => setModalQty(Math.min(stock, modalQty + 1))}
+                                                disabled={modalQty >= currentSizeStock || currentSizeStock <= 0}
+                                                onClick={() => setModalQty(Math.min(currentSizeStock, modalQty + 1))}
                                                 className="w-8 h-8 flex items-center justify-center text-white/70 hover:text-white border-l border-white/10 disabled:opacity-20 disabled:cursor-not-allowed"
                                             >
                                                 <Plus size={12} />
@@ -346,11 +392,11 @@ export const ProductCard = ({ product, viewMode = "grid", dark = false }: { prod
                                 <div className="space-y-3 pt-4 border-t border-white/10">
                                     <button
                                         type="button"
-                                        disabled={isOutOfStock}
+                                        disabled={isSizeOutOfStock || isOutOfStock}
                                         onClick={() => handleQuickAdd(selectedSize, modalQty)}
                                         className="w-full bg-[#e10600] hover:bg-[#c90500] disabled:bg-white/10 disabled:text-white/30 disabled:cursor-not-allowed text-white text-xs font-black uppercase tracking-[0.2em] py-3.5 flex items-center justify-center gap-2 transition-colors font-f1 cursor-pointer shadow-xl"
                                     >
-                                        <span>{isOutOfStock ? "CURRENTLY OUT OF STOCK" : `ADD TO CART · KSH ${(price * modalQty).toLocaleString()}`}</span>
+                                        <span>{isSizeOutOfStock ? `SIZE ${selectedSize} OUT OF STOCK` : isOutOfStock ? "CURRENTLY OUT OF STOCK" : `ADD TO CART · KSH ${(price * modalQty).toLocaleString()}`}</span>
                                     </button>
                                     <p className="text-[10px] text-center text-white/30 uppercase tracking-widest font-f1">
                                         DELIVERY FEES QUOTED SEPARATELY

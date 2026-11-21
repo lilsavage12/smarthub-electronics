@@ -29,23 +29,42 @@ export async function POST(req: Request) {
             }, { status: 400 })
         }
 
-        // 1. Pre-validate that all requested quantities do not exceed available stock
+        // 1. Group requested quantities by productId and size
+        const requestedBySize: Record<string, Record<string, number>> = {}
+        const requestedByProduct: Record<string, number> = {}
+
         for (const item of items) {
-            let product: any = null
-            if (item.productId) {
-                const { data: p } = await supabaseAdmin
-                    .from('Product')
-                    .select('*')
-                    .eq('id', item.productId)
-                    .maybeSingle()
-                product = p
+            const pId = item.productId
+            const size = (item.variant || item.color || item.size || 'L').toUpperCase().trim()
+            const qty = Number(item.quantity) || 1
+            if (pId) {
+                requestedByProduct[pId] = (requestedByProduct[pId] || 0) + qty
+                if (!requestedBySize[pId]) requestedBySize[pId] = {}
+                requestedBySize[pId][size] = (requestedBySize[pId][size] || 0) + qty
             }
-            if (product && typeof product.stock === 'number') {
-                const reqQty = Number(item.quantity) || 1
-                if (product.stock < reqQty) {
+        }
+
+        // 2. Pre-validate individual size stock and total stock
+        for (const pId of Object.keys(requestedByProduct)) {
+            const { data: p } = await supabaseAdmin.from('Product').select('*').eq('id', pId).maybeSingle()
+            if (p) {
+                const totalReq = requestedByProduct[pId]
+                if (typeof p.stock === 'number' && p.stock < totalReq) {
                     return NextResponse.json({
-                        error: `Stock limit reached: ${product.name} only has ${product.stock} unit${product.stock === 1 ? '' : 's'} available in stock.`
+                        error: `Stock limit reached: ${p.name} only has ${p.stock} unit${p.stock === 1 ? '' : 's'} available across all sizes (you requested ${totalReq}).`
                     }, { status: 400 })
+                }
+
+                let specs: any = {}
+                try { specs = typeof p.specs === 'string' ? JSON.parse(p.specs) : (p.specs || {}) } catch {}
+                const sizeStockMap: Record<string, number> = specs?.sizes || {}
+
+                for (const [size, reqQty] of Object.entries(requestedBySize[pId])) {
+                    if (typeof sizeStockMap[size] === 'number' && sizeStockMap[size] < reqQty) {
+                        return NextResponse.json({
+                            error: `Stock limit reached: Size ${size} of ${p.name} only has ${sizeStockMap[size]} unit${sizeStockMap[size] === 1 ? '' : 's'} available (you requested ${reqQty}).`
+                        }, { status: 400 })
+                    }
                 }
             }
         }
@@ -81,13 +100,27 @@ export async function POST(req: Request) {
             const itemName = item.name || product?.name || "F1 Apparel"
             const itemQuantity = Number(item.quantity) || 1
             const itemImage = item.image || product?.image || "/images/f1/media_1795204502659_c168030c.jpg"
+            const itemSize = (item.variant || item.color || item.size || 'L').toUpperCase().trim()
 
-            // Safely decrement stock if available
+            // Safely decrement size stock and product stock
             if (product && typeof product.stock === 'number' && product.stock > 0) {
+                let specs: any = {}
+                try { specs = typeof product.specs === 'string' ? JSON.parse(product.specs) : (product.specs || {}) } catch {}
+                const currentSizes: Record<string, number> = { ...(specs?.sizes || {}) }
+
+                if (typeof currentSizes[itemSize] === 'number') {
+                    currentSizes[itemSize] = Math.max(0, currentSizes[itemSize] - itemQuantity)
+                    specs.sizes = currentSizes
+                }
+
                 const newStock = Math.max(0, product.stock - itemQuantity)
                 await supabaseAdmin
                     .from('Product')
-                    .update({ stock: newStock, updatedAt: now })
+                    .update({ 
+                        stock: newStock, 
+                        specs: JSON.stringify(specs),
+                        updatedAt: now 
+                    })
                     .eq('id', product.id)
             }
 

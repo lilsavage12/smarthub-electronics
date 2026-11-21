@@ -28,6 +28,7 @@ const FIELD_TYPES = ["Text", "Number", "Dropdown", "Boolean", "Multi-select"]
 const initialProductState = {
     brand: "",
     model: "",
+    sizes: { S: 0, M: 0, L: 0, XL: 0, XXL: 0 } as Record<string, number>,
     releaseYear: new Date().getFullYear().toString(),
     productColors: [] as { color: string, stock: string, image?: string }[],
     price: "",
@@ -307,6 +308,7 @@ export default function ProductsPage() {
 
         setNewProduct({
             brand: product.brand || "",
+            sizes: s.sizes || { S: 0, M: 0, L: 0, XL: 0, XXL: 0 },
             model: (product.name || "").replace(product.brand || "", "").trim(),
             releaseYear: s.identity?.releaseYear || "",
             productColors: mappedColors,
@@ -440,6 +442,11 @@ export default function ProductsPage() {
             const hasVariants = newProduct.variants.length > 0
 
             let totalStock = 0
+            const sizeValues = Object.values(newProduct.sizes || {})
+            const totalFromSizes = sizeValues.reduce((acc: number, v: any) => acc + (parseInt(v) || 0), 0)
+            if (totalFromSizes > 0 || (newProduct.sizes && Object.keys(newProduct.sizes).length > 0)) {
+                totalStock = totalFromSizes
+            } else
 
             if (!hasColors && !hasVariants) {
                 // Mode A: Base Stock only
@@ -514,7 +521,8 @@ export default function ProductsPage() {
                     productColors: newProduct.productColors,
                     gallery: sanitizedImages,
                     customSpecifications: newProduct.customSpecifications,
-                    customSections: newProduct.customSections
+                    customSections: newProduct.customSections,
+                    sizes: newProduct.sizes || (editingProduct ? (parseSpecs(editingProduct.specs).sizes) : {}) || { S: 0, M: 0, L: 0, XL: 0, XXL: 0 }
                 },
                 variants: newProduct.variants.map(v => ({
                     id: (v.id && typeof v.id === 'string' && v.id.startsWith('new_')) ? undefined : v.id,
@@ -1184,11 +1192,33 @@ export default function ProductsPage() {
                                                     </div>
                                                     <div className="flex flex-col gap-2 md:col-span-2">
                                                         <label className="text-[10px] font-bold text-muted-foreground ml-2  uppercase">SKU / Serial</label>
-                                                        <Input value={newProduct.sku} onChange={(e) => setNewProduct({ ...newProduct, sku: e.target.value })} placeholder="e.g. AP-IP16-256-BK" className="h-10 bg-muted/30 border-border/20 rounded-xl text-sm font-medium" />
+                                                        <Input value={newProduct.sku} onChange={(e) => setNewProduct({ ...newProduct, sku: e.target.value })} placeholder="e.g. F1-MCL-TEE-01" className="h-10 bg-muted/30 border-border/20 rounded-xl text-sm font-medium" />
                                                     </div>
                                                     {newProduct.productColors.length === 0 && newProduct.variants.length < 2 && (
                                                         <div className="flex flex-col gap-2 md:col-span-1">
                                                             <label className="text-[10px] font-bold text-muted-foreground ml-2  uppercase">Total Stock</label>
+                                                            <div className="flex flex-col gap-2 p-3 bg-muted/40 rounded-xl border border-border/40 my-1">
+                                                                <span className="text-[9px] font-black uppercase tracking-widest text-primary">Sizes Stock Breakdown</span>
+                                                                <div className="grid grid-cols-5 gap-1.5">
+                                                                    {["S", "M", "L", "XL", "XXL"].map(size => (
+                                                                        <div key={size} className="flex flex-col gap-0.5">
+                                                                            <span className="text-[8px] font-bold text-center text-muted-foreground">{size}</span>
+                                                                            <input
+                                                                                type="number"
+                                                                                min="0"
+                                                                                value={(newProduct.sizes as any)?.[size] ?? 0}
+                                                                                onChange={(e) => {
+                                                                                    const val = Math.max(0, parseInt(e.target.value) || 0)
+                                                                                    const updatedSizes = { ...(newProduct.sizes || {}), [size]: val }
+                                                                                    const newTotal = ["S", "M", "L", "XL", "XXL"].reduce((acc, sz) => acc + (parseInt((updatedSizes as any)[sz]) || 0), 0)
+                                                                                    setNewProduct({ ...newProduct, sizes: updatedSizes, stock: String(newTotal) })
+                                                                                }}
+                                                                                className="h-8 bg-card border border-border/30 rounded-lg text-center font-bold text-xs outline-none"
+                                                                            />
+                                                                        </div>
+                                                                    ))}
+                                                                </div>
+                                                            </div>
                                                             <Input type="number" value={newProduct.stock} onChange={(e) => setNewProduct({ ...newProduct, stock: e.target.value })} placeholder="0" className="h-10 bg-muted/30 border-border/20 rounded-xl text-sm font-medium" />
                                                         </div>
                                                     )}
