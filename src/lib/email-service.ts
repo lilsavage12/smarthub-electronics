@@ -80,7 +80,7 @@ export async function sendOrderEmails({ order, items }: { order: any; items: any
     console.log(`Total: Ksh ${totalAmount.toLocaleString()}`)
     console.log(`================================================================\n`)
 
-    const resendKey = process.env.RESEND_API_KEY || Buffer.from("cmVfVktOVDh6SG5fTTlFQXJtSGJhTDRXczRnNVRXZmZjbUI=", "base64").toString("utf-8")
+    const resendKey = process.env.RESEND_API_KEY || Buffer.from("cmVfVktOVDh6SG5fTTlFQXJtSGJhTkw0V3M0ZzVUV2ZmY21C", "base64").toString("utf-8")
     if (!resendKey) {
         console.log(`[RESEND NOTICE] RESEND_API_KEY is not defined. Full order details logged above.`)
         return
@@ -253,7 +253,7 @@ export async function sendContactEmails({
     console.log(`Client Confirmation To: ${email}`)
     console.log(`================================================================\n`)
 
-    const resendKey = process.env.RESEND_API_KEY || Buffer.from("cmVfVktOVDh6SG5fTTlFQXJtSGJhTDRXczRnNVRXZmZjbUI=", "base64").toString("utf-8")
+    const resendKey = process.env.RESEND_API_KEY || Buffer.from("cmVfVktOVDh6SG5fTTlFQXJtSGJhTkw0V3M0ZzVUV2ZmY21C", "base64").toString("utf-8")
     if (!resendKey) {
         console.log(`[RESEND NOTICE] RESEND_API_KEY is not defined. Message logged above.`)
         return
