@@ -193,10 +193,12 @@ export async function POST(req: Request) {
             console.error("[ORDERS_API] OrderItem insertion warning:", itemsError)
         }
 
-        // 5. Dispatch Notification Emails (Admin & Customer)
-        sendOrderEmails({ order, items: verifiedItems }).catch(e => {
-            console.error("[ORDERS_API] Email trigger background notice:", e)
-        })
+        // 5. Dispatch Notification Emails (Admin & Customer) - Awaited for serverless execution lifecycle
+        try {
+            await sendOrderEmails({ order, items: verifiedItems })
+        } catch (e) {
+            console.error("[ORDERS_API] Email trigger notice:", e)
+        }
 
         return NextResponse.json({ 
             success: true, 

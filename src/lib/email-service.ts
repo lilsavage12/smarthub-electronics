@@ -169,12 +169,13 @@ export async function sendOrderEmails({ order, items }: { order: any; items: any
             console.log('[RESEND SUCCESS] Admin notification email sent! ID:', adminResult.data?.id)
         }
 
-        // 2. Dispatch Email to Client (if email provided)
-        if (clientEmail && clientEmail.includes('@')) {
-            const clientResult = await resend.emails.send({
-                from: fromAddress,
-                to: [clientEmail],
-                subject: `🏁 Your F1GEAR KE Order #${order.orderNumber} has been received!`,
+        // 2. Dispatch Email to Client (if real external email provided)
+        if (clientEmail && clientEmail.includes('@') && !clientEmail.endsWith('@f1gear.co.ke')) {
+            try {
+                const clientResult = await resend.emails.send({
+                    from: fromAddress,
+                    to: [clientEmail],
+                    subject: `🏁 Your F1GEAR KE Order #${order.orderNumber} has been received!`,
                 html: `
                     <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0c0c0e; color: #fff; padding: 30px; max-width: 600px; margin: 0 auto; border: 1px solid #222;">
                         <div style="border-bottom: 2px solid #e10600; padding-bottom: 12px; margin-bottom: 20px;">
