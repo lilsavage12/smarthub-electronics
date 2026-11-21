@@ -181,7 +181,7 @@ export const ProductCard = ({ product, viewMode = "grid", dark = false }: { prod
                         <span className="text-[9px] font-black uppercase tracking-[0.25em] text-white/40 font-f1">
                             {product.brand || product.category || "SCUDERIA FERRARI"}
                         </span>
-                        <h3 className="text-sm font-black uppercase tracking-tight text-white line-clamp-1 group-hover:text-[#e10600] transition-colors font-f1">
+                        <h3 className="text-sm font-black uppercase tracking-[0.04em] text-white line-clamp-1 group-hover:text-[#e10600] transition-colors font-f1">
                             {product.name}
                         </h3>
                         <span className="text-[9px] font-bold text-white/30 uppercase tracking-widest font-f1">
@@ -246,7 +246,7 @@ export const ProductCard = ({ product, viewMode = "grid", dark = false }: { prod
                                         <span className="text-[10px] font-black uppercase tracking-[0.25em] text-[#00d4aa] block mb-1 font-f1">
                                             {product.brand || "OFFICIAL ISSUE"}
                                         </span>
-                                        <h2 className="text-2xl md:text-3xl font-black uppercase text-white tracking-tight leading-none font-f1">
+                                        <h2 className="text-2xl md:text-3xl font-black uppercase text-white tracking-[0.04em] leading-none font-f1">
                                             {product.name}
                                         </h2>
                                         <div className="mt-2 flex items-baseline gap-2">

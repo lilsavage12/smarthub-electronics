@@ -142,6 +142,11 @@
 ::-webkit-scrollbar-track { background: #0d0d0d; }
 ::-webkit-scrollbar-thumb { background: #e10600; border-radius: 0; }
 
+.font-f1,
+.font-bebas {
+  letter-spacing: 0.04em;
+}
+
 .glass {
   @apply bg-white/10 backdrop-blur-md border border-white/20;
 }

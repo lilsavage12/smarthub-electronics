@@ -25,8 +25,8 @@ export const Navbar = ({ initialSettings }: { initialSettings?: any }) => {
                 <div className="max-w-[1440px] mx-auto px-6 md:px-12 h-16 flex items-center justify-between">
 
                     {/* BRAND LOGO */}
-                    <Link href="/" className="flex items-center tracking-tighter group">
-                        <span className="font-black text-white text-xl tracking-tighter font-f1 group-hover:text-[#e10600] transition-colors">
+                    <Link href="/" className="flex items-center group">
+                        <span className="font-black text-white text-xl tracking-[0.05em] font-f1 group-hover:text-[#e10600] transition-colors">
                             F1GEAR
                         </span>
                         <span className="text-[#e10600] font-black text-xl mx-1.5 leading-none">|</span>

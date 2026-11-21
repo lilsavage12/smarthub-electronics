@@ -372,14 +372,14 @@ function HeroSection() {
                     {/* Left Column */}
                     <div className="flex flex-col items-start w-full">
                         {/* 3-Line Display Headline in Bebas Neue */}
-                        <div className="flex flex-col leading-[0.92] select-none font-bebas tracking-normal">
-                            <h1 className="text-[64px] sm:text-[80px] lg:text-[96px] font-normal uppercase text-[#EAE6DF] leading-[0.92] m-0 p-0">
+                        <div className="flex flex-col leading-[0.92] select-none font-bebas">
+                            <h1 className="text-[64px] sm:text-[80px] lg:text-[96px] font-normal uppercase text-[#EAE6DF] leading-[0.92] m-0 p-0 tracking-[0.05em]">
                                 PADDOCK
                             </h1>
-                            <h1 className="text-[64px] sm:text-[80px] lg:text-[96px] font-normal uppercase text-[#FF1E00] leading-[0.92] m-0 p-0">
+                            <h1 className="text-[64px] sm:text-[80px] lg:text-[96px] font-normal uppercase text-[#FF1E00] leading-[0.92] m-0 p-0 tracking-[0.05em]">
                                 PRECISION
                             </h1>
-                            <h1 className="text-[64px] sm:text-[80px] lg:text-[96px] font-normal uppercase text-[#EAE6DF] leading-[0.92] m-0 p-0 whitespace-nowrap">
+                            <h1 className="text-[64px] sm:text-[80px] lg:text-[96px] font-normal uppercase text-[#EAE6DF] leading-[0.92] m-0 p-0 tracking-[0.05em] whitespace-nowrap">
                                 STREETWEAR
                             </h1>
                         </div>
@@ -490,7 +490,7 @@ function CollectionSection({ products }: { products: any[] }) {
                                 THE COLLECTION
                             </span>
                         </div>
-                        <h2 className="text-2xl sm:text-3xl md:text-4xl font-black uppercase tracking-tight text-white leading-none font-f1">
+                        <h2 className="text-2xl sm:text-3xl md:text-4xl font-black uppercase tracking-[0.06em] text-white leading-none font-f1">
                             TEAM ISSUE, <span className="text-white/40">STREET LEGAL</span>
                         </h2>
                     </div>
@@ -544,7 +544,7 @@ function LogisticsSection() {
                                 LOGISTICS
                             </span>
                         </div>
-                        <h2 className="text-4xl md:text-5xl lg:text-6xl font-black uppercase tracking-tight text-white leading-none font-f1">
+                        <h2 className="text-4xl md:text-5xl lg:text-6xl font-black uppercase tracking-[0.06em] text-white leading-none font-f1">
                             DELIVERED <span className="text-[#e10600]">COUNTRYWIDE</span>
                         </h2>
                     </div>
@@ -620,7 +620,7 @@ function LogisticsSection() {
                         <span className="text-[9px] font-black uppercase tracking-[0.25em] text-white/30 block font-f1">
                             PAY VIA
                         </span>
-                        <h3 className="text-2xl md:text-3xl font-black uppercase tracking-tight text-white font-f1">
+                        <h3 className="text-2xl md:text-3xl font-black uppercase tracking-[0.05em] text-white font-f1">
                             M-PESA ON WHATSAPP
                         </h3>
                         <p className="text-xs text-white/40 mt-1">
@@ -682,7 +682,7 @@ function ContactSection() {
                                 TALK TO THE TEAM
                             </span>
                         </div>
-                        <h2 className="text-4xl md:text-5xl font-black uppercase tracking-tight leading-none text-white font-f1">
+                        <h2 className="text-4xl md:text-5xl font-black uppercase tracking-[0.06em] leading-none text-white font-f1">
                             STRAIGHT TO THE <br />
                             <span className="text-[#e10600]">PADDOCK</span>
                         </h2>

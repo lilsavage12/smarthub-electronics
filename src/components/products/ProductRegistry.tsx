@@ -22,7 +22,7 @@ export function ProductRegistry({ initialProducts = [] }: { initialProducts: any
                     <span className="text-[10px] font-black uppercase tracking-[0.3em] text-white/40 block">
                         THE GRID
                     </span>
-                    <h1 className="text-4xl md:text-6xl font-black uppercase tracking-tight text-white leading-none">
+                    <h1 className="text-4xl md:text-6xl font-black uppercase tracking-[0.06em] text-white leading-none">
                         ALL GEAR & <span className="text-[#e10600]">COLLECTIONS</span>
                     </h1>
                     <p className="text-xs text-white/50 max-w-md mt-2">

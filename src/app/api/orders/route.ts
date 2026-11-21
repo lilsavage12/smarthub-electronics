@@ -137,21 +137,22 @@ export async function POST(req: Request) {
 
         // 3. Save Order
         const orderId = crypto.randomUUID()
+        const fallbackEmail = `${(customerPhone || "guest").replace(/[^a-zA-Z0-9]/g, "") || "order"}@f1gear.co.ke`
         const { data: order, error: orderError } = await supabaseAdmin
             .from('Order')
             .insert({
                 id: orderId,
                 orderNumber,
                 userId: userId || null,
-                customerName,
-                customerEmail: customerEmail || null,
-                customerPhone,
-                address,
-                city: city || "Nairobi",
+                customerName: customerName.trim(),
+                customerEmail: (customerEmail && customerEmail.trim()) || fallbackEmail,
+                customerPhone: customerPhone.trim(),
+                address: (address && address.trim()) || "Nairobi, Kenya",
+                city: (city && city.trim()) || "Nairobi",
                 area: area || null,
                 deliveryFee: parsedDeliveryFee,
                 totalAmount,
-                paymentMethod,
+                paymentMethod: paymentMethod || "M-PESA ON WHATSAPP",
                 paymentStatus: "Pending", 
                 transactionCode: transactionCode || null,
                 notes: notes || null,
@@ -172,14 +173,14 @@ export async function POST(req: Request) {
         const orderItemsToInsert = verifiedItems.map(vi => ({
             id: crypto.randomUUID(),
             orderId: order.id,
-            productId: vi.productId,
-            variantId: vi.variantId,
-            color: vi.color,
-            name: vi.name,
-            quantity: vi.quantity,
-            price: vi.price,
-            originalPrice: vi.originalPrice,
-            image: vi.image,
+            productId: vi.productId || "5373c633-4d97-4367-bc1e-5204fab17609",
+            variantId: vi.variantId || null,
+            color: vi.color || "Standard",
+            name: vi.name || "F1 Gear Item",
+            quantity: Number(vi.quantity) || 1,
+            price: Number(vi.price) || 0,
+            originalPrice: vi.originalPrice ? Number(vi.originalPrice) : null,
+            image: vi.image || "/favicon.png",
             createdAt: now,
             updatedAt: now
         }))
