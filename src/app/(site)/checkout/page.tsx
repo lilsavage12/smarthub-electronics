@@ -40,6 +40,8 @@ export default function CheckoutPage() {
     const [appliedDiscount, setAppliedDiscount] = useState<any>(null)
     const [isSubmitting, setIsSubmitting] = useState(false)
     const [isSubmitted, setIsSubmitted] = useState(false)
+    const [submittedWhatsAppUrl, setSubmittedWhatsAppUrl] = useState<string | null>(null)
+    const [submittedOrderRef, setSubmittedOrderRef] = useState<string | null>(null)
 
     // 1. Fetch Delivery Zones from DB
     useEffect(() => {
@@ -248,8 +250,9 @@ export default function CheckoutPage() {
             }
 
             const orderRef = data.orderNumber || `F1-${Date.now().toString().slice(-4)}`
+            setSubmittedOrderRef(orderRef)
 
-            // 2. Format WhatsApp Message
+            // 2. Format WhatsApp Message with full encoding
             const itemLines = selectedItems.map(i => {
                 const qty = Number(i.quantity) || 1
                 const orig = Number(i.originalPrice) || i.price
@@ -257,9 +260,11 @@ export default function CheckoutPage() {
                 const discLabel = isDisc ? ` [SALE ~Ksh ${orig.toLocaleString()}~ Ksh ${i.price.toLocaleString()}]` : ''
                 const calc = qty > 1 ? ` (Ksh ${i.price.toLocaleString()} x ${qty} = Ksh ${(i.price * qty).toLocaleString()})` : ` (Ksh ${(i.price * qty).toLocaleString()})`
                 return `• ${i.name}${discLabel} - Size: ${i.variant || 'L'}, Qty: ${qty}${calc}`
-            }).join('%0A')
+            }).join('\n')
 
-            const message = `*NEW ORDER - F1GEAR KE*%0A*Order Ref:* ${orderRef}%0A%0A*Customer:* ${form.fullName}%0A*Phone:* ${form.phone}%0A*Email:* ${form.email || 'N/A'}%0A*City:* ${form.city || 'Nairobi'}%0A*Location/Area:* ${effectiveArea}%0A*Street/Building:* ${form.address}%0A*Delivery Fee:* ${deliveryFeeDisplay}%0A*M-Pesa Code:* ${form.mpesaCode || 'Will pay on confirmation'}%0A*Notes:* ${form.notes || 'None'}%0A%0A*ITEMS:*%0A${itemLines}%0A%0A*SUBTOTAL:* Ksh ${subtotal.toLocaleString()}%0A${appliedDiscount ? `*DISCOUNT (${appliedDiscount.code}):* -Ksh ${discountAmount.toLocaleString()}%0A` : ''}*TOTAL:* Ksh ${finalOrderTotal.toLocaleString()}%0A_Delivery: ${deliveryFeeDisplay}_`
+            const rawMessage = `*NEW ORDER - F1GEAR KE*\n*Order Ref:* ${orderRef}\n\n*Customer:* ${form.fullName}\n*Phone:* ${form.phone}\n*Email:* ${form.email || 'N/A'}\n*City:* ${form.city || 'Nairobi'}\n*Location/Area:* ${effectiveArea}\n*Street/Building:* ${form.address}\n*Delivery Fee:* ${deliveryFeeDisplay}\n*M-Pesa Code:* ${form.mpesaCode || 'Will pay on confirmation'}\n*Notes:* ${form.notes || 'None'}\n\n*ITEMS:*\n${itemLines}\n\n*SUBTOTAL:* Ksh ${subtotal.toLocaleString()}\n${appliedDiscount ? `*DISCOUNT (${appliedDiscount.code}):* -Ksh ${discountAmount.toLocaleString()}\n` : ''}*TOTAL:* Ksh ${finalOrderTotal.toLocaleString()}\n_Delivery: ${deliveryFeeDisplay}_`
+
+            const whatsappUrl = `https://wa.me/254142656105?text=${encodeURIComponent(rawMessage)}`
 
             toast.success("Order confirmed and logged to admin!", { id: loadingId })
             
@@ -268,11 +273,23 @@ export default function CheckoutPage() {
                 await removeItem(item.id)
             }
 
+            if (sendToWhatsApp) {
+                setSubmittedWhatsAppUrl(whatsappUrl)
+            }
             setIsSubmitted(true)
 
             if (sendToWhatsApp) {
-                // Open WhatsApp with formatted order
-                window.open(`https://wa.me/254142656105?text=${message}`, '_blank')
+                // Navigate directly to WhatsApp to avoid popup blockers on mobile & desktop
+                setTimeout(() => {
+                    try {
+                        const opened = window.open(whatsappUrl, '_blank')
+                        if (!opened || opened.closed || typeof opened.closed === 'undefined') {
+                            window.location.href = whatsappUrl
+                        }
+                    } catch {
+                        window.location.href = whatsappUrl
+                    }
+                }, 350)
             }
         } catch (error: any) {
             console.error("Order submit error:", error)
@@ -288,18 +305,43 @@ export default function CheckoutPage() {
                 <div className="w-16 h-16 rounded-full bg-[#e10600]/10 border border-[#e10600]/30 flex items-center justify-center text-[#e10600]">
                     <CheckCircle2 size={32} />
                 </div>
-                <h1 className="text-3xl md:text-4xl font-black uppercase tracking-tight text-white font-f1">
-                    ORDER CONFIRMED & SYNCED
-                </h1>
-                <p className="text-xs text-white/50 leading-relaxed">
+                
+                <div className="space-y-2">
+                    <span className="text-[10px] font-black uppercase tracking-[0.25em] text-[#e10600] font-f1 block">
+                        ORDER REF: #{submittedOrderRef || 'CONFIRMED'}
+                    </span>
+                    <h1 className="text-3xl md:text-4xl font-black uppercase tracking-[0.06em] text-white font-f1">
+                        ORDER LOGGED & CONFIRMED
+                    </h1>
+                </div>
+
+                <p className="text-xs text-white/50 leading-relaxed max-w-md">
                     Your order details have been synchronized with the admin dashboard and dispatched for WhatsApp delivery confirmation.
                 </p>
-                <Link
-                    href="/"
-                    className="inline-flex items-center gap-2 bg-[#e10600] text-white px-8 py-3 text-xs font-black uppercase tracking-widest font-f1"
-                >
-                    RETURN TO STORE
-                </Link>
+
+                {submittedWhatsAppUrl && (
+                    <div className="w-full max-w-sm space-y-3 pt-2">
+                        <a
+                            href={submittedWhatsAppUrl}
+                            className="w-full bg-[#25D366] hover:bg-[#20bd5a] text-black text-xs font-black uppercase tracking-[0.18em] h-14 flex items-center justify-center gap-2.5 transition-all font-f1 shadow-xl cursor-pointer"
+                        >
+                            <MessageCircle size={18} />
+                            <span>OPEN WHATSAPP NOW</span>
+                        </a>
+                        <p className="text-[10px] text-white/40">
+                            If WhatsApp didn't open automatically, tap the button above to send your pre-filled order.
+                        </p>
+                    </div>
+                )}
+
+                <div className="pt-2">
+                    <Link
+                        href="/"
+                        className="inline-flex items-center gap-2 border border-white/20 hover:border-white/40 text-white/80 hover:text-white px-8 py-3 text-xs font-black uppercase tracking-widest font-f1 transition-colors"
+                    >
+                        RETURN TO STORE
+                    </Link>
+                </div>
             </div>
         )
     }
