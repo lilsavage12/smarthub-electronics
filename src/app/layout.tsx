@@ -1,27 +1,22 @@
 import type { Metadata } from "next";
-import { Inter, Outfit } from "next/font/google";
-import Script from "next/script";
 import "./globals.css";
-import { Navbar } from "@/components/layout/Navbar";
-import { Footer } from "@/components/layout/Footer";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { ModernToaster } from "@/components/shared/ModernToaster";
-
-
-const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
-const outfit = Outfit({ subsets: ["latin"], variable: "--font-outfit" });
-
 import { SessionSyncProvider } from "@/components/shared/SessionSyncProvider";
 
 export const metadata: Metadata = {
   title: {
-    default: "SmartHub Electronics",
-    template: "%s | SmartHub Electronics"
+    default: "F1GEAR | KE — Paddock Precision Streetwear",
+    template: "%s | F1GEAR KE"
   },
-  description: "Secure, scalable eCommerce platform for the latest smartphones and certified refurbished electronics.",
+  description: "Formula One inspired gear, built for the paddock and the city. Premium jackets, shirts and polos delivered anywhere in Kenya.",
   icons: {
-    icon: "/favicon.png?v=2",
-    apple: "/favicon.png?v=2",
+    icon: [
+      { url: "/favicon.ico" },
+      { url: "/favicon.png", type: "image/png" }
+    ],
+    shortcut: "/favicon.ico",
+    apple: "/apple-touch-icon.png",
   }
 };
 
@@ -31,18 +26,24 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en" className="dark" style={{ colorScheme: 'dark' }} suppressHydrationWarning data-scroll-behavior="smooth">
       <head>
-        {/* Simplified head - letting suppressHydrationWarning do its job naturally */}
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link
+          href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Barlow+Condensed:ital,wght@0,700;0,800;0,900;1,700;1,800;1,900&display=swap"
+          rel="stylesheet"
+        />
       </head>
       <body
-        className={`${inter.variable} ${outfit.variable} font-sans antialiased min-h-screen bg-background`}
+        className="font-sans antialiased min-h-screen bg-background text-foreground dark"
         suppressHydrationWarning
       >
         <ThemeProvider
           attribute="class"
           defaultTheme="dark"
-          enableSystem
+          forcedTheme="dark"
+          enableSystem={false}
           disableTransitionOnChange
         >
           <SessionSyncProvider>

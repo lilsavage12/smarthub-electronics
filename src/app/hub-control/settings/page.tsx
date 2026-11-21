@@ -6,7 +6,9 @@ import {
     ShieldCheck, Activity, Loader2,
     Settings as SettingsIcon,
     ChevronRight,
-    Search
+    Search,
+    CheckCircle2,
+    AlertCircle
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -18,11 +20,16 @@ import { useAuth } from "@/lib/auth-store"
 
 export default function AdminSettingsPage() {
     const { user } = useAuth()
-    const [activeTab, setActiveTab] = useState<"staff" | "profile">("staff")
+    const [activeTab, setActiveTab] = useState<"staff" | "profile" | "email">("email")
     const [inviting, setInviting] = useState(false)
     const [email, setEmail] = useState("")
     const [invites, setInvites] = useState<any[]>([])
     const [loading, setLoading] = useState(true)
+
+    // Resend test email state
+    const [testEmail, setTestEmail] = useState("")
+    const [isSendingTest, setIsSendingTest] = useState(false)
+    const [testResult, setTestResult] = useState<{ success?: boolean; message?: string } | null>(null)
 
     const fetchInvites = async () => {
         try {
@@ -48,15 +55,12 @@ export default function AdminSettingsPage() {
         setInviting(true)
         
         try {
-            const token = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15)
             const res = await fetch("/api/invites", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     email,
-                    token,
-                    role: "ADMIN",
-                    status: "PENDING"
+                    role: "STAFF"
                 })
             })
 
@@ -65,13 +69,11 @@ export default function AdminSettingsPage() {
                 setEmail("")
                 fetchInvites()
             } else {
-                const errData = await res.json().catch(() => ({}))
-                console.error("Invite send failed:", errData)
-                throw new Error(errData.error || "Failed to send invite")
+                const data = await res.json()
+                toast.error(data.error || "Failed to dispatch invite")
             }
-        } catch (error: any) {
-            console.error("Invite Handle Error:", error)
-            toast.error(`Error: ${error.message || "Could not send invite"}`)
+        } catch (error) {
+            toast.error("Internal processing error")
         } finally {
             setInviting(false)
         }
@@ -91,40 +93,83 @@ export default function AdminSettingsPage() {
         }
     }
 
+    const handleSendTestEmail = async () => {
+        setIsSendingTest(true)
+        setTestResult(null)
+        const toastId = toast.loading("Connecting to Resend API...")
+
+        try {
+            const res = await fetch("/api/admin/test-email", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    toEmail: testEmail.trim() || undefined
+                })
+            })
+
+            const data = await res.json()
+
+            if (res.ok && data.success) {
+                setTestResult({ success: true, message: data.message })
+                toast.success("Test email dispatched successfully via Resend!", { id: toastId })
+            } else {
+                setTestResult({ success: false, message: data.error || "Failed to send test email" })
+                toast.error(data.error || "Resend API rejected request", { id: toastId })
+            }
+        } catch (e: any) {
+            setTestResult({ success: false, message: e.message || "Network error" })
+            toast.error("Could not connect to test endpoint", { id: toastId })
+        } finally {
+            setIsSendingTest(false)
+        }
+    }
+
     return (
-        <div className="flex flex-col gap-12 max-w-[1400px] mx-auto p-4 md:p-8">
-            <div className="flex flex-col gap-4">
-                <h1 className="text-5xl md:text-6xl font-black  tracking-tighter uppercase leading-none">Settings</h1>
-                <p className="text-[10px] font-black uppercase text-muted-foreground tracking-[0.3em] opacity-60">
-                    Manage your <span className="text-foreground">Account</span> and <span className="text-primary ">Team Access</span> preferences.
+        <div className="flex flex-col gap-10 max-w-[1400px] mx-auto p-4 md:p-8">
+            <div className="flex flex-col gap-3">
+                <h1 className="text-4xl md:text-5xl font-black tracking-tighter uppercase leading-none font-f1">Settings</h1>
+                <p className="text-[10px] font-black uppercase text-muted-foreground tracking-[0.25em] font-f1">
+                    Manage your <span className="text-foreground">Email Notifications</span>, <span className="text-foreground">Account</span>, and <span className="text-[#e10600]">Team Access</span>.
                 </p>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
                 {/* Left Navigation Matrix */}
-                <div className="lg:col-span-3 flex flex-col gap-4">
+                <div className="lg:col-span-3 flex flex-col gap-3 font-f1">
+                    <button 
+                        onClick={() => setActiveTab("email")}
+                        className={cn(
+                            "flex items-center gap-3.5 p-4 rounded-xl transition-all font-black text-xs uppercase tracking-widest cursor-pointer",
+                            activeTab === "email" 
+                                ? "bg-[#e10600] text-white shadow-xl shadow-[#e10600]/20" 
+                                : "text-muted-foreground hover:bg-muted/40 hover:text-foreground"
+                        )}
+                    >
+                        <Mail size={16} />
+                        Email & Resend API
+                    </button>
                     <button 
                         onClick={() => setActiveTab("staff")}
                         className={cn(
-                            "flex items-center gap-4 p-5 rounded-2xl transition-all font-black text-[11px] uppercase tracking-widest group",
+                            "flex items-center gap-3.5 p-4 rounded-xl transition-all font-black text-xs uppercase tracking-widest cursor-pointer",
                             activeTab === "staff" 
-                                ? "bg-primary text-white shadow-2xl shadow-primary/20 scale-105" 
-                                : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                                ? "bg-[#e10600] text-white shadow-xl shadow-[#e10600]/20" 
+                                : "text-muted-foreground hover:bg-muted/40 hover:text-foreground"
                         )}
                     >
-                        <Users size={18} className={cn(activeTab === "staff" ? "animate-pulse" : "group-hover:scale-110")} />
+                        <Users size={16} />
                         Staff Access
                     </button>
                     <button 
                         onClick={() => setActiveTab("profile")}
                         className={cn(
-                            "flex items-center gap-4 p-5 rounded-2xl transition-all font-black text-[11px] uppercase tracking-widest group",
+                            "flex items-center gap-3.5 p-4 rounded-xl transition-all font-black text-xs uppercase tracking-widest cursor-pointer",
                             activeTab === "profile" 
-                                ? "bg-primary text-white shadow-2xl shadow-primary/20 scale-105" 
-                                : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                                ? "bg-[#e10600] text-white shadow-xl shadow-[#e10600]/20" 
+                                : "text-muted-foreground hover:bg-muted/40 hover:text-foreground"
                         )}
                     >
-                        <User size={18} className={cn(activeTab === "profile" ? "animate-pulse" : "group-hover:scale-110")} />
+                        <User size={16} />
                         Your Profile
                     </button>
                 </div>
@@ -132,143 +177,189 @@ export default function AdminSettingsPage() {
                 {/* Main Control Area */}
                 <div className="lg:col-span-9">
                     <AnimatePresence mode="wait">
+
+                        {/* EMAIL & RESEND API TAB (One-Click Verification) */}
+                        {activeTab === "email" && (
+                            <motion.div 
+                                key="email"
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: -10 }}
+                                className="flex flex-col gap-8 font-f1"
+                            >
+                                {/* One Click Resend Tester Card */}
+                                <Card className="rounded-2xl border border-border dark:border-white/10 bg-card dark:bg-[#111114] p-8 md:p-10 shadow-xl space-y-6">
+                                    <div className="flex items-center justify-between border-b border-border/40 pb-4">
+                                        <div className="space-y-1">
+                                            <h2 className="text-2xl font-black uppercase tracking-tight text-foreground">
+                                                Resend API Email Verification
+                                            </h2>
+                                            <p className="text-xs text-muted-foreground uppercase tracking-widest font-sans">
+                                                Test your Resend email setup with one click.
+                                            </p>
+                                        </div>
+                                        <div className="p-3 rounded-xl bg-[#e10600]/10 text-[#e10600] border border-[#e10600]/20">
+                                            <Mail size={20} />
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-4">
+                                        <div>
+                                            <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground block mb-2">
+                                                Send Test Email To:
+                                            </label>
+                                            <div className="flex flex-col sm:flex-row gap-3">
+                                                <input 
+                                                    type="email"
+                                                    value={testEmail}
+                                                    onChange={e => setTestEmail(e.target.value)}
+                                                    placeholder="Enter your email address (or leave empty for admin default)"
+                                                    className="flex-1 bg-muted/30 dark:bg-black/50 border border-border dark:border-white/15 h-12 px-4 rounded-xl text-xs text-foreground placeholder:text-muted-foreground/40 outline-none focus:border-[#e10600] font-sans"
+                                                />
+                                                <button
+                                                    type="button"
+                                                    disabled={isSendingTest}
+                                                    onClick={handleSendTestEmail}
+                                                    className="bg-[#e10600] hover:bg-[#c90500] text-white text-xs font-black uppercase tracking-widest px-8 h-12 rounded-xl flex items-center justify-center gap-2 transition-all cursor-pointer disabled:opacity-50 shrink-0 shadow-lg shadow-[#e10600]/20"
+                                                >
+                                                    {isSendingTest ? <Loader2 size={16} className="animate-spin" /> : <Send size={15} />}
+                                                    <span>{isSendingTest ? "DISPATCHING..." : "SEND TEST EMAIL (1-CLICK)"}</span>
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        {/* Result Display Banner */}
+                                        {testResult && (
+                                            <div className={cn(
+                                                "p-4 rounded-xl border flex items-start gap-3 mt-4",
+                                                testResult.success 
+                                                    ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-400" 
+                                                    : "bg-destructive/10 border-destructive/30 text-destructive"
+                                            )}>
+                                                {testResult.success ? <CheckCircle2 size={18} className="shrink-0 mt-0.5" /> : <AlertCircle size={18} className="shrink-0 mt-0.5" />}
+                                                <div className="text-xs font-sans leading-relaxed">
+                                                    <span className="font-black uppercase block font-f1 tracking-wider">
+                                                        {testResult.success ? "SUCCESS" : "DISPATCH FAILED"}
+                                                    </span>
+                                                    <span>{testResult.message}</span>
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {/* Configuration Guide */}
+                                    <div className="bg-muted/20 dark:bg-black/40 border border-border/40 dark:border-white/5 p-6 rounded-xl space-y-3 font-sans">
+                                        <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground font-f1 block">
+                                            ACTIVE ENVIRONMENT VARIABLES (.env)
+                                        </span>
+                                        <div className="space-y-1.5 text-xs text-muted-foreground font-mono">
+                                            <p>• <span className="text-foreground">RESEND_API_KEY</span>: Starts with <code className="text-[#e10600]">re_...</code> from resend.com/api-keys</p>
+                                            <p>• <span className="text-foreground">ADMIN_NOTIFICATION_EMAIL</span>: Where new order notices arrive</p>
+                                            <p>• <span className="text-foreground">RESEND_FROM_EMAIL</span>: <code className="text-emerald-400">F1GEAR KE &lt;onboarding@resend.dev&gt;</code> (or your verified domain)</p>
+                                        </div>
+                                    </div>
+                                </Card>
+                            </motion.div>
+                        )}
+
+                        {/* STAFF TAB */}
                         {activeTab === "staff" && (
                             <motion.div 
                                 key="staff"
-                                initial={{ opacity: 0, x: 20 }}
-                                animate={{ opacity: 1, x: 0 }}
-                                exit={{ opacity: 0, x: -20 }}
-                                className="flex flex-col gap-10"
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: -10 }}
+                                className="flex flex-col gap-8 font-f1"
                             >
-                                {/* Add New Staff Admin */}
-                                <Card className="rounded-[3rem] border-border bg-card p-10 lg:p-16 shadow-2xl shadow-black/5 overflow-hidden relative">
-                                    <div className="absolute top-0 right-0 w-96 h-96 bg-primary/5 rounded-full -translate-y-1/2 translate-x-1/2 blur-[100px]" />
-                                    
-                                    <div className="flex flex-col gap-10 relative z-10">
-                                        <div className="flex flex-col gap-2">
-                                            <h2 className="text-3xl lg:text-4xl font-black  tracking-tighter uppercase leading-none">Add New Staff</h2>
-                                            <span className="text-[10px] font-black uppercase text-muted-foreground tracking-widest opacity-60">
-                                                Invite another administrator to manage the website.
-                                            </span>
-                                        </div>
-
-                                        <form onSubmit={handleInvite} className="flex flex-col md:flex-row gap-4">
-                                            <div className="relative flex-1 group">
-                                                <div className="absolute left-6 top-1/2 -translate-y-1/2 text-muted-foreground group-focus-within:text-primary transition-colors">
-                                                    <Mail size={18} />
-                                                </div>
-                                                <Input 
-                                                    value={email}
-                                                    onChange={(e) => setEmail(e.target.value)}
-                                                    placeholder="EMAIL@ADDRESS.COM"
-                                                    className="h-16 pl-16 pr-8 bg-muted/30 border-border rounded-2xl font-black  text-xs uppercase focus:ring-4 focus:ring-primary/5 transition-all text-foreground"
-                                                />
-                                            </div>
-                                            <Button 
-                                                type="submit"
-                                                disabled={inviting}
-                                                className="h-16 px-12 rounded-2xl bg-primary text-white font-black  uppercase tracking-widest text-[10px] shadow-2xl shadow-primary/20 hover:scale-105 transition-all gap-3"
-                                            >
-                                                {inviting ? <Loader2 className="animate-spin" size={16} /> : <Send size={16} />} 
-                                                Send Invite
-                                            </Button>
-                                        </form>
+                                <Card className="rounded-2xl border border-border dark:border-white/10 bg-card dark:bg-[#111114] p-8 md:p-10 shadow-xl space-y-6">
+                                    <div className="flex flex-col gap-1">
+                                        <h2 className="text-2xl font-black tracking-tighter uppercase text-foreground">Add New Staff</h2>
+                                        <span className="text-[10px] font-black uppercase text-muted-foreground tracking-widest font-sans">
+                                            Dispatch an invitation link to a new team member.
+                                        </span>
                                     </div>
+
+                                    <form onSubmit={handleInvite} className="flex flex-col sm:flex-row gap-4">
+                                        <input
+                                            type="email"
+                                            required
+                                            value={email}
+                                            onChange={(e) => setEmail(e.target.value)}
+                                            placeholder="STAFF@EMAIL.COM"
+                                            className="flex-1 bg-muted/30 dark:bg-black/50 border border-border dark:border-white/15 h-12 px-4 rounded-xl text-xs text-foreground placeholder:text-muted-foreground/40 outline-none focus:border-[#e10600] font-sans"
+                                        />
+                                        <button 
+                                            type="submit"
+                                            disabled={inviting}
+                                            className="bg-[#e10600] hover:bg-[#c90500] text-white text-xs font-black uppercase tracking-widest px-8 h-12 rounded-xl flex items-center justify-center gap-2 transition-all cursor-pointer disabled:opacity-50 shadow-lg shadow-[#e10600]/20"
+                                        >
+                                            {inviting ? <Loader2 size={16} className="animate-spin" /> : <Send size={15} />}
+                                            <span>Send Invite</span>
+                                        </button>
+                                    </form>
                                 </Card>
 
-                                {/* Pending Invites Matrix */}
-                                <div className="flex flex-col gap-6">
-                                    <div className="flex items-center justify-between px-4">
-                                        <span className="text-[10px] font-black uppercase tracking-[0.4em] text-muted-foreground">Pending Invites</span>
-                                        <div className="bg-muted px-4 py-1.5 rounded-full text-[8px] font-black uppercase tracking-widest opacity-60">{invites.length} Active</div>
-                                    </div>
-
+                                <div className="space-y-4">
+                                    <h3 className="text-lg font-black uppercase tracking-tight text-foreground">Pending Invitations</h3>
                                     {invites.length > 0 ? (
-                                        <div className="flex flex-col gap-4">
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                             {invites.map((invite) => (
-                                                <Card key={invite.id} className="rounded-2xl border-border bg-card p-6 flex items-center justify-between group hover:border-primary/20 transition-all">
-                                                    <div className="flex items-center gap-4">
-                                                        <div className="p-3 rounded-xl bg-primary/5 text-primary">
-                                                            <Mail size={18} />
-                                                        </div>
-                                                        <div className="flex flex-col">
-                                                            <span className="text-[11px] font-black  uppercase tracking-widest text-foreground">{invite.email}</span>
-                                                            <div className="flex items-center gap-2 mt-1">
-                                                                <span className="text-[8px] font-bold text-muted-foreground uppercase tracking-widest">Pending Onboarding • Role: {invite.role}</span>
-                                                                <button 
-                                                                    onClick={() => {
-                                                                        const link = `${window.location.origin}/hub-control/invite/${invite.token}`
-                                                                        navigator.clipboard.writeText(link)
-                                                                        toast.success("Invite link copied to clipboard")
-                                                                    }}
-                                                                    className="text-primary hover:underline text-[8px] font-black uppercase tracking-widest ml-2"
-                                                                >
-                                                                    Copy Link
-                                                                </button>
-                                                            </div>
-                                                        </div>
+                                                <Card key={invite.id} className="p-5 rounded-xl border border-border dark:border-white/10 bg-card dark:bg-[#111114] flex items-center justify-between">
+                                                    <div>
+                                                        <span className="text-xs font-black uppercase tracking-wide text-foreground block">{invite.email}</span>
+                                                        <span className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground font-sans">{invite.role || 'STAFF'}</span>
                                                     </div>
-                                                    <div className="flex items-center gap-2">
-                                                        <Button 
-                                                            variant="ghost" 
-                                                            size="icon" 
-                                                            onClick={() => deleteInvite(invite.id)}
-                                                            className="text-red-500 hover:bg-red-500/10 rounded-xl"
-                                                        >
-                                                            <Trash2 size={16} />
-                                                        </Button>
-                                                    </div>
+                                                    <button onClick={() => deleteInvite(invite.id)} className="text-destructive/60 hover:text-destructive p-2">
+                                                        <Trash2 size={16} />
+                                                    </button>
                                                 </Card>
                                             ))}
                                         </div>
                                     ) : (
-                                        <Card className="rounded-[2.5rem] border-dashed border-2 border-border bg-muted/5 p-16 flex items-center justify-center">
-                                            <div className="flex flex-col items-center gap-4 opacity-30">
-                                                <Activity size={40} className="text-muted-foreground" />
-                                                <span className="text-[10px] font-black uppercase tracking-[0.4em]  text-muted-foreground">No Pending Invites</span>
-                                            </div>
+                                        <Card className="rounded-xl border-dashed border-2 border-border/40 p-8 text-center text-muted-foreground text-xs font-sans">
+                                            No pending team invitations.
                                         </Card>
                                     )}
                                 </div>
                             </motion.div>
                         )}
 
+                        {/* PROFILE TAB */}
                         {activeTab === "profile" && (
                             <motion.div 
                                 key="profile"
-                                initial={{ opacity: 0, x: 20 }}
-                                animate={{ opacity: 1, x: 0 }}
-                                exit={{ opacity: 0, x: -20 }}
-                                className="flex flex-col gap-10"
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: -10 }}
+                                className="flex flex-col gap-8 font-f1"
                             >
-                                <Card className="rounded-[3rem] border-border bg-card p-10 lg:p-16 shadow-2xl shadow-black/5 flex flex-col gap-12">
-                                    <div className="flex items-center gap-8">
-                                        <div className="w-24 h-24 rounded-3xl bg-primary text-white flex items-center justify-center font-black text-4xl shadow-2xl shadow-primary/20  uppercase">
+                                <Card className="rounded-2xl border border-border dark:border-white/10 bg-card dark:bg-[#111114] p-8 md:p-10 shadow-xl space-y-6">
+                                    <div className="flex items-center gap-6">
+                                        <div className="w-16 h-16 rounded-2xl bg-[#e10600] text-white flex items-center justify-center font-black text-2xl uppercase">
                                             {user?.displayName?.[0] || user?.email?.[0] || "A"}
                                         </div>
-                                        <div className="flex flex-col">
-                                            <h3 className="text-3xl font-black  tracking-tighter uppercase leading-none">{user?.displayName || "Administrator"}</h3>
-                                            <span className="text-[10px] font-black uppercase tracking-widest text-primary mt-2">USER ID: {user?.id.substring(0, 8) || "MASTER-ADMIN"}</span>
+                                        <div>
+                                            <h3 className="text-2xl font-black uppercase text-foreground leading-none">{user?.displayName || "Administrator"}</h3>
+                                            <span className="text-[10px] font-bold uppercase tracking-widest text-[#e10600] mt-1 block font-sans">
+                                                ROLE: {user?.role || "SYSTEM ADMIN"}
+                                            </span>
                                         </div>
                                     </div>
 
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                                        <div className="flex flex-col gap-4">
-                                            <label className="text-[10px] font-black uppercase tracking-widest opacity-40  ml-2">Display Name</label>
-                                            <Input defaultValue={user?.displayName || ""} className="h-14 rounded-2xl bg-muted/30 border-border px-6 font-black  uppercase text-xs" />
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 font-sans">
+                                        <div>
+                                            <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground block mb-1">Display Name</label>
+                                            <Input defaultValue={user?.displayName || "System Administrator"} className="h-11 rounded-xl bg-muted/20 border-border" />
                                         </div>
-                                        <div className="flex flex-col gap-4">
-                                            <label className="text-[10px] font-black uppercase tracking-widest opacity-40  ml-2">Interface Language</label>
-                                            <Input defaultValue="ENGLISH (SIMPLE)" disabled className="h-14 rounded-2xl bg-muted/30 border-border px-6 font-black  uppercase text-xs opacity-50" />
+                                        <div>
+                                            <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground block mb-1">Email</label>
+                                            <Input defaultValue={user?.email || "admin@f1gear.ke"} disabled className="h-11 rounded-xl bg-muted/20 border-border opacity-60" />
                                         </div>
                                     </div>
-
-                                    <Button className="h-16 rounded-2xl bg-foreground text-background font-black  uppercase tracking-widest text-[10px] hover:bg-primary hover:text-white transition-all shadow-xl shadow-black/5">
-                                        Update Profile
-                                    </Button>
                                 </Card>
                             </motion.div>
                         )}
+
                     </AnimatePresence>
                 </div>
             </div>

@@ -7,7 +7,6 @@ import { Button } from "@/components/ui/button"
 import { useRouter, useParams } from "next/navigation"
 import { toast } from "react-hot-toast"
 import { useAuth } from "@/lib/auth-store"
-import { ThemeToggle } from "@/components/shared/ThemeToggle"
 
 export default function AdminInvite() {
     const { token } = useParams()
@@ -114,9 +113,7 @@ export default function AdminInvite() {
 
     if (isValidToken === false) {
         return <div className="min-h-screen bg-background flex flex-col items-center justify-center p-6 gap-8">
-            <div className="absolute top-10 right-10">
-                <ThemeToggle />
-            </div>
+            
             <div className="bg-destructive/5 border border-destructive/20 rounded-[3rem] p-12 md:p-16 text-center flex flex-col gap-8 max-w-lg shadow-2xl">
                 <div className="w-20 h-20 bg-destructive/10 rounded-3xl flex items-center justify-center mx-auto ring-1 ring-destructive/20">
                     <Zap className="w-10 h-10 text-destructive" />
@@ -142,10 +139,7 @@ export default function AdminInvite() {
             <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-primary/[0.08] rounded-full blur-[120px] pointer-events-none" />
             <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-blue-500/[0.05] rounded-full blur-[120px] pointer-events-none" />
 
-            {/* Theme Control Matrix */}
-            <div className="absolute top-8 right-8 z-50">
-                <ThemeToggle />
-            </div>
+            
 
             <motion.div
                 initial={{ opacity: 0, scale: 0.95, y: 20 }}

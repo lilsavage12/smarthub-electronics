@@ -1,72 +1,71 @@
 import { NextResponse } from "next/server"
-import { supabase } from "@/lib/supabase"
+import { supabaseAdmin } from "@/lib/supabase"
+
+export const dynamic = "force-dynamic"
 
 export async function POST(req: Request) {
     try {
-        const { code, items, subtotal } = await req.json()
-        if (!code) return NextResponse.json({ error: "No code provided" }, { status: 400 })
+        const { code, items = [], subtotal = 0 } = await req.json()
+        if (!code) return NextResponse.json({ error: "No discount code entered" }, { status: 400 })
 
-        const { data: discount, error } = await supabase
+        const cleanCode = String(code).trim().toUpperCase()
+
+        const { data: discount, error } = await supabaseAdmin
             .from('Discount')
             .select('*')
-            .eq('code', code.toUpperCase())
+            .eq('code', cleanCode)
             .maybeSingle()
 
-        if (error) throw error
+        if (error) {
+            console.error("[DISCOUNTS_VALIDATE] Error fetching discount:", error)
+            throw error
+        }
+
         if (!discount) {
             return NextResponse.json({ error: "Invalid promo code" }, { status: 404 })
         }
 
         if (discount.status !== "Active") {
-            return NextResponse.json({ error: "This discount code is not active" }, { status: 400 })
+            return NextResponse.json({ error: "This promo code is currently inactive" }, { status: 400 })
         }
 
         if (discount.maxUses && discount.usedCount >= discount.maxUses) {
-            return NextResponse.json({ error: "This code has reached its usage limit" }, { status: 400 })
+            return NextResponse.json({ error: "This code has reached its maximum redemptions" }, { status: 400 })
         }
 
-        // 1. Check Min Purchase
-        if (discount.minPurchase && subtotal < discount.minPurchase) {
-            return NextResponse.json({ error: `Minimum purchase of KSh ${discount.minPurchase.toLocaleString()} required` }, { status: 400 })
-        }
-
-        // 2. Check Categories/Brands if restricted
-        const restrictedCategories = Array.isArray(discount.applicableCategories) ? discount.applicableCategories : (typeof discount.applicableCategories === 'string' ? JSON.parse(discount.applicableCategories) : [])
-        const restrictedBrands = Array.isArray(discount.applicableBrands) ? discount.applicableBrands : (typeof discount.applicableBrands === 'string' ? JSON.parse(discount.applicableBrands) : [])
-
-        if (restrictedCategories.length > 0 || restrictedBrands.length > 0) {
-            const hasMatch = items?.some((item: any) => {
-                const categoryMatch = restrictedCategories.length === 0 || restrictedCategories.includes(item.category)
-                const brandMatch = restrictedBrands.length === 0 || restrictedBrands.includes(item.brand)
-                return categoryMatch && brandMatch
-            })
-
-            if (!hasMatch) {
-                return NextResponse.json({ error: "This code is not applicable to any items in your cart" }, { status: 400 })
-            }
+        // Check Minimum Purchase
+        if (discount.minPurchase && Number(subtotal) < Number(discount.minPurchase)) {
+            return NextResponse.json({ 
+                error: `Minimum order value of Ksh ${Number(discount.minPurchase).toLocaleString()} required` 
+            }, { status: 400 })
         }
 
         let percent = 0
+        let discountValue = 0
+
         if (discount.type === "Percentage") {
-            // Support both "15%" string and number
-            percent = typeof discount.value === 'string' 
-                ? parseInt(discount.value.replace("%", "")) 
-                : discount.value
-        } else if (discount.type === "Free Shipping") {
-            percent = 0
+            percent = typeof discount.value === 'string'
+                ? parseFloat(discount.value.replace("%", "").trim())
+                : Number(discount.value || 0)
+            discountValue = Math.round(Number(subtotal) * (percent / 100))
+        } else if (discount.type === "Fixed Amount" || discount.type === "Amount" || discount.type === "Flat") {
+            const rawVal = typeof discount.value === 'string'
+                ? parseFloat(discount.value.replace(/[^0-9.]/g, ""))
+                : Number(discount.value || 0)
+            discountValue = Math.min(Number(subtotal), rawVal)
+            percent = subtotal > 0 ? Math.round((discountValue / subtotal) * 100) : 0
         }
 
         return NextResponse.json({
             code: discount.code,
-            name: discount.campaign,
+            name: discount.campaign || "Special Discount",
             type: discount.type,
             value: discount.value,
             percent: percent,
-            applicableCategories: restrictedCategories,
-            applicableBrands: restrictedBrands
+            amount: discountValue
         })
-    } catch (error) {
-        console.error("Supabase Promo Validation Error:", error)
-        return NextResponse.json({ error: "Validation error" }, { status: 500 })
+    } catch (error: any) {
+        console.error("[DISCOUNTS_VALIDATE] Unhandled error:", error)
+        return NextResponse.json({ error: "Could not validate promo code" }, { status: 500 })
     }
 }

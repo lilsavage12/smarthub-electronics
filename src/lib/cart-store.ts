@@ -4,11 +4,13 @@ import { toast } from 'react-hot-toast'
 import { calculateFinalPrice } from './promo-utils'
 
 export interface CartItem {
+    variant?: string;
+    size?: string;
     id: string
     productId: string
     name: string
     price: number
-    originalPrice: number
+    originalPrice?: number
     quantity: number
     image: string
     color?: string

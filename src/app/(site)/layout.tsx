@@ -1,6 +1,6 @@
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
-import { MobileBottomNav } from "@/components/layout/MobileBottomNav";
+import { CartDrawer } from "@/components/cart/CartDrawer";
 import { supabaseAdmin } from "@/lib/supabase";
 
 export const revalidate = 600
@@ -10,8 +10,6 @@ export default async function SiteLayout({
 }: {
     children: React.ReactNode;
 }) {
-    // 1. Fetch CMS Global data server-side (Shared between Navbar/Footer)
-    // Using a cached fetch with next: { revalidate: 600 } is implicitly handled by the layout export
     const { data: settings } = await supabaseAdmin
         .from('HomepageSettings')
         .select('*')
@@ -19,15 +17,15 @@ export default async function SiteLayout({
         .maybeSingle()
 
     return (
-        <div className="relative flex min-h-screen flex-col" suppressHydrationWarning>
+        <div className="relative flex min-h-screen flex-col bg-[#0c0c0e] text-white" suppressHydrationWarning>
             <Navbar initialSettings={settings} />
-            <main className="flex-1 pt-24 lg:pt-32 pb-24">
+            <main className="flex-1 pt-14">
                 {children}
             </main>
-            <MobileBottomNav />
             <footer className="mt-auto">
                 <Footer initialSettings={settings} />
             </footer>
+            <CartDrawer />
         </div>
     );
 }

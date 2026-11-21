@@ -16,7 +16,16 @@ const config: Config = {
         "2xl": "1400px",
       },
     },
-    extend: {
+    extend:
+      {
+      fontFamily: {
+        sans: ["Inter", "Space Grotesk", "sans-serif"],
+        bebas: ["'Bebas Neue'", "sans-serif"],
+        mono: ["'Space Mono'", "monospace"],
+        inter: ["Inter", "sans-serif"],
+        heading: ["'Bebas Neue'", "Barlow Condensed", "sans-serif"],
+        f1: ["'Bebas Neue'", "Barlow Condensed", "sans-serif"],
+      },
       colors: {
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",

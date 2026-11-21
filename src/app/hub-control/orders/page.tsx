@@ -17,12 +17,14 @@ import { AutoScroller } from "@/components/admin/AutoScroller"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { cn } from "@/lib/utils"
+import { useSearchParams } from "next/navigation"
 import { OrderQuickView } from "@/components/admin/OrderQuickView"
 import { supabase } from "@/lib/supabase"
 
 // Define Order Interface
 interface Order {
     id: string
+    orderNumber?: string
     userId: string
     customerName: string
     customerEmail: string
@@ -76,7 +78,7 @@ const STATUS_ICONS: Record<string, any> = {
 }
 
 
-export default function OrdersPage() {
+function OrdersPageContent() {
     const [orders, setOrders] = useState<Order[]>([])
     const [loading, setLoading] = useState(true)
     const [searchQuery, setSearchQuery] = useState("")
@@ -88,6 +90,39 @@ export default function OrdersPage() {
     const [expandedRows, setExpandedRows] = useState<string[]>([])
     const [confirmAction, setConfirmAction] = useState<{ id: string, type: 'CANCEL' | 'DELETE' | 'REFUND' } | null>(null)
     const [isTrackingModalOpen, setIsTrackingModalOpen] = useState(false)
+    
+    const searchParams = useSearchParams()
+    const targetId = searchParams ? (searchParams.get('id') || searchParams.get('orderId')) : null
+
+    useEffect(() => {
+        const storedTarget = typeof window !== 'undefined' ? sessionStorage.getItem('f1_open_order_id') : null
+        const target = targetId || storedTarget
+
+        if (!target) return
+
+        const selectTargetOrder = (orderList: Order[]) => {
+            const found = orderList.find(o => 
+                String(o.id).toLowerCase() === String(target).toLowerCase() ||
+                (o.orderNumber && String(o.orderNumber).toLowerCase() === String(target).toLowerCase()) ||
+                String(o.id).toLowerCase().includes(String(target).toLowerCase()) ||
+                (o.orderNumber && String(o.orderNumber).toLowerCase().includes(String(target).toLowerCase()))
+            )
+            if (found) {
+                setSelectedOrder(found)
+                setIsDetailsOpen(true)
+                if (typeof window !== 'undefined') {
+                    sessionStorage.removeItem('f1_open_order_id')
+                }
+                return true
+            }
+            return false
+        }
+
+        if (orders.length > 0) {
+            selectTargetOrder(orders)
+        }
+    }, [targetId, orders])
+
     const [trackingForm, setTrackingForm] = useState({
         status: '',
         message: '',
@@ -111,6 +146,22 @@ export default function OrdersPage() {
             if (res.ok) {
                 const data = await res.json()
                 setOrders(data)
+                const target = targetId || (typeof window !== 'undefined' ? sessionStorage.getItem('f1_open_order_id') : null)
+                if (target && Array.isArray(data)) {
+                    const found = data.find((o: any) => 
+                        String(o.id).toLowerCase() === String(target).toLowerCase() ||
+                        (o.orderNumber && String(o.orderNumber).toLowerCase() === String(target).toLowerCase()) ||
+                        String(o.id).toLowerCase().includes(String(target).toLowerCase()) ||
+                        (o.orderNumber && String(o.orderNumber).toLowerCase().includes(String(target).toLowerCase()))
+                    )
+                    if (found) {
+                        setSelectedOrder(found)
+                        setIsDetailsOpen(true)
+                        if (typeof window !== 'undefined') {
+                            sessionStorage.removeItem('f1_open_order_id')
+                        }
+                    }
+                }
             }
         } catch (error) {
             console.error("Postgres Orders Sync Error:", error)
@@ -789,5 +840,14 @@ export default function OrdersPage() {
                 )}
             </AnimatePresence>
         </div>
+    )
+}
+
+
+export default function OrdersPage() {
+    return (
+        <React.Suspense fallback={<div className="p-8 text-xs font-black uppercase text-muted-foreground font-f1">Loading orders telemetry...</div>}>
+            <OrdersPageContent />
+        </React.Suspense>
     )
 }

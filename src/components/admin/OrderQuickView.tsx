@@ -354,7 +354,7 @@ export const OrderQuickView: React.FC<OrderQuickViewProps> = ({
                                             <div key={idx} className="flex items-center justify-between p-3 rounded-xl border border-border/50 bg-muted/5 group hover:bg-muted/10 transition-all">
                                                 <div className="flex items-center gap-4">
                                                     <div className="h-12 w-12 rounded-lg bg-background border border-border flex items-center justify-center p-1 relative overflow-hidden">
-                                                        <Image src={item.image} fill className="object-contain p-1" alt={item.name} />
+                                                        <Image src={item.image} fill sizes="48px" className="object-contain p-1" alt={item.name} />
                                                     </div>
                                                     <div className="flex flex-col gap-0.5">
                                                         <span className="text-xs font-bold text-foreground group-hover:text-primary transition-colors">{item.name}</span>

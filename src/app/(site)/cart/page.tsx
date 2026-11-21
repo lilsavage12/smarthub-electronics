@@ -157,7 +157,7 @@ export default function CartPage() {
                                     className="w-6 h-6 rounded border-border accent-primary cursor-pointer shrink-0 md:ml-2"
                                 />
                                 <Link href={`/products/${slugify(item.name)}--${item.productId || item.id}`} className="w-24 h-24 md:w-28 md:h-28 relative bg-background rounded-xl border border-border p-3 flex-shrink-0 group-hover:shadow-lg transition-all overflow-hidden">
-                                    <Image src={item.image} alt={item.name} fill className="object-contain p-1.5 group-hover:scale-105 transition-transform duration-500" />
+                                    <Image src={item.image} alt={item.name} fill sizes="112px" className="object-contain p-1.5 group-hover:scale-105 transition-transform duration-500" />
                                 </Link>
 
                                 <div className="flex-1 flex flex-col gap-1 w-full text-center md:text-left">

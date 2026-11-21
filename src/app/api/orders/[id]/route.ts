@@ -39,48 +39,30 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
             return NextResponse.json({ error: "Order record not found" }, { status: 404 })
         }
 
-        const isMarkingCancelled = body.status === "Cancelled" || body.status === "CANCELLED"
-        const alreadyCancelled = order.status === "Cancelled" || order.status === "CANCELLED"
+        const isRestockingStatus = (status: string) => {
+            const s = (status || '').toUpperCase()
+            return s === 'CANCELLED' || s === 'RETURNED'
+        }
 
-        if (isMarkingCancelled && !alreadyCancelled) {
+        const isMarkingRestock = body.status && isRestockingStatus(body.status)
+        const alreadyRestocked = isRestockingStatus(order.status)
+
+        if (isMarkingRestock && !alreadyRestocked) {
             // RESTORE STOCK LOGIC
             for (const item of (order.items || [])) {
-                // 1. Restore Base Product Stock
-                const { data: product } = await supabaseAdmin.from('Product').select('stock, specs').eq('id', item.productId).single()
-                if (product) {
-                    await supabaseAdmin.from('Product').update({ stock: (product.stock || 0) + item.quantity }).eq('id', item.productId)
-                    
-                    // 2. Restore Variant/Color Stock
-                    if (item.variantId) {
-                        const { data: variant } = await supabaseAdmin.from('ProductVariant').select('productColors').eq('id', item.variantId).single()
-                        if (variant) {
-                            let vColors = []
-                            try { vColors = typeof variant.productColors === 'string' ? JSON.parse(variant.productColors) : (variant.productColors || []) } catch { vColors = [] }
-                            
-                            const colorIdx = vColors.findIndex((c: any) => c.color?.toLowerCase() === item.color?.toLowerCase())
-                            if (colorIdx >= 0) {
-                                vColors[colorIdx].stock = (parseInt(vColors[colorIdx].stock || '0') + item.quantity).toString()
-                                await supabaseAdmin.from('ProductVariant').update({ productColors: JSON.stringify(vColors) }).eq('id', item.variantId)
-                            }
-                        }
-                    } else if (item.color) {
-                        // Master color restoration
-                        let pSpecs = typeof product.specs === 'string' ? JSON.parse(product.specs) : (product.specs || {})
-                        let pColors = pSpecs.productColors || []
-                        const colorIdx = pColors.findIndex((c: any) => c.color?.toLowerCase() === item.color?.toLowerCase())
-                        if (colorIdx >= 0) {
-                            pColors[colorIdx].stock = (parseInt(pColors[colorIdx].stock || '0') + item.quantity).toString()
-                            pSpecs.productColors = pColors
-                            await supabaseAdmin.from('Product').update({ specs: JSON.stringify(pSpecs) }).eq('id', item.productId)
-                        }
+                if (item.productId) {
+                    const { data: product } = await supabaseAdmin.from('Product').select('stock').eq('id', item.productId).maybeSingle()
+                    if (product && typeof product.stock === 'number') {
+                        const restoredStock = product.stock + (Number(item.quantity) || 1)
+                        await supabaseAdmin.from('Product').update({ stock: restoredStock }).eq('id', item.productId)
                     }
                 }
             }
 
-            // Update status to Cancelled
+            // Update status to Cancelled or Returned
             const { error } = await supabaseAdmin
                 .from('Order')
-                .update({ status: "CANCELLED", updatedAt: new Date().toISOString() })
+                .update({ ...body, updatedAt: new Date().toISOString() })
                 .eq('id', orderId)
             if (error) throw error
         } else {

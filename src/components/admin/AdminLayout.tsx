@@ -43,6 +43,23 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
         toast.success("All notifications marked as read")
     }
 
+    
+    const handleNotificationClick = (n: any) => {
+        markAsRead(n.id);
+        setIsNotificationsOpen(false);
+        if (n.type === 'order') {
+            const orderId = n.orderId || n.id;
+            if (typeof window !== 'undefined') {
+                sessionStorage.setItem('f1_open_order_id', String(orderId));
+            }
+            router.push(`/hub-control/orders?id=${orderId}&t=${Date.now()}`);
+        } else if (n.type === 'alert') {
+            router.push('/hub-control/products');
+        } else if (n.type === 'message') {
+            router.push('/hub-control/messages');
+        }
+    };
+
     const markAsRead = (id: number) => {
         setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n))
     }
@@ -111,7 +128,20 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                         const latestOrder = sortedOrders[0]
 
                         // Check if this is a new order since we last polled
-                        if (lastOrderTimestamp && new Date(latestOrder.createdAt) > new Date(lastOrderTimestamp)) {
+                        if (!lastOrderTimestamp) {
+                            const initialList = sortedOrders.slice(0, 6).map((ord: any) => ({
+                                id: ord.id,
+                                orderId: ord.id,
+                                orderNumber: ord.orderNumber,
+                                title: `Order #${ord.orderNumber || ord.id.slice(0, 8).toUpperCase()}`,
+                                message: `${ord.customerName || 'Customer'} · Ksh ${Number(ord.totalAmount).toLocaleString()}`,
+                                time: new Date(ord.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                                type: "order",
+                                read: false
+                            }));
+                            setNotifications(initialList);
+                            setLastOrderTimestamp(latestOrder.createdAt);
+                        } else if (new Date(latestOrder.createdAt) > new Date(lastOrderTimestamp)) {
                             toast.success(`NEW ORDER: KSh ${latestOrder.totalAmount} from ${latestOrder.customerName || 'Anonymous'}`, {
                                 icon: '🛒',
                                 duration: 5000,
@@ -234,7 +264,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                 { name: "Orders", icon: <ShoppingCart className="w-[18px] h-[18px]" />, href: "/hub-control/orders" },
                 { name: "Delivery Fee", icon: <Truck className="w-[18px] h-[18px]" />, href: "/hub-control/delivery" },
                 { name: "Messages", icon: <MessageSquare className="w-[18px] h-[18px]" />, href: "/hub-control/messages", badge: unreadMessages > 0 ? unreadMessages : undefined },
-                { name: "Storefront CMS", icon: <ImageIcon className="w-[18px] h-[18px]" />, href: "/hub-control/cms" },
+                
             ]
         },
         {
@@ -471,37 +501,36 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                 )}
             >
                 {/* Navigation Sections */}
-                <header className="h-16 lg:h-20 bg-background/60 backdrop-blur-xl border-b border-border sticky top-0 z-40 flex items-center justify-between px-4 sm:px-6 lg:px-10">
-                    <div className="flex items-center gap-6">
+                <header className="h-16 lg:h-20 bg-background border-b border-border sticky top-0 z-40 flex items-center justify-between px-4 sm:px-6 lg:px-10 shadow-sm">
+                    <div className="flex items-center gap-3 sm:gap-6 min-w-0 flex-1 mr-4">
                         <button
                             onClick={() => setIsMobileSidebarOpen(true)}
-                            className="lg:hidden p-3 rounded-xl bg-muted text-foreground"
+                            className="lg:hidden p-2.5 rounded-xl bg-muted text-foreground shrink-0"
                         >
-                            <Menu size={20} />
+                            <Menu size={18} />
                         </button>
-                        <div className="relative group flex items-center">
-                            <Search className="absolute left-4 text-muted-foreground group-focus-within:text-primary transition-colors" size={16} />
+                        <div className="relative group hidden md:flex items-center max-w-xs w-full min-w-0">
+                            <Search className="absolute left-3.5 text-muted-foreground group-focus-within:text-primary transition-colors pointer-events-none" size={15} />
                             <input
                                 type="text"
-                                placeholder="Search products, orders, customers..."
-                                className="h-10 lg:h-11 bg-muted/40 border-none rounded-2xl py-2 pl-12 pr-6 text-[11px] w-48 sm:w-64 lg:w-96 font-bold uppercase tracking-widest focus:ring-1 focus:ring-primary/20 transition-all outline-none text-foreground placeholder:text-muted-foreground/30 "
+                                placeholder="Search products, orders..."
+                                className="h-10 bg-muted/40 border border-border/40 rounded-xl py-2 pl-10 pr-4 text-xs font-medium w-full focus:ring-1 focus:ring-primary/20 transition-all outline-none text-foreground placeholder:text-muted-foreground/40"
                             />
                         </div>
                     </div>
 
-                    <div className="flex items-center gap-4">
-                        <ThemeToggle />
-                        <div className="relative">
+                    <div className="flex items-center gap-3 shrink-0">
+                        <div className="relative shrink-0">
                             <button
                                 onClick={() => setIsNotificationsOpen(!isNotificationsOpen)}
                                 className={cn(
-                                    "relative p-3 rounded-2xl transition-all border",
+                                    "relative p-2.5 rounded-xl transition-all border shrink-0",
                                     isNotificationsOpen ? "bg-primary/10 border-primary/30 text-primary" : "bg-muted/40 text-muted-foreground border-transparent hover:border-border hover:bg-muted"
                                 )}
                             >
                                 <Bell size={18} />
                                 {notifications.some(n => !n.read) && (
-                                    <span className="absolute top-3 right-3 w-2 h-2 bg-primary rounded-full ring-2 ring-background animate-pulse" />
+                                    <span className="absolute top-2 right-2 w-2 h-2 bg-primary rounded-full ring-2 ring-background animate-pulse" />
                                 )}
                             </button>
 
@@ -513,46 +542,59 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                                             initial={{ opacity: 0, y: 10, scale: 0.95 }}
                                             animate={{ opacity: 1, y: 0, scale: 1 }}
                                             exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                                            className="absolute right-0 mt-4 w-[280px] sm:w-[320px] md:w-96 bg-card border border-border rounded-3xl shadow-2xl z-50 overflow-hidden"
+                                            className="absolute right-0 mt-4 w-[280px] sm:w-[320px] md:w-96 bg-card border border-border rounded-2xl shadow-2xl z-50 overflow-hidden"
                                         >
-                                            <div className="px-6 py-5 border-b border-border flex items-center justify-between bg-muted/20">
-                                                <h3 className="text-xs font-black uppercase tracking-[0.2em] ">Activity Logs</h3>
+                                            <div className="px-6 py-4 border-b border-border flex items-center justify-between bg-muted/20">
+                                                <h3 className="text-xs font-black uppercase tracking-[0.2em]">Activity Logs</h3>
                                                 <button onClick={markAllRead} className="text-[10px] font-bold text-primary hover:underline">Mark all read</button>
                                             </div>
-                                            <div className="max-h-[400px] overflow-y-auto no-scrollbar">
-                                                {notifications.map((n) => (
-                                                    <div key={n.id} onClick={() => markAsRead(n.id)} className={cn("p-5 border-b border-border/50 hover:bg-muted/30 transition-colors cursor-pointer group", !n.read && "bg-primary/[0.02]")}>
-                                                        <div className="flex items-start gap-4">
+                                            <div className="max-h-[380px] overflow-y-auto no-scrollbar">
+                                                {notifications.length === 0 ? (
+                                                    <div className="p-8 text-center text-xs text-muted-foreground font-sans">
+                                                        No new activity logs.
+                                                    </div>
+                                                ) : (
+                                                    notifications.map((n) => (
+                                                        <div 
+                                                            key={n.id} 
+                                                            onClick={() => handleNotificationClick(n)} 
+                                                            className={cn(
+                                                                "p-4 border-b border-border/50 hover:bg-muted/30 transition-colors cursor-pointer group flex items-start gap-3", 
+                                                                !n.read && "bg-primary/[0.04]"
+                                                            )}
+                                                        >
                                                             <div className={cn(
-                                                                "p-2 rounded-xl shrink-0",
+                                                                "p-2 rounded-xl shrink-0 mt-0.5",
                                                                 n.type === 'alert' ? "bg-destructive/10 text-destructive" :
                                                                     n.type === 'order' ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground",
                                                                 !n.read && "ring-1 ring-inset ring-current/20"
                                                             )}>
-                                                                {n.type === 'alert' ? <ShieldCheck size={16} /> :
-                                                                    n.type === 'order' ? <ShoppingCart size={16} /> : <FileText size={16} />}
+                                                                {n.type === 'alert' ? <ShieldCheck size={15} /> :
+                                                                    n.type === 'order' ? <ShoppingCart size={15} /> : <FileText size={15} />}
                                                             </div>
-                                                            <div className="flex flex-col gap-1">
-                                                                <div className="flex items-center gap-2">
-                                                                    <h4 className="text-[11px] font-black uppercase tracking-tight leading-none">{n.title}</h4>
-                                                                    {!n.read && <div className="w-1.5 h-1.5 bg-primary rounded-full" />}
+                                                            <div className="flex flex-col gap-0.5 min-w-0 flex-1">
+                                                                <div className="flex items-center justify-between gap-2">
+                                                                    <h4 className="text-[11px] font-black uppercase tracking-tight text-foreground truncate">{n.title}</h4>
+                                                                    <span className="text-[9px] font-bold text-muted-foreground/50 shrink-0">{n.time}</span>
                                                                 </div>
-                                                                <p className="text-[11px] font-medium text-muted-foreground leading-tight mt-1">{n.message}</p>
-                                                                <span className="text-[9px] font-bold text-muted-foreground/40 uppercase mt-1">{n.time}</span>
+                                                                <p className="text-[11px] text-muted-foreground leading-tight">{n.message}</p>
+                                                                {n.type === 'order' && (
+                                                                    <span className="text-[9px] font-bold text-primary tracking-wide mt-1 group-hover:underline">View Order Details →</span>
+                                                                )}
                                                             </div>
                                                         </div>
-                                                    </div>
-                                                ))}
+                                                    ))
+                                                )}
                                             </div>
                                         </motion.div>
                                     </>
                                 )}
                             </AnimatePresence>
                         </div>
-                        <div className="h-6 w-[1px] bg-border mx-2" />
-                        <div className="hidden sm:flex items-center gap-2 px-4 py-2 bg-muted/40 rounded-2xl border border-border">
-                            <Circle size={8} className="fill-success text-success" />
-                            <span className="text-[9px] font-black uppercase tracking-widest opacity-60">Active Session</span>
+                        <div className="h-6 w-[1px] bg-border mx-1 hidden lg:block" />
+                        <div className="hidden lg:flex items-center gap-2 px-3 py-1.5 bg-muted/40 rounded-xl border border-border shrink-0">
+                            <Circle size={7} className="fill-success text-success" />
+                            <span className="text-[9px] font-black uppercase tracking-widest opacity-60">Session Active</span>
                         </div>
                     </div>
                 </header>

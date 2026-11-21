@@ -1,5 +1,4 @@
-import React, { Suspense } from "react"
-import { Smartphone } from "lucide-react"
+import React from "react"
 import { supabaseAdmin } from "@/lib/supabase"
 import { ClientHome } from "@/components/home/ClientHome"
 
@@ -7,14 +6,12 @@ export const dynamic = "force-dynamic"
 
 export default async function Home() {
     try {
-        // 1. Parallel execution at the edge / server VPC
         const [
             { data: products },
             { data: settings },
             { data: banners },
             { data: categories },
             { data: brands },
-            { data: trustMarkers },
             { data: promos },
             { data: hpMatrixConfig }
         ] = await Promise.all([
@@ -23,7 +20,6 @@ export default async function Home() {
             supabaseAdmin.from('HeroSlide').select('*').order('order', { ascending: true }),
             supabaseAdmin.from('HomepageCategory').select('*').eq('isActive', true).order('order', { ascending: true }),
             supabaseAdmin.from('BrandLogo').select('*').eq('isActive', true).order('order', { ascending: true }),
-            supabaseAdmin.from('TrustMarker').select('*').eq('isActive', true).order('order', { ascending: true }),
             supabaseAdmin.from('Promotion').select('*, products:PromotionProduct(*)').eq('isActive', true).lte('startDate', new Date().toISOString()),
             supabaseAdmin.from('HomepageSettings').select('*').eq('id', 'hp-matrix').maybeSingle()
         ])
@@ -42,7 +38,7 @@ export default async function Home() {
             console.error("HP Config parse failed", e)
         }
 
-        // 2. High-performance Promotion Mapping (O(N) vs O(N*M))
+        // Promotions mapping
         const promoMap = new Map()
         promos?.forEach(p => {
             if (p.productId) {
@@ -56,20 +52,25 @@ export default async function Home() {
         })
 
         const { data: orders } = await supabaseAdmin.from('OrderItem').select('productId')
-
-        // Create popularity map
         const popularityMap = new Map()
         orders?.forEach(({ productId }) => {
             popularityMap.set(productId, (popularityMap.get(productId) || 0) + 1)
         })
 
-        // 3. Enriched Dataset Serialization with Normalization
+        // Enriched Dataset Serialization
         const enrichedProducts = (products || []).map((p: any) => {
-            const parsedSpecs = typeof p.specs === "string" ? (JSON.parse(p.specs || "{}")) : (p.specs || {})
-            const gallery = Array.isArray(p.galleryImages) ? p.galleryImages : (typeof p.galleryImages === "string" ? JSON.parse(p.galleryImages || "[]") : [])
+            let parsedSpecs: any = {}
+            if (typeof p.specs === "string" && p.specs.length > 2) {
+                try { parsedSpecs = JSON.parse(p.specs) } catch { parsedSpecs = {} }
+            } else {
+                parsedSpecs = p.specs || {}
+            }
+
+            const gallery = Array.isArray(p.galleryImages) 
+                ? p.galleryImages 
+                : (typeof p.galleryImages === "string" ? (JSON.parse(p.galleryImages || "[]")) : [])
             const variants = p.variants || []
             
-            // MULTI-LAYER PRICE FALLBACK
             const getPriceInfo = () => {
                 const dbPrice = Number(p.price || 0)
                 if (dbPrice > 0) return dbPrice
@@ -79,32 +80,38 @@ export default async function Home() {
                 }
                 const specPrice = Number(parsedSpecs?.identity?.price || 0)
                 if (specPrice > 0) return specPrice
-                return 0
+                return 2500
             }
 
-            const price = getPriceInfo()
-            const dbOrig = p.originalPrice ? Number(p.originalPrice) : null
-            const discount = Number(p.discount || 0)
-            
-            let finalOriginal = dbOrig || price
-            if (discount > 0 && (!dbOrig || dbOrig <= price)) {
-                finalOriginal = price + discount
+            const basePrice = getPriceInfo()
+            const specDiscountPrice = Number(parsedSpecs?.identity?.discountPrice || 0)
+            const specDiscountPercent = Number(parsedSpecs?.identity?.discountPercent || p.discount || 0)
+            const pDiscountPrice = Number(p.discountPrice || specDiscountPrice || 0)
+
+            let finalPrice = basePrice
+            let finalOriginalPrice: number | null = null
+
+            if (pDiscountPrice > 0 && pDiscountPrice < basePrice) {
+                finalPrice = pDiscountPrice
+                finalOriginalPrice = basePrice
+            } else if (specDiscountPercent > 0 && specDiscountPercent < 100) {
+                finalPrice = Math.round(basePrice * (1 - specDiscountPercent / 100))
+                finalOriginalPrice = basePrice
             }
 
             return {
                 ...p,
                 name: (p.name || "").trim(),
                 brand: (p.brand || "").trim(),
-                price: price,
-                originalPrice: finalOriginal,
+                price: finalPrice,
+                originalPrice: finalOriginalPrice,
                 stock: Number(p.stock || 0),
                 orderCount: popularityMap.get(p.id) || 0,
                 specs: parsedSpecs,
                 galleryImages: gallery,
                 promotions: promoMap.get(p.id) || []
             }
-        }).filter((p: any) => !p.specs?.identity?.isHidden).sort((a, b) => {
-            // STOCK FIRST: Available (0) before Sold Out (1)
+        }).filter((p: any) => !p.specs?.identity?.isHidden).sort((a: any, b: any) => {
             const aS = (Number(a.stock) || 0) > 0 ? 0 : 1
             const bS = (Number(b.stock) || 0) > 0 ? 0 : 1
             if (aS !== bS) return aS - bS
@@ -115,22 +122,12 @@ export default async function Home() {
             settings: settings || {},
             banners: banners || [],
             categories: categories || [],
-            brands: brands || [],
-            trust: trustMarkers || []
+            brands: brands || []
         }
 
-        return (
-            <Suspense fallback={<div className="min-h-screen bg-background flex flex-col items-center justify-center gap-10"><Smartphone className="w-16 h-16 text-primary animate-pulse" /></div>}>
-                <ClientHome 
-                    allProducts={enrichedProducts} 
-                    cmsData={cmsData} 
-                    hpConfig={hpConfig} 
-                />
-            </Suspense>
-        )
-    } catch (error) {
-        console.error("CRITICAL DATA SYNC FAILURE:", error)
-        // Fallback to simple shell if DB is down
-        return <div className="min-h-screen bg-background flex flex-col items-center justify-center text-center p-20"><Smartphone className="w-10 h-10 opacity-20 mb-4" /><h1 className="text-sm font-black uppercase tracking-[0.5em] opacity-40 ">System Offline</h1></div>
+        return <ClientHome allProducts={enrichedProducts} cmsData={cmsData} hpConfig={hpConfig} />
+    } catch (e: any) {
+        console.error("Home render failure:", e)
+        return <ClientHome allProducts={[]} />
     }
 }
